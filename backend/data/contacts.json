@@ -1,0 +1,19 @@
+[
+  {
+    "id": "contact_1780818577429",
+    "name": "Verification Bot",
+    "email": "bot@verification.com",
+    "phone": "9876543210",
+    "message": "This is an automated verification message.",
+    "date": "2026-06-07T07:49:37.429Z"
+  },
+  {
+    "id": "contact_1780818609962",
+    "name": "Verification Bot",
+    "email": "bot@verification.com",
+    "phone": "9876543210",
+    "course": "MERN Stack Web Development",
+    "message": "This is an automated verification message.",
+    "date": "2026-06-07T07:50:09.962Z"
+  }
+]

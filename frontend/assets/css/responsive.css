@@ -1,0 +1,334 @@
+/* ============================================================
+   SDA — Responsive Breakpoints
+   ============================================================ */
+
+/* ---------- Tablet (max-width: 1024px) ---------- */
+@media (max-width: 1024px) {
+  :root {
+    --text-7xl: 3.5rem;
+    --text-6xl: 3rem;
+    --text-5xl: 2.5rem;
+  }
+
+  .section {
+    padding: var(--space-16) 0;
+  }
+
+  .container {
+    padding: 0 var(--space-6);
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Hero */
+  .hero {
+    min-height: auto;
+    padding-top: calc(var(--navbar-height) + var(--space-12));
+    padding-bottom: var(--space-12);
+  }
+
+  .hero-title {
+    font-size: var(--text-5xl);
+  }
+
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+
+  /* Section headers */
+  .section-title {
+    font-size: var(--text-4xl);
+  }
+
+  /* Founder */
+  .founder-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  .founder-image-wrapper {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+}
+
+/* ---------- Mobile Landscape / Small Tablet (max-width: 768px) ---------- */
+@media (max-width: 768px) {
+  :root {
+    --text-7xl: 2.75rem;
+    --text-6xl: 2.25rem;
+    --text-5xl: 2rem;
+    --text-4xl: 1.75rem;
+    --text-3xl: 1.5rem;
+    --navbar-height: 70px;
+  }
+
+  .section {
+    padding: var(--space-12) 0;
+  }
+
+  .container {
+    padding: 0 var(--space-4);
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding-top: calc(var(--navbar-height) + var(--space-8));
+  }
+
+  .hero-title {
+    font-size: var(--text-4xl);
+  }
+
+  .hero-subtitle {
+    font-size: var(--text-base);
+  }
+
+  .hero-buttons {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .hero-buttons .btn {
+    width: 100%;
+    max-width: 300px;
+  }
+
+  .hero-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-4);
+  }
+
+  /* Section headers */
+  .section-title {
+    font-size: var(--text-3xl);
+  }
+
+  .section-subtitle {
+    font-size: var(--text-base);
+  }
+
+  .section-badge {
+    font-size: var(--text-xs);
+  }
+
+  /* Cards */
+  .glass-card {
+    padding: var(--space-6);
+  }
+
+  .card-body {
+    padding: var(--space-4);
+  }
+
+  /* Course cards */
+  .course-card {
+    max-width: 100%;
+  }
+
+  /* Why choose us */
+  .feature-card {
+    padding: var(--space-6);
+  }
+
+  /* Achievers */
+  .achiever-card {
+    padding: var(--space-6);
+  }
+
+  /* Buttons */
+  .btn-lg {
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--text-base);
+  }
+
+  /* Counter */
+  .counter-value {
+    font-size: var(--text-4xl);
+  }
+
+  /* Certificate preview */
+  .certificate-preview {
+    padding: var(--space-6);
+  }
+
+  /* Bootcamp countdown */
+  .countdown-wrapper {
+    gap: var(--space-4);
+  }
+
+  .countdown-item {
+    min-width: 70px;
+    padding: var(--space-4);
+  }
+
+  .countdown-value {
+    font-size: var(--text-3xl);
+  }
+
+  /* Contact */
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* CTA section */
+  .cta-title {
+    font-size: var(--text-3xl);
+  }
+}
+
+/* ---------- Mobile Portrait (max-width: 480px) ---------- */
+@media (max-width: 480px) {
+  :root {
+    --text-7xl: 2.25rem;
+    --text-6xl: 2rem;
+    --text-5xl: 1.75rem;
+    --text-4xl: 1.5rem;
+    --text-3xl: 1.25rem;
+    --text-2xl: 1.125rem;
+  }
+
+  body {
+    font-size: var(--text-sm);
+  }
+
+  .container {
+    padding: 0 var(--space-4);
+  }
+
+  .section {
+    padding: var(--space-10) 0;
+  }
+
+  /* Hero */
+  .hero-title {
+    font-size: var(--text-3xl);
+    line-height: 1.25;
+  }
+
+  .hero-stats {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .stat-card {
+    padding: var(--space-4);
+  }
+
+  .counter-value {
+    font-size: var(--text-3xl);
+  }
+
+  /* Marquee */
+  .marquee-item span {
+    font-size: var(--text-lg);
+  }
+
+  .marquee-item img {
+    height: 28px;
+  }
+
+  /* Section headers */
+  .section-header {
+    margin-bottom: var(--space-10);
+  }
+
+  .section-title {
+    font-size: var(--text-2xl);
+  }
+
+  /* Glass card */
+  .glass-card {
+    padding: var(--space-5);
+    border-radius: var(--radius-lg);
+  }
+
+  /* Buttons */
+  .btn {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-sm);
+  }
+
+  .btn-lg {
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-sm);
+  }
+
+  /* Glow orbs — smaller on mobile */
+  .glow-orb {
+    filter: blur(60px);
+    opacity: 0.5;
+  }
+
+  /* Founder section */
+  .founder-message {
+    font-size: var(--text-base);
+  }
+
+  /* Testimonial cards */
+  .testimonial-text {
+    font-size: var(--text-sm);
+  }
+
+  /* Footer */
+  .footer-social {
+    justify-content: center;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: var(--space-3);
+    text-align: center;
+  }
+
+  /* Disable parallax on mobile */
+  .parallax-element {
+    transform: none !important;
+  }
+
+  /* Simplify particles */
+  #particles-canvas {
+    opacity: 0.3;
+  }
+}
+
+/* ---------- Large Desktop (min-width: 1440px) ---------- */
+@media (min-width: 1440px) {
+  .container {
+    max-width: 1400px;
+  }
+
+  .hero-title {
+    font-size: var(--text-8xl);
+  }
+
+  .section-title {
+    font-size: var(--text-6xl);
+  }
+}
+
+/* ---------- Ultra-wide (min-width: 1920px) ---------- */
+@media (min-width: 1920px) {
+  html {
+    font-size: 18px;
+  }
+
+  .container {
+    max-width: 1600px;
+  }
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Sukla Digital Academy</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+
+  <!-- Login Card Container -->
+  <div class="glass-card auth-card">
+    <div class="auth-header">
+      <a href="index.html" class="logo" style="justify-content: center; margin-bottom: 20px;">
+        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      </a>
+      <h2>Welcome Back</h2>
+      <p>Enter your credentials to access your dashboard</p>
+    </div>
+
+    <!-- Login Form -->
+    <form id="login-form">
+      <div class="auth-form-group">
+        <label for="email">Email Address</label>
+        <div class="auth-input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label for="password">Password</label>
+        <div class="auth-input-wrapper">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" class="auth-input" placeholder="••••••••" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary auth-btn">
+        Login Securely <i class="fas fa-sign-in-alt"></i>
+      </button>
+    </form>
+
+    <div class="auth-redirect">
+      Don't have an account? <a href="register.html">Register here</a>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // If already logged in, redirect straight to dashboard
+      if (Auth.isLoggedIn()) {
+        Auth.redirectToDashboard();
+      }
+
+      const form = document.getElementById('login-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!email || !password) {
+          showToast('Please fill in all fields.', 'error');
+          return;
+        }
+
+        try {
+          const response = await apiCall('/login', 'POST', { email, password }, false);
+          
+          Auth.saveToken(response.token);
+          Auth.saveUser(response.user);
+
+          showToast('Login successful! Redirecting...', 'success');
+
+          setTimeout(() => {
+            // Check if there was a pending redirection query param
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUrl = urlParams.get('redirect');
+            if (redirectUrl) {
+              window.location.href = redirectUrl;
+            } else {
+              Auth.redirectToDashboard();
+            }
+          }, 1200);
+
+        } catch (error) {
+          showToast(error.message || 'Login failed. Invalid credentials.', 'error');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

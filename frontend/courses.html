@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Courses Catalog - Sukla Digital Academy</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="courses.html" class="active">Courses</a></li>
+        <li><a href="index.html?scroll=contact">Contact Us</a></li>
+      </ul>
+      <div class="nav-auth" id="auth-nav">
+        <!-- Auth buttons loaded dynamically by script.js -->
+      </div>
+      <button class="hamburger"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="section" style="padding: 140px 0 40px 0; background: radial-gradient(circle at 50% 100%, rgba(255, 75, 43, 0.08) 0%, transparent 60%);">
+    <div class="section-container" style="text-align: center;">
+      <h1 style="font-size: 44px; margin-bottom: 16px;">Explore Our <span>Training Programs</span></h1>
+      <p style="color: var(--text-secondary); max-width: 600px; margin: 0 auto;">Join one of our premium, government-certified training programs and acquire skills that guarantee placements and internships.</p>
+    </div>
+  </header>
+
+  <!-- Courses Filter and Grid Section -->
+  <section class="section" style="padding-top: 20px;">
+    <div class="section-container">
+      
+      <!-- Catalog Filter -->
+      <div class="courses-filter">
+        <button class="filter-btn active" data-filter="all">All Courses</button>
+        <button class="filter-btn" data-filter="language">Programming Languages</button>
+        <button class="filter-btn" data-filter="dsa">DSA & Logic</button>
+        <button class="filter-btn" data-filter="development">Web Development</button>
+      </div>
+
+      <!-- Courses Grid -->
+      <div class="courses-grid" id="courses-catalog-list">
+        <!-- Renders dynamically -->
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <h4>SDA</h4>
+        <p>Empowering software aspirants with job-oriented coding and DSA training. Unlock your tech potential today.</p>
+        <div style="display: flex; gap: 16px; font-size: 18px;">
+          <a href="#"><i class="fab fa-facebook-f"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul class="footer-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="courses.html">Our Courses</a></li>
+          <li><a href="index.html?scroll=contact">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <ul class="footer-links">
+          <li><a href="login.html">Student Login</a></li>
+          <li><a href="register.html">Create Account</a></li>
+          <li><a href="index.html?scroll=contact">Report Issue</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact Us</h4>
+        <div class="footer-contact-item"><i class="fas fa-envelope"></i> info@sukla.com</div>
+        <div class="footer-contact-item"><i class="fas fa-phone-alt"></i> +91 98765 43210</div>
+        <div class="footer-contact-item"><i class="fas fa-map-marker-alt"></i> Odisha, India</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Sukla Digital Academy. All rights reserved.</p>
+      <p>Founder & Instructor: Farhan Khan</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    let allCourses = [];
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadCourses();
+      setupFilters();
+    });
+
+    async function loadCourses() {
+      const catalogList = document.getElementById('courses-catalog-list');
+      if (!catalogList) return;
+
+      try {
+        catalogList.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 40px;"><i class="fas fa-spinner fa-spin" style="font-size: 30px; margin-bottom: 10px;"></i><p>Loading course catalog...</p></div>`;
+        
+        allCourses = await apiCall('/courses', 'GET', null, false);
+        renderCourses(allCourses);
+      } catch (error) {
+        catalogList.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--danger); padding: 40px;"><i class="fas fa-exclamation-triangle" style="font-size: 30px; margin-bottom: 10px;"></i><p>Failed to load courses. Please try again later.</p></div>`;
+        console.error('Error fetching courses catalog:', error);
+      }
+    }
+
+    function renderCourses(courses) {
+      const catalogList = document.getElementById('courses-catalog-list');
+      if (!catalogList) return;
+
+      if (courses.length === 0) {
+        catalogList.innerHTML = `<div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;"><p>No courses match this category.</p></div>`;
+        return;
+      }
+
+      catalogList.innerHTML = courses.map(c => createCourseCard(c)).join('');
+    }
+
+    function setupFilters() {
+      const filterButtons = document.querySelectorAll('.filter-btn');
+      filterButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          // Toggle active class
+          filterButtons.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          const category = btn.getAttribute('data-filter');
+          if (category === 'all') {
+            renderCourses(allCourses);
+          } else {
+            const filtered = allCourses.filter(c => {
+              if (category === 'dsa') {
+                return c.id.includes('dsa');
+              }
+              return c.category === category;
+            });
+            renderCourses(filtered);
+          }
+        });
+      });
+    }
+  </script>
+</body>
+</html>

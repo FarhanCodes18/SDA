@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - Sukla Digital Academy</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="courses.html">Courses</a></li>
+        <!-- Certificate section in Navbar as requested -->
+        <li><a href="#" id="nav-certificate-link">Certificate</a></li>
+      </ul>
+      <div class="nav-auth" id="auth-nav">
+        <button onclick="Auth.logout()" class="btn-primary" style="background: var(--danger); box-shadow: none;">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+      <button class="hamburger"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <!-- Student Dashboard Workspace -->
+  <div class="dashboard-wrapper">
+    
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-profile">
+        <div class="sidebar-avatar" id="student-avatar">S</div>
+        <div class="sidebar-profile-info">
+          <h4 id="student-name">Student Name</h4>
+          <p>Student Portal</p>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active" data-target="dashboard-overview">
+          <a href="#"><i class="fas fa-th-large"></i> My Dashboard</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-classes">
+          <a href="#"><i class="fas fa-video"></i> My Classes</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-notices">
+          <a href="#"><i class="fas fa-bullhorn"></i> Notices</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-announcements">
+          <a href="#"><i class="fas fa-comment-alt"></i> Announcements</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-recorded">
+          <a href="#"><i class="fas fa-play-circle"></i> Recorded Classes</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-courses">
+          <a href="#"><i class="fas fa-book-open"></i> My Courses</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-payments">
+          <a href="#"><i class="fas fa-wallet"></i> Payments</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-certificate" id="sidebar-cert-item">
+          <a href="#"><i class="fas fa-certificate"></i> Certificate</a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button onclick="Auth.logout()" class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i> Logout Account
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Main Dashboard Content -->
+    <main class="dashboard-content">
+
+      <!-- ==================== TAB 1: OVERVIEW ==================== -->
+      <section id="dashboard-overview" class="dashboard-panel active">
+        <div class="panel-header">
+          <div>
+            <h2>Welcome Back, <span id="student-welcome-name">Student</span>!</h2>
+            <p style="color: var(--text-secondary);">Here is a summary of your academic progress.</p>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="stats-cards-grid">
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Purchased Courses</h5>
+              <h2 id="overview-purchased-count">0</h2>
+            </div>
+            <div class="stat-card-icon"><i class="fas fa-book"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Pending Payments</h5>
+              <h2 id="overview-pending-count">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color: var(--warning); background: rgba(245, 158, 11, 0.1);"><i class="fas fa-hourglass-half"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Announcements</h5>
+              <h2 id="overview-announcements-count">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1);"><i class="fas fa-envelope-open-text"></i></div>
+          </div>
+        </div>
+
+        <!-- Quick Notices Grid -->
+        <div style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 30px; margin-top: 40px;">
+          <div>
+            <h3 style="font-size: 22px; margin-bottom: 20px;"><i class="fas fa-graduation-cap" style="color: var(--accent-color);"></i> Available Programs</h3>
+            <div class="courses-grid" id="dashboard-available-courses" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+              <!-- Renders all courses dynamically as cards -->
+            </div>
+          </div>
+          <div>
+            <h3 style="font-size: 20px; margin-bottom: 20px;"><i class="fas fa-bullhorn" style="color: #3b82f6;"></i> Recent Bulletins</h3>
+            <div class="glass-card" style="padding: 20px; margin-bottom: 24px;">
+              <h4 style="font-size:15px; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-color); padding-bottom:8px;">Announcements</h4>
+              <div class="announcements-list" id="overview-announcements-list">
+                <!-- Announcements loaded dynamically -->
+              </div>
+            </div>
+            
+            <div class="glass-card" style="padding: 20px;">
+              <h4 style="font-size:15px; margin-bottom:12px; color:var(--text-primary); border-bottom:1px solid var(--border-color); padding-bottom:8px;">Active Live Class</h4>
+              <div id="overview-live-class" style="font-size:13px; color:var(--text-secondary);">
+                <!-- Prepopulated with active live class check -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: MY CLASSES ==================== -->
+      <section id="dashboard-classes" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>My Classes</h2>
+          <p style="color: var(--text-secondary);">Attend live programming classes and workshops directly.</p>
+        </div>
+        <div class="glass-card classes-list" id="classes-list-container">
+          <!-- Filled dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: NOTICES ==================== -->
+      <section id="dashboard-notices" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Important Notices</h2>
+          <p style="color: var(--text-secondary);">Academic notifications and policy releases.</p>
+        </div>
+        <div class="notices-list" id="notices-list-container">
+          <!-- Notice list rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: ANNOUNCEMENTS ==================== -->
+      <section id="dashboard-announcements" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Announcements Board</h2>
+          <p style="color: var(--text-secondary);">Direct communications and portal news updates.</p>
+        </div>
+        <div class="announcements-list" id="announcements-list-container">
+          <!-- Announcement board rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: RECORDED CLASSES ==================== -->
+      <section id="dashboard-recorded" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Recorded Lectures</h2>
+          <p style="color: var(--text-secondary);">Missed a live session? Review past recorded classes here.</p>
+        </div>
+        <div class="courses-grid" id="recorded-list-container">
+          <!-- Lecture libraries loaded dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 6: MY COURSES ==================== -->
+      <section id="dashboard-courses" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>My Purchased Courses</h2>
+          <p style="color: var(--text-secondary);">List of your approved, fully active training courses.</p>
+        </div>
+        <div class="courses-grid" id="purchased-list-container">
+          <!-- Active courses rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 7: PAYMENTS ==================== -->
+      <section id="dashboard-payments" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Bills & Payments</h2>
+          <p style="color: var(--text-secondary);">Review past transactions.</p>
+        </div>
+
+        <div>
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Payment Logs</h3>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Payment ID</th>
+                  <th>Course/Certificate</th>
+                  <th>Amount Paid</th>
+                  <th>Transaction Type</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="payment-logs-tbody">
+                <!-- Past transactions loaded here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 8: CERTIFICATE ==================== -->
+      <section id="dashboard-certificate" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Course Certifications</h2>
+          <p style="color: var(--text-secondary);">Unlock government-recognized training certifications.</p>
+        </div>
+
+        <div id="certificate-display-box" class="glass-card" style="padding:0;">
+          <!-- Will render locked card, or success message, dynamically -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Course Purchase Form Modal -->
+  <div class="modal-overlay" id="course-payment-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Payment Verification details</h3>
+        <button class="modal-close" onclick="closeCoursePaymentModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="course-payment-form">
+          <div class="form-group">
+            <label for="course-pay-fullname">Full Name</label>
+            <input type="text" id="course-pay-fullname" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="course-pay-mobile">Mobile Number (WhatsApp)</label>
+            <input type="tel" id="course-pay-mobile" class="form-control" placeholder="10-digit number" required>
+          </div>
+          <div class="form-group">
+            <label for="course-pay-email">Email Address</label>
+            <input type="email" id="course-pay-email" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="course-pay-coursename">Course Name</label>
+            <input type="text" id="course-pay-coursename" class="form-control" readonly>
+          </div>
+          <div class="form-group">
+            <label for="course-pay-amount">Amount (INR)</label>
+            <input type="text" id="course-pay-amount" class="form-control" readonly>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
+            Open Razorpay Checkout <i class="fas fa-credit-card"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Certificate Verification Details Modal Form -->
+  <div class="modal-overlay" id="certificate-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Certificate Request Form</h3>
+        <button class="modal-close" onclick="closeCertificateModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="certificate-form">
+          <div class="form-group">
+            <label for="cert-fullname">Full Name (Print Name)</label>
+            <input type="text" id="cert-fullname" class="form-control" placeholder="Enter name as it should appear on certificate" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cert-mobile">Mobile Number (WhatsApp)</label>
+            <input type="tel" id="cert-mobile" class="form-control" placeholder="Enter 10-digit mobile number" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cert-email">Email Address</label>
+            <input type="email" id="cert-email" class="form-control" required>
+          </div>
+
+          <div class="form-group">
+            <label for="cert-course">Course Name</label>
+            <select id="cert-course" class="form-control" required>
+              <!-- Filled with purchased courses option -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cert-type">Certificate Type</label>
+            <select id="cert-type" class="form-control" required>
+              <option value="Course Completion Certificate">Course Completion Certificate</option>
+              <option value="Internship Completion Certificate">Internship Completion Certificate</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cert-address">Complete Mailing Address</label>
+            <textarea id="cert-address" class="form-control" placeholder="Enter flat, building, street, pincode, state details" required></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+            Proceed to Secure Payment (₹499) <i class="fas fa-credit-card"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Razorpay Payments Integration Checkout Library -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <!-- Core script utilities -->
+  <script src="script.js"></script>
+  <!-- Student Dashboard Manager Logic -->
+  <script src="student.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "user_admin_01",
+    "name": "Admin Instructor",
+    "email": "admin@sukla.com",
+    "password": "$2a$10$kr.IqNMY58REHj8XBKYmo.2aTv7UaA5jXxSuWl2QnAnRLrY6UDOfG",
+    "role": "admin",
+    "createdAt": "2026-06-07T07:23:31.058Z"
+  },
+  {
+    "id": "user_student_01",
+    "name": "Student Learner",
+    "email": "student@sukla.com",
+    "password": "$2a$10$MyBBfQchFEZR8Os//TcUk.VjXOdOunLdhSB3tYmewYavI8YU6OcpS",
+    "role": "student",
+    "createdAt": "2026-06-07T07:23:31.114Z"
+  },
+  {
+    "id": "user_1780817174656",
+    "name": "Farhaan Qureshi",
+    "email": "qureshifarhaan84@gmail.com",
+    "password": "$2a$10$CneI8vCYLA43/mGMPs0uOOdV04Nfn3afUbFQ2AHoqcSBpw0QPOpqy",
+    "role": "student",
+    "createdAt": "2026-06-07T07:26:14.656Z"
+  }
+]

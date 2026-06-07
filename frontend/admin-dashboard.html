@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Sukla Digital Academy</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      </a>
+      <span class="badge approved" style="font-size: 11px; padding: 6px 12px; margin-left: 10px;">ADMIN PORTAL</span>
+      <div class="nav-auth" id="auth-nav">
+        <button onclick="Auth.logout()" class="btn-primary" style="background: var(--danger); box-shadow: none;">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Admin Dashboard Workspace -->
+  <div class="dashboard-wrapper">
+    
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-profile">
+        <div class="sidebar-avatar" style="background: var(--success);">A</div>
+        <div class="sidebar-profile-info">
+          <h4>Administrator</h4>
+          <p>Management Portal</p>
+        </div>
+      </div>
+      
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active" data-target="admin-overview">
+          <a href="#"><i class="fas fa-chart-line"></i> Overview</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-students">
+          <a href="#"><i class="fas fa-user-graduate"></i> Students</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-courses">
+          <a href="#"><i class="fas fa-laptop-code"></i> Courses</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-enrollments">
+          <a href="#"><i class="fas fa-file-contract"></i> Enrollments</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-payments">
+          <a href="#"><i class="fas fa-credit-card"></i> Payments</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-certificates">
+          <a href="#"><i class="fas fa-certificate"></i> Certificates</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-contacts">
+          <a href="#"><i class="fas fa-envelope-open-text"></i> Contact Messages</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-notices">
+          <a href="#"><i class="fas fa-bullhorn"></i> Notices</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-announcements">
+          <a href="#"><i class="fas fa-comment-alt"></i> Announcements</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-recorded">
+          <a href="#"><i class="fas fa-play-circle"></i> Recorded Links</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-placements">
+          <a href="#"><i class="fas fa-user-tie"></i> Placement Achievers</a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <button onclick="Auth.logout()" class="logout-btn">
+          <i class="fas fa-sign-out-alt"></i> Logout Portal
+        </button>
+      </div>
+    </aside>
+
+    <!-- Right Main Dashboard Content -->
+    <main class="dashboard-content">
+
+      <!-- ==================== TAB 1: OVERVIEW ==================== -->
+      <section id="admin-overview" class="dashboard-panel active">
+        <div class="panel-header">
+          <h2>Academy Overview</h2>
+        </div>
+
+        <div class="stats-cards-grid">
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Total Revenue</h5>
+              <h2 id="stat-revenue">₹0</h2>
+            </div>
+            <div class="stat-card-icon revenue"><i class="fas fa-rupee-sign"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Total Students</h5>
+              <h2 id="stat-students">0</h2>
+            </div>
+            <div class="stat-card-icon students"><i class="fas fa-users"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Active Programs</h5>
+              <h2 id="stat-courses">0</h2>
+            </div>
+            <div class="stat-card-icon"><i class="fas fa-book"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Inbound Enquiries</h5>
+              <h2 id="stat-contacts">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color:#a855f7; background:rgba(168,85,247,0.1);"><i class="fas fa-envelope"></i></div>
+          </div>
+        </div>
+
+        <!-- Recent Logs on Overview -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px;">
+          <div>
+            <h3 style="font-size: 18px; margin-bottom: 16px;">Latest Student Payments</h3>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Program/Cert</th>
+                    <th>Paid</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="overview-payments-tbody">
+                  <!-- Filled dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h3 style="font-size: 18px; margin-bottom: 16px;">Recent Certificate Claims</h3>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>Mailing State</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="overview-certificates-tbody">
+                  <!-- Filled dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2: STUDENTS ==================== -->
+      <section id="admin-students" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Registered Students</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Registration ID</th>
+                <th>Full Name</th>
+                <th>Email Address</th>
+                <th>Joined Date</th>
+              </tr>
+            </thead>
+            <tbody id="students-tbody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3: COURSES ==================== -->
+      <section id="admin-courses" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Manage Programs</h2>
+          <button class="btn-primary" onclick="openAddCourseModal()"><i class="fas fa-plus"></i> Add New Course</button>
+        </div>
+        <div class="courses-grid" id="admin-courses-grid">
+          <!-- Dynamically loads courses cards with Edit/Delete features -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4: ENROLLMENTS ==================== -->
+      <section id="admin-enrollments" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Course Enrollment Requests</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student Details</th>
+                <th>Mailing Address</th>
+                <th>Requested Program</th>
+                <th>Date Requested</th>
+                <th>Billing Status</th>
+              </tr>
+            </thead>
+            <tbody id="enrollments-tbody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5: PAYMENTS ==================== -->
+      <section id="admin-payments" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Transactions & Billing Logs</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student Name</th>
+                <th>Mobile Number</th>
+                <th>Email Address</th>
+                <th>Course Name</th>
+                <th>Course Amount</th>
+                <th>Payment Type</th>
+                <th>Razorpay ID</th>
+                <th>Payment Status</th>
+                <th>Payment Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="payments-tbody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 6: CERTIFICATES ==================== -->
+      <section id="admin-certificates" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Certificate Claims Queue</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Candidate Details</th>
+                <th>Course & Type</th>
+                <th>Delivery Address</th>
+                <th>Date Paid</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="certificates-tbody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 7: CONTACT MESSAGES ==================== -->
+      <section id="admin-contacts" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Inbound Messages Log</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sender Info</th>
+                <th>Phone Number</th>
+                <th>Interested Course</th>
+                <th>Message Content</th>
+                <th>Date Received</th>
+              </tr>
+            </thead>
+            <tbody id="contacts-tbody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 8: NOTICES ==================== -->
+      <section id="admin-notices" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Notice Releases Board</h2>
+        </div>
+
+        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px;">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Publish New Notice</h3>
+          <form id="add-notice-form">
+            <div class="form-group">
+              <label for="notice-title">Notice Title</label>
+              <input type="text" id="notice-title" class="form-control" placeholder="e.g. Schedule for Internship Interview" required>
+            </div>
+            <div class="form-group">
+              <label for="notice-desc">Description Content</label>
+              <textarea id="notice-desc" class="form-control" placeholder="Enter notice details..." required></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Publish Release <i class="fas fa-bullhorn"></i></button>
+          </form>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px;">Past Notice Logs</h3>
+        <div class="notices-list" id="admin-notices-container">
+          <!-- Filled dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 9: ANNOUNCEMENTS ==================== -->
+      <section id="admin-announcements" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Broadcast announcements</h2>
+        </div>
+
+        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px;">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Create Broadcast Announcement</h3>
+          <form id="add-ann-form">
+            <div class="form-group">
+              <label for="ann-message">Announcement Message</label>
+              <textarea id="ann-message" class="form-control" placeholder="Enter simple message broadcast..." required></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Broadcast Message <i class="fas fa-comment-alt"></i></button>
+          </form>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px;">Past Broadcast Logs</h3>
+        <div class="announcements-list" id="admin-ann-container">
+          <!-- Filled dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 10: RECORDED LINKS ==================== -->
+      <section id="admin-recorded" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Publish Video Lectures</h2>
+        </div>
+
+        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px;">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Add Recorded Video Link</h3>
+          <form id="add-recorded-form">
+            <div class="form-group">
+              <label for="rec-title">Lecture/Video Title</label>
+              <input type="text" id="rec-title" class="form-control" placeholder="e.g. Binary Search Tree Basics" required>
+            </div>
+            <div class="form-group">
+              <label for="rec-link">Video Streaming Link</label>
+              <input type="url" id="rec-link" class="form-control" placeholder="https://youtube.com/watch?v=..." required>
+            </div>
+            <div class="form-group">
+              <label for="rec-course">Associated Program</label>
+              <select id="rec-course" class="form-control" required>
+                <option value="all">Accessible to All Students</option>
+                <!-- Prepopulated with existing courses -->
+              </select>
+            </div>
+            <button type="submit" class="btn-primary">Publish Video <i class="fas fa-play-circle"></i></button>
+          </form>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px;">Uploaded Videos</h3>
+        <div class="courses-grid" id="admin-recorded-container">
+          <!-- Filled dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 11: PLACEMENT ACHIEVERS ==================== -->
+      <section id="admin-placements" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Placement Spotlight Achievers</h2>
+        </div>
+
+        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px;">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Add Placement Achiever</h3>
+          <form id="add-achiever-form" enctype="multipart/form-data">
+            <div class="form-group">
+              <label for="achiever-student-name">Student Name</label>
+              <input type="text" id="achiever-student-name" class="form-control" placeholder="e.g. Farhan Khan" required>
+            </div>
+            <div class="form-group">
+              <label for="achiever-company-name">Company Name</label>
+              <input type="text" id="achiever-company-name" class="form-control" placeholder="e.g. Zenus Group" required>
+            </div>
+            <div class="form-group">
+              <label for="achiever-image">Student Profile Image</label>
+              <input type="file" id="achiever-image" class="form-control" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn-primary">Add Achiever <i class="fas fa-plus-circle"></i></button>
+          </form>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px;">Registered Achievers</h3>
+        <div class="courses-grid" id="admin-achievers-container">
+          <!-- Achiever cards loaded dynamically -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ADD COURSE MODAL -->
+  <div class="modal-overlay" id="add-course-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Create Program</h3>
+        <button class="modal-close" onclick="closeAddCourseModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="add-course-form">
+          <div class="form-group">
+            <label>Course Title</label>
+            <input type="text" class="form-control" id="add-course-title" placeholder="e.g. C with DSA Programming" required>
+          </div>
+          <div class="form-group">
+            <label>Course Duration</label>
+            <input type="text" class="form-control" id="add-course-duration" placeholder="e.g. 12 Weeks (36 Hours)" required>
+          </div>
+          <div class="form-group">
+            <label>Skill Level</label>
+            <input type="text" class="form-control" id="add-course-level" placeholder="e.g. Beginner to Intermediate" required>
+          </div>
+          <div class="form-group">
+            <label>Course Price (INR)</label>
+            <input type="number" class="form-control" id="add-course-price" placeholder="4999" required>
+          </div>
+          <div class="form-group">
+            <label>Original Price (INR)</label>
+            <input type="number" class="form-control" id="add-course-original" placeholder="9999">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select class="form-control" id="add-course-category" required>
+              <option value="language">Programming Language</option>
+              <option value="dsa">DSA & Logic</option>
+              <option value="development">Web Development</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Course Description</label>
+            <textarea class="form-control" id="add-course-description" placeholder="Provide syllabus summary..." required></textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Create Course <i class="fas fa-paper-plane"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT COURSE MODAL -->
+  <div class="modal-overlay" id="edit-course-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Program</h3>
+        <button class="modal-close" onclick="closeEditCourseModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-course-form">
+          <input type="hidden" id="edit-course-id">
+          <div class="form-group">
+            <label>Course Title</label>
+            <input type="text" class="form-control" id="edit-course-title" required>
+          </div>
+          <div class="form-group">
+            <label>Course Duration</label>
+            <input type="text" class="form-control" id="edit-course-duration" required>
+          </div>
+          <div class="form-group">
+            <label>Skill Level</label>
+            <input type="text" class="form-control" id="edit-course-level" required>
+          </div>
+          <div class="form-group">
+            <label>Course Price (INR)</label>
+            <input type="number" class="form-control" id="edit-course-price" required>
+          </div>
+          <div class="form-group">
+            <label>Original Price (INR)</label>
+            <input type="number" class="form-control" id="edit-course-original">
+          </div>
+          <div class="form-group">
+            <label>Category</label>
+            <select class="form-control" id="edit-course-category" required>
+              <option value="language">Programming Language</option>
+              <option value="dsa">DSA & Logic</option>
+              <option value="development">Web Development</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Course Description</label>
+            <textarea class="form-control" id="edit-course-description" required></textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Save Updates <i class="fas fa-check-double"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MANUAL PAYMENT EDIT MODAL -->
+  <div class="modal-overlay" id="manual-payment-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Transaction Status</h3>
+        <button class="modal-close" onclick="closeManualPaymentModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="manual-payment-form">
+          <input type="hidden" id="manual-payment-id">
+          <div class="form-group">
+            <label>Payment Status</label>
+            <select class="form-control" id="manual-payment-status" required>
+              <option value="captured">Captured (Paid / Verified)</option>
+              <option value="pending">Pending Verification</option>
+              <option value="failed">Failed / Refunded</option>
+            </select>
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Update Status <i class="fas fa-save"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>

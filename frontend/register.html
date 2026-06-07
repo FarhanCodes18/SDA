@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - Sukla Digital Academy</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page">
+
+  <!-- Register Card Container -->
+  <div class="glass-card auth-card">
+    <div class="auth-header">
+      <a href="index.html" class="logo" style="justify-content: center; margin-bottom: 20px;">
+        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      </a>
+      <h2>Create Account</h2>
+      <p>Register to unlock practical courses & certifications</p>
+    </div>
+
+    <!-- Registration Form -->
+    <form id="register-form">
+      <div class="auth-form-group">
+        <label for="name">Full Name</label>
+        <div class="auth-input-wrapper">
+          <i class="fas fa-user"></i>
+          <input type="text" id="name" class="auth-input" placeholder="Farhan Khan" required>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label for="email">Email Address</label>
+        <div class="auth-input-wrapper">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label for="password">Password</label>
+        <div class="auth-input-wrapper">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" class="auth-input" placeholder="••••••••" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary auth-btn">
+        Create Student Account <i class="fas fa-user-plus"></i>
+      </button>
+    </form>
+
+    <div class="auth-redirect">
+      Already have an account? <a href="login.html">Login here</a>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // If already logged in, redirect straight to dashboard
+      if (Auth.isLoggedIn()) {
+        Auth.redirectToDashboard();
+      }
+
+      const form = document.getElementById('register-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+
+        if (!name || !email || !password) {
+          showToast('Please fill in all fields.', 'error');
+          return;
+        }
+
+        try {
+          const response = await apiCall('/register', 'POST', { name, email, password }, false);
+          
+          Auth.saveToken(response.token);
+          Auth.saveUser(response.user);
+
+          showToast('Registration successful! Welcome to SDA.', 'success');
+
+          setTimeout(() => {
+            Auth.redirectToDashboard();
+          }, 1200);
+
+        } catch (error) {
+          showToast(error.message || 'Registration failed. Try a different email.', 'error');
+        }
+      });
+    });
+  </script>
+</body>
+</html>

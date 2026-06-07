@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sukla Digital Academy - Unlock Your Tech Career</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html" class="active">Home</a></li>
+        <li><a href="courses.html">Courses</a></li>
+        <li><a href="#placement">Placement</a></li>
+        <li><a href="login.html">Student Portal</a></li>
+        <li><a href="#contact">Contact Us</a></li>
+      </ul>
+      <div class="nav-auth" id="auth-nav">
+        <!-- Auth buttons loaded dynamically by script.js -->
+      </div>
+      <button class="hamburger" style="margin-left: 15px;"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header class="hero">
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <i class="fas fa-sparkles"></i> Practical Training & Internships
+        </div>
+        <h1>Unlock Your First <span>Job & Internship</span> With Us</h1>
+        <p>Learn coding, DSA, web development, and essential career skills with hands-on projects, expert mentorship, and industry-aligned training programs.</p>
+        <div class="hero-actions">
+          <a href="courses.html" class="btn-primary">Explore Courses <i class="fas fa-compass"></i></a>
+          <a href="#contact" class="btn-secondary">Contact Us</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-circle"></div>
+        <div class="hero-image-wrapper">
+          <i class="fas fa-code" style="font-size: 80px; color: var(--accent-color); filter: drop-shadow(0 0 20px rgba(255, 75, 43, 0.45));"></i>
+        </div>
+        <div class="hero-box hero-box-1">
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="stat-card-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+              <i class="fas fa-user-graduate"></i>
+            </div>
+            <div>
+              <h4 style="font-size: 14px;">95% Placement</h4>
+              <p style="font-size: 11px; color: var(--text-secondary);">Direct hiring partners</p>
+            </div>
+          </div>
+        </div>
+        <div class="hero-box hero-box-2">
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="stat-card-icon" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+              <i class="fas fa-award"></i>
+            </div>
+            <div>
+              <h4 style="font-size: 14px;">ISO Certified</h4>
+              <p style="font-size: 11px; color: var(--text-secondary);">Government recognized certs</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Statistics Section -->
+  <section class="stats">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <h3>10K+</h3>
+        <p>Students Trained</p>
+      </div>
+      <div class="stat-item">
+        <h3>50+</h3>
+        <p>Premium Courses</p>
+      </div>
+      <div class="stat-item">
+        <h3>95%</h3>
+        <p>Placement & Internship Rate</p>
+      </div>
+      <div class="stat-item">
+        <h3>100+</h3>
+        <p>Hiring Partners</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Placement Achievers Spotlight Section -->
+  <section id="placement">
+    <div class="section-container" style="text-align: center;">
+      <span class="placement-spotlight-label">• PLACEMENT SPOTLIGHT</span>
+      <h2>Our Recent <span class="word-navy">Placement</span> <span class="word-red">Achievers</span></h2>
+      
+      <div class="carousel-container">
+        <button class="carousel-control prev-btn"><i class="fas fa-chevron-left"></i></button>
+        <div class="carousel-viewport">
+          <div class="carousel-track" id="achievers-carousel-track">
+            <!-- Renders dynamically -->
+          </div>
+        </div>
+        <button class="carousel-control next-btn"><i class="fas fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Popular Courses Preview Section -->
+  <section class="section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2>Popular <span>Programs</span></h2>
+        <p>Accelerate your career with our top-selling programs designed by industry specialists.</p>
+      </div>
+      <div class="courses-grid" id="popular-courses-list">
+        <!-- Courses rendered dynamically -->
+      </div>
+      <div style="text-align: center; margin-top: 50px;">
+        <a href="courses.html" class="btn-secondary">View All Courses <i class="fas fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Founder section -->
+  <section class="section" style="background: var(--bg-secondary);">
+    <div class="section-container" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 60px; align-items: center;">
+      <div style="position: relative; text-align: center;">
+        <div class="glass-card" style="display: inline-block; padding: 12px;">
+          <div style="width: 280px; height: 350px; background: var(--accent-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+            <i class="fas fa-user-tie" style="font-size: 100px; color: white;"></i>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h2 style="font-size: 36px; margin-bottom: 20px;">Meet Our Founder, <span>Farhan Khan</span></h2>
+        <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 16px;">
+          Farhan Khan founded Sukla Digital Academy with a single mission: to bridge the gap between academic theory and practical corporate environments. With over a decade of software architecture and training experience, Farhan has mentored thousands of successful software engineers working across global tech companies.
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: var(--accent-color); font-size: 18px; margin-bottom: 6px;"><i class="fas fa-check-circle"></i> Practical Focus</h4>
+            <p style="font-size: 13px; color: var(--text-secondary);">Learn concepts by coding actual industry-grade applications.</p>
+          </div>
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: var(--accent-color); font-size: 18px; margin-bottom: 6px;"><i class="fas fa-check-circle"></i> Direct Referral</h4>
+            <p style="font-size: 13px; color: var(--text-secondary);">Top performing students get direct interview cards for partner firms.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials Section -->
+  <section class="section">
+    <div class="section-container">
+      <div class="section-header">
+        <h2>What Our <span>Students Say</span></h2>
+        <p>Real stories from our students who secured roles and expanded their career horizons.</p>
+      </div>
+      <div class="courses-grid">
+        <div class="glass-card">
+          <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 20px;">"The C++ and DSA program here completely changed my perspective on logic building. The placement support got me an internship within a month."</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="sidebar-avatar">A</div>
+            <div>
+              <h4 style="font-size: 15px;">Amit Sharma</h4>
+              <p style="font-size: 12px; color: var(--accent-color);">Software Engineer @ Wipro</p>
+            </div>
+          </div>
+        </div>
+        <div class="glass-card">
+          <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 20px;">"The MERN Stack course is so comprehensive. Farhan Sir walks through everything step-by-step. I built a SaaS product as my final project."</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="sidebar-avatar">R</div>
+            <div>
+              <h4 style="font-size: 15px;">Riya Patel</h4>
+              <p style="font-size: 12px; color: var(--accent-color);">Frontend Developer @ Cognizant</p>
+            </div>
+          </div>
+        </div>
+        <div class="glass-card">
+          <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 20px;">"Their certificates are recognized and the support staff is incredibly fast. Getting my payment verified and certificate unlocked took 2 minutes."</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="sidebar-avatar">S</div>
+            <div>
+              <h4 style="font-size: 15px;">Siddharth Verma</h4>
+              <p style="font-size: 12px; color: var(--accent-color);">System Analyst @ TCS</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Accordion FAQ Section -->
+  <section class="section" style="background: var(--bg-secondary);">
+    <div class="section-container" style="max-width: 800px;">
+      <div class="section-header">
+        <h2>Frequently Asked <span>Questions</span></h2>
+        <p>Have questions? We've got answers.</p>
+      </div>
+      <div class="faq-list" style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="glass-card faq-item" style="padding: 0;">
+          <div class="faq-question" style="padding: 20px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="font-size: 16px;">Are the courses self-paced or live?</h4>
+            <i class="fas fa-chevron-down" style="transition: var(--transition);"></i>
+          </div>
+          <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: var(--transition); padding: 0 24px;">
+            <p style="color: var(--text-secondary); font-size: 14px; padding-bottom: 20px;">We offer a hybrid learning model containing pre-recorded class libraries for self-learning, as well as live notices, live problem-solving sessions, and interactive workshops weekly.</p>
+          </div>
+        </div>
+        <div class="glass-card faq-item" style="padding: 0;">
+          <div class="faq-question" style="padding: 20px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="font-size: 16px;">How can I claim my certificate?</h4>
+            <i class="fas fa-chevron-down" style="transition: var(--transition);"></i>
+          </div>
+          <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: var(--transition); padding: 0 24px;">
+            <p style="color: var(--text-secondary); font-size: 14px; padding-bottom: 20px;">Once enrolled in a course, navigate to the Certificate tab in your Student Dashboard. Complete the verified verification details form, process the token fee using Razorpay, and your certificate will be sent directly via WhatsApp and Email.</p>
+          </div>
+        </div>
+        <div class="glass-card faq-item" style="padding: 0;">
+          <div class="faq-question" style="padding: 20px 24px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="font-size: 16px;">Is there a placement guarantee?</h4>
+            <i class="fas fa-chevron-down" style="transition: var(--transition);"></i>
+          </div>
+          <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: var(--transition); padding: 0 24px;">
+            <p style="color: var(--text-secondary); font-size: 14px; padding-bottom: 20px;">While we provide extensive interview prep and direct recruitment referrals to our 100+ hiring partners, placement ultimately depends on your performance in the technical rounds.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Get In Touch Section -->
+  <section id="contact" class="section">
+    <div class="section-container contact-section-grid">
+      <!-- Left Side -->
+      <div class="contact-info-panel scroll-reveal">
+        <span class="contact-label">• GET IN TOUCH</span>
+        <h2 class="contact-heading">Let's Start Your <span>Learning Journey</span> Today</h2>
+        <p class="contact-desc">Have questions about our courses, certifications, or career guidance? Connect with our team and we'll help you choose the right path.</p>
+        
+        <div class="contact-info-list">
+          <div class="contact-info-card">
+            <div class="info-icon"><i class="fas fa-phone-alt"></i></div>
+            <div class="info-content">
+              <h4>Phone Number</h4>
+              <p>+91 98765 43210</p>
+            </div>
+          </div>
+          <div class="contact-info-card">
+            <div class="info-icon"><i class="fas fa-envelope"></i></div>
+            <div class="info-content">
+              <h4>Email Address</h4>
+              <p>info@sukla.com</p>
+            </div>
+          </div>
+          <div class="contact-info-card">
+            <div class="info-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div class="info-content">
+              <h4>Academy Address</h4>
+              <p>Odisha, India</p>
+            </div>
+          </div>
+          <div class="contact-info-card">
+            <div class="info-icon"><i class="fas fa-clock"></i></div>
+            <div class="info-content">
+              <h4>Working Hours</h4>
+              <p>Mon - Sat: 9:00 AM - 7:00 PM</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Side (Form) -->
+      <div class="contact-form-panel scroll-reveal">
+        <div class="glass-card">
+          <h3 class="form-title">Send a Message</h3>
+          <form id="home-contact-form">
+            <div class="form-group">
+              <label for="contact-name">Full Name</label>
+              <input type="text" id="contact-name" class="form-control" placeholder="Farhan Khan" required>
+            </div>
+            <div class="form-group">
+              <label for="contact-phone">Mobile Number</label>
+              <input type="tel" id="contact-phone" class="form-control" placeholder="Enter 10-digit mobile number" required>
+            </div>
+            <div class="form-group">
+              <label for="contact-email">Email Address</label>
+              <input type="email" id="contact-email" class="form-control" placeholder="name@example.com" required>
+            </div>
+            <div class="form-group">
+              <label for="contact-course">Course Interested In</label>
+              <select id="contact-course" class="form-control" required>
+                <option value="" disabled selected>Select a course</option>
+                <!-- populated dynamically -->
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="contact-message">Message</label>
+              <textarea id="contact-message" class="form-control" placeholder="How can we help you?" required></textarea>
+            </div>
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
+              Send Message <i class="fas fa-paper-plane"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <h4 style="font-family: var(--font-header);">SDA</h4>
+        <p>Empowering software aspirants with job-oriented coding and DSA training. Unlock your tech potential today.</p>
+        <div style="display: flex; gap: 16px; font-size: 18px;">
+          <a href="#"><i class="fab fa-facebook-f"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul class="footer-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="courses.html">Our Courses</a></li>
+          <li><a href="#contact">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <ul class="footer-links">
+          <li><a href="login.html">Student Login</a></li>
+          <li><a href="register.html">Create Account</a></li>
+          <li><a href="#contact">Report Issue</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact Us</h4>
+        <div class="footer-contact-item"><i class="fas fa-envelope"></i> info@sukla.com</div>
+        <div class="footer-contact-item"><i class="fas fa-phone-alt"></i> +91 98765 43210</div>
+        <div class="footer-contact-item"><i class="fas fa-map-marker-alt"></i> Odisha, India</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Sukla Digital Academy. All rights reserved.</p>
+      <p>Founder & Instructor: Farhan Khan</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    // Load popular courses preview
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const courses = await apiCall('/courses', 'GET', null, false);
+        const popularList = document.getElementById('popular-courses-list');
+        if (popularList) {
+          // Render first 3 courses as popular preview
+          const preview = courses.slice(0, 3);
+          popularList.innerHTML = preview.map(c => createCourseCard(c)).join('');
+        }
+      } catch (error) {
+        console.error('Error fetching popular courses preview:', error);
+      }
+    });
+
+    // Fetch and initialize Placement Spotlight Carousel
+    document.addEventListener('DOMContentLoaded', async () => {
+      const track = document.getElementById('achievers-carousel-track');
+      if (!track) return;
+
+      try {
+        const achievers = await apiCall('/achievers', 'GET', null, false);
+        if (achievers.length === 0) {
+          track.innerHTML = '<p style="color: var(--text-secondary);">No placement achievers recorded.</p>';
+          return;
+        }
+
+        // Render card items (tripled array to support infinite scrolling)
+        const tripledAchievers = [...achievers, ...achievers, ...achievers];
+        track.innerHTML = tripledAchievers.map(a => {
+          // If no image, show default avatar via UI-Avatars API
+          const imgUrl = a.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=ff4b2b&color=fff&size=150&font-size=0.33`;
+          return `
+            <div class="achiever-card">
+              <div class="achiever-sparkle"><i class="fas fa-star"></i></div>
+              <img src="${imgUrl}" alt="${a.name}">
+              <div class="achiever-info">
+                <h4 class="achiever-name">${a.name}</h4>
+                <p class="achiever-company">${a.company}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        // Initialize carousel sliding logic
+        initAchieverCarousel(achievers.length);
+
+      } catch (err) {
+        console.error('Failed to load placement achievers:', err);
+        track.innerHTML = '<p style="color: var(--danger);">Failed to load placement achievers.</p>';
+      }
+    });
+
+    function initAchieverCarousel(n) {
+      const track = document.getElementById('achievers-carousel-track');
+      const cards = Array.from(track.getElementsByClassName('achiever-card'));
+      const prevBtn = document.querySelector('.prev-btn');
+      const nextBtn = document.querySelector('.next-btn');
+
+      if (cards.length === 0) return;
+
+      // Start in the middle of the tripled array (original set starts at index n)
+      let activeIndex = n;
+      let autoSlideTimer = null;
+      let isTransitioning = false;
+
+      function updateTrackPosition() {
+        track.style.transform = `translateX(calc(50% - (var(--card-width) / 2) - (${activeIndex} * (var(--card-width) + var(--card-gap)))))`;
+      }
+
+      function updateCarouselClasses() {
+        cards.forEach((card, index) => {
+          card.classList.remove('center', 'prev', 'next', 'far-prev', 'far-next');
+
+          if (index === activeIndex) {
+            card.classList.add('center');
+          } else if (index === activeIndex - 1) {
+            card.classList.add('prev');
+          } else if (index === activeIndex + 1) {
+            card.classList.add('next');
+          } else if (index === activeIndex - 2) {
+            card.classList.add('far-prev');
+          } else if (index === activeIndex + 2) {
+            card.classList.add('far-next');
+          }
+        });
+      }
+
+      function nextSlide() {
+        if (isTransitioning) return;
+        isTransitioning = true;
+        activeIndex++;
+        track.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        updateTrackPosition();
+        updateCarouselClasses();
+      }
+
+      function prevSlide() {
+        if (isTransitioning) return;
+        isTransitioning = true;
+        activeIndex--;
+        track.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+        updateTrackPosition();
+        updateCarouselClasses();
+      }
+
+      // Handle transition end for infinite looping
+      track.addEventListener('transitionend', (e) => {
+        if (e.propertyName !== 'transform') return;
+
+        if (activeIndex >= 2 * n) {
+          track.style.transition = 'none';
+          activeIndex = activeIndex - n;
+          updateTrackPosition();
+          updateCarouselClasses();
+          track.offsetHeight; // Force reflow
+        } else if (activeIndex < n) {
+          track.style.transition = 'none';
+          activeIndex = activeIndex + n;
+          updateTrackPosition();
+          updateCarouselClasses();
+          track.offsetHeight; // Force reflow
+        }
+        isTransitioning = false;
+      });
+
+      // Button listeners
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          nextSlide();
+          startTimer(); // Reset auto-slide timer
+        });
+      }
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          prevSlide();
+          startTimer(); // Reset auto-slide timer
+        });
+      }
+
+      // Auto slide timer
+      function startTimer() {
+        resetTimer();
+        autoSlideTimer = setInterval(nextSlide, 3000); // 3 seconds interval
+      }
+
+      function resetTimer() {
+        if (autoSlideTimer) {
+          clearInterval(autoSlideTimer);
+          autoSlideTimer = null;
+        }
+      }
+
+      // Pause timer on hover
+      const container = document.querySelector('.carousel-container');
+      if (container) {
+        container.addEventListener('mouseenter', () => {
+          resetTimer();
+        });
+        container.addEventListener('mouseleave', () => {
+          startTimer();
+        });
+      }
+
+      // Initialize
+      track.style.transition = 'none';
+      updateTrackPosition();
+      updateCarouselClasses();
+      track.offsetHeight; // Force reflow
+      startTimer();
+    }
+
+    // Scroll Sticky Navbar and Active Links Handler
+    window.addEventListener('scroll', () => {
+      const navbar = document.querySelector('.navbar');
+      if (window.scrollY > 50) {
+        navbar.classList.add('sticky');
+      } else {
+        navbar.classList.remove('sticky');
+      }
+
+      // Highlight active nav links on scroll
+      const sections = document.querySelectorAll('section, header');
+      const navLinks = document.querySelectorAll('.nav-links a');
+      
+      let currentSectionId = '';
+      sections.forEach(sec => {
+        const top = sec.offsetTop - 120;
+        const height = sec.offsetHeight;
+        if (window.scrollY >= top && window.scrollY < top + height) {
+          currentSectionId = sec.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(link => {
+        link.classList.remove('active');
+        const href = link.getAttribute('href');
+        if (href === 'index.html' && !currentSectionId) {
+          link.classList.add('active');
+        } else if (href === '#' + currentSectionId || href.includes(currentSectionId)) {
+          link.classList.add('active');
+        }
+      });
+    });
+
+    // Load Courses for Contact Form Dropdown, Setup Submit Handler & Scroll Reveal
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 1. Populate Contact Course Dropdown
+      const courseSelect = document.getElementById('contact-course');
+      if (courseSelect) {
+        try {
+          const courses = await apiCall('/courses', 'GET', null, false);
+          courses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.title;
+            opt.textContent = c.title;
+            courseSelect.appendChild(opt);
+          });
+        } catch (error) {
+          console.error('Error loading courses for contact select dropdown:', error);
+        }
+      }
+
+      // 2. Contact Form Submission with validation
+      const contactForm = document.getElementById('home-contact-form');
+      if (contactForm) {
+        contactForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const name = document.getElementById('contact-name').value.trim();
+          const phone = document.getElementById('contact-phone').value.trim();
+          const email = document.getElementById('contact-email').value.trim();
+          const course = document.getElementById('contact-course').value;
+          const message = document.getElementById('contact-message').value.trim();
+
+          const phoneRegex = /^[6-9]\d{9}$/;
+          if (!phoneRegex.test(phone)) {
+            showToast('Please enter a valid 10-digit mobile number starting with 6-9.', 'error');
+            return;
+          }
+
+          try {
+            const res = await apiCall('/contact', 'POST', { name, email, phone, course, message }, false);
+            showToast(res.message, 'success');
+            contactForm.reset();
+          } catch (err) {
+            showToast(err.message || 'Failed to submit contact request.', 'error');
+          }
+        });
+      }
+
+      // 3. Scroll Reveal IntersectionObserver
+      const revealElements = document.querySelectorAll('.scroll-reveal');
+      if (revealElements.length > 0) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('revealed');
+              observer.unobserve(entry.target);
+            }
+          });
+        }, {
+          threshold: 0.15
+        });
+
+        revealElements.forEach(el => observer.observe(el));
+      }
+      // 4. Handle smooth scroll to contact from external page redirect
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('scroll') === 'contact' || window.location.hash === '#contact') {
+        const contactSection = document.getElementById('contact');
+        if (contactSection) {
+          if (window.location.hash === '#contact') {
+            window.scrollTo(0, 0);
+          }
+          setTimeout(() => {
+            contactSection.scrollIntoView({ behavior: 'smooth' });
+          }, 300);
+        }
+      }
+    });
+  </script>
+
+  <!-- WhatsApp Floating Button -->
+  <a href="https://wa.me/919876543210" class="whatsapp-float" target="_blank" rel="noopener noreferrer">
+    <i class="fab fa-whatsapp"></i>
+  </a>
+
+  <!-- Add CSS for Accordion FAQ functionality directly here for completeness -->
+  <style>
+    .faq-item.active .faq-answer {
+      max-height: 200px;
+      padding-top: 10px;
+    }
+    .faq-item.active .faq-question i {
+      transform: rotate(180deg);
+    }
+  </style>
+</body>
+</html>

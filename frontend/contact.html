@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us - Sukla Digital Academy</title>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Core Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+  <script>
+    window.location.replace("index.html?scroll=contact");
+  </script>
+</head>
+<body>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="logo">
+        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      </a>
+      <ul class="nav-links">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="courses.html">Courses</a></li>
+        <li><a href="contact.html" class="active">Contact Us</a></li>
+      </ul>
+      <div class="nav-auth" id="auth-nav">
+        <!-- Auth buttons loaded dynamically by script.js -->
+      </div>
+      <button class="hamburger"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <!-- Contact Form Section -->
+  <section class="section" style="padding-top: 140px; background: radial-gradient(circle at 10% 20%, rgba(255, 75, 43, 0.05) 0%, transparent 50%);">
+    <div class="section-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start;">
+      
+      <!-- Info Left Panel -->
+      <div>
+        <h2 style="font-size: 38px; margin-bottom: 24px;">Get in <span>Touch</span></h2>
+        <p style="color: var(--text-secondary); margin-bottom: 40px; font-size: 16px;">Have any questions about admissions, syllabus details, certificates, or corporate partnerships? Message us and our support team will respond within 24 hours.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+          <div class="glass-card" style="display: flex; align-items: center; gap: 20px;">
+            <div class="stat-card-icon"><i class="fas fa-envelope"></i></div>
+            <div>
+              <h4 style="font-size: 16px;">Email Address</h4>
+              <p style="color: var(--text-secondary); font-size: 14px;">info@sukla.com</p>
+            </div>
+          </div>
+
+          <div class="glass-card" style="display: flex; align-items: center; gap: 20px;">
+            <div class="stat-card-icon"><i class="fas fa-phone-alt"></i></div>
+            <div>
+              <h4 style="font-size: 16px;">Phone Support</h4>
+              <p style="color: var(--text-secondary); font-size: 14px;">+91 98765 43210</p>
+            </div>
+          </div>
+
+          <div class="glass-card" style="display: flex; align-items: center; gap: 20px;">
+            <div class="stat-card-icon"><i class="fas fa-map-marker-alt"></i></div>
+            <div>
+              <h4 style="font-size: 16px;">Main Office</h4>
+              <p style="color: var(--text-secondary); font-size: 14px;">Odisha, India</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Right Panel -->
+      <div class="glass-card">
+        <h3 style="font-size: 22px; margin-bottom: 20px;">Send a Message</h3>
+        <form id="contact-form">
+          <div class="form-group">
+            <label for="name">Your Name</label>
+            <input type="text" id="name" class="form-control" placeholder="Farhan Khan" required>
+          </div>
+
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" class="form-control" placeholder="name@example.com" required>
+          </div>
+
+          <div class="form-group">
+            <label for="phone">Phone Number (Optional)</label>
+            <input type="tel" id="phone" class="form-control" placeholder="+91 98765 43210">
+          </div>
+
+          <div class="form-group">
+            <label for="message">Your Message</label>
+            <textarea id="message" class="form-control" placeholder="How can we help you?" required></textarea>
+          </div>
+
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;">
+            Send Message <i class="fas fa-paper-plane"></i>
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-grid">
+      <div class="footer-col footer-about">
+        <h4>SDA</h4>
+        <p>Empowering software aspirants with job-oriented coding and DSA training. Unlock your tech potential today.</p>
+        <div style="display: flex; gap: 16px; font-size: 18px;">
+          <a href="#"><i class="fab fa-facebook-f"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul class="footer-links">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="courses.html">Our Courses</a></li>
+          <li><a href="contact.html">Contact Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <ul class="footer-links">
+          <li><a href="login.html">Student Login</a></li>
+          <li><a href="register.html">Create Account</a></li>
+          <li><a href="contact.html">Report Issue</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Contact Us</h4>
+        <div class="footer-contact-item"><i class="fas fa-envelope"></i> info@sukla.com</div>
+        <div class="footer-contact-item"><i class="fas fa-phone-alt"></i> +91 98765 43210</div>
+        <div class="footer-contact-item"><i class="fas fa-map-marker-alt"></i> Odisha, India</div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 Sukla Digital Academy. All rights reserved.</p>
+      <p>Founder & Instructor: Farhan Khan</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const form = document.getElementById('contact-form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const message = document.getElementById('message').value.trim();
+
+        if (!name || !email || !message) {
+          showToast('Name, Email, and Message are required.', 'error');
+          return;
+        }
+
+        try {
+          const response = await apiCall('/contact', 'POST', { name, email, phone, message }, false);
+          showToast(response.message, 'success');
+          form.reset();
+        } catch (error) {
+          showToast(error.message || 'Failed to send message. Please try again.', 'error');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
