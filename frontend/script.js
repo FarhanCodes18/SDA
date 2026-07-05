@@ -1,5 +1,5 @@
 // Global Configurations
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://sda-gb0m.onrender.com/api';
 const RAZORPAY_KEY_ID = 'rzp_test_SyOt9emCtE5rH8'; // Expose ONLY Razorpay Key ID
 
 // 1. Unified Toast Notification System
