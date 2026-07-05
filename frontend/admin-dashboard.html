@@ -14,8 +14,9 @@
   <!-- Navigation Bar -->
   <nav class="navbar">
     <div class="nav-container">
-      <a href="index.html" class="logo">
-        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      <a href="index.html" class="logo" style="display: flex; align-items: center; gap: 10px;">
+        <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
+        Sukla Digital Academy
       </a>
       <span class="badge approved" style="font-size: 11px; padding: 6px 12px; margin-left: 10px;">ADMIN PORTAL</span>
       <div class="nav-auth" id="auth-nav">
@@ -56,7 +57,7 @@
           <a href="#"><i class="fas fa-credit-card"></i> Payments</a>
         </li>
         <li class="sidebar-item" data-target="admin-certificates">
-          <a href="#"><i class="fas fa-certificate"></i> Certificates</a>
+          <a href="#"><i class="fas fa-certificate"></i> Certificate Requests</a>
         </li>
         <li class="sidebar-item" data-target="admin-contacts">
           <a href="#"><i class="fas fa-envelope-open-text"></i> Contact Messages</a>
@@ -236,7 +237,8 @@
                 <th>Course Name</th>
                 <th>Course Amount</th>
                 <th>Payment Type</th>
-                <th>Razorpay ID</th>
+                <th>Razorpay/Manual ID</th>
+                <th>Payment Proof</th>
                 <th>Payment Status</th>
                 <th>Payment Date</th>
                 <th>Action</th>
@@ -252,17 +254,29 @@
       <!-- ==================== TAB 6: CERTIFICATES ==================== -->
       <section id="admin-certificates" class="dashboard-panel">
         <div class="panel-header">
-          <h2>Certificate Claims Queue</h2>
+          <h2>Certificate Requests</h2>
+          <div class="filter-wrapper" style="display: flex; gap: 12px; align-items: center;">
+            <label for="admin-cert-filter" style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Filter Status:</label>
+            <select id="admin-cert-filter" class="form-control" style="width: 150px; padding: 8px 12px; font-size: 13px;">
+              <option value="all">All Claims</option>
+              <option value="pending">Pending</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="data-table">
             <thead>
               <tr>
-                <th>Candidate Details</th>
-                <th>Course & Type</th>
-                <th>Delivery Address</th>
-                <th>Date Paid</th>
+                <th>Candidate Name</th>
+                <th>Mobile Number</th>
+                <th>Email Address</th>
+                <th>Course Name</th>
+                <th>Amount</th>
+                <th>Payment ID</th>
+                <th>Payment Proof</th>
                 <th>Status</th>
+                <th>Request Date</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -385,29 +399,15 @@
         <div class="panel-header">
           <h2>Placement Spotlight Achievers</h2>
         </div>
-
-        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px;">
-          <h3 style="font-size: 18px; margin-bottom: 16px;">Add Placement Achiever</h3>
-          <form id="add-achiever-form" enctype="multipart/form-data">
-            <div class="form-group">
-              <label for="achiever-student-name">Student Name</label>
-              <input type="text" id="achiever-student-name" class="form-control" placeholder="e.g. Farhan Khan" required>
-            </div>
-            <div class="form-group">
-              <label for="achiever-company-name">Company Name</label>
-              <input type="text" id="achiever-company-name" class="form-control" placeholder="e.g. Zenus Group" required>
-            </div>
-            <div class="form-group">
-              <label for="achiever-image">Student Profile Image</label>
-              <input type="file" id="achiever-image" class="form-control" accept="image/*" required>
-            </div>
-            <button type="submit" class="btn-primary">Add Achiever <i class="fas fa-plus-circle"></i></button>
-          </form>
-        </div>
-
-        <h3 style="font-size: 18px; margin-bottom: 16px;">Registered Achievers</h3>
-        <div class="courses-grid" id="admin-achievers-container">
-          <!-- Achiever cards loaded dynamically -->
+        <div class="glass-card" style="padding: 40px; text-align: center; max-width: 600px; margin: 40px auto 0 auto; border: 1.5px solid rgba(255, 75, 43, 0.2);">
+          <div style="width: 80px; height: 80px; background: rgba(255, 75, 43, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto;">
+            <i class="fas fa-lock" style="font-size: 32px; color: var(--accent-color);"></i>
+          </div>
+          <h3 style="font-size: 22px; margin-bottom: 12px; font-family: var(--font-header);">Placement Spotlight Section Locked</h3>
+          <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 24px;">The Placement Spotlight / Achievers section has been locked. The ability to add or delete achievers is disabled.</p>
+          <span class="badge pending" style="padding: 8px 20px; font-size: 13px; background: rgba(255, 75, 43, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color); border-radius: 50px; font-weight: 600;">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i> Feature Disabled
+          </span>
         </div>
       </section>
 

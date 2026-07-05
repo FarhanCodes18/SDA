@@ -14,8 +14,9 @@
   <!-- Navigation Bar -->
   <nav class="navbar">
     <div class="nav-container">
-      <a href="index.html" class="logo">
-        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      <a href="index.html" class="logo" style="display: flex; align-items: center; gap: 10px;">
+        <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
+        Sukla Digital Academy
       </a>
       <ul class="nav-links">
         <li><a href="index.html">Home</a></li>
@@ -325,8 +326,33 @@
             <textarea id="cert-address" class="form-control" placeholder="Enter flat, building, street, pincode, state details" required></textarea>
           </div>
 
+          <div class="price-display-wrapper" id="student-cert-price-box" style="background: rgba(255, 75, 43, 0.05); border: 1px dashed rgba(255, 75, 43, 0.2); padding: 14px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;">Certificate Price</p>
+            <h4 style="font-size: 24px; color: var(--accent-color); font-weight: 800;" id="student-cert-price-value">₹499</h4>
+          </div>
+
+          <div class="qr-code-wrapper" id="student-cert-qr-box" style="text-align: center; margin-bottom: 20px; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px;">
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px; font-weight:600;"><i class="fas fa-qrcode" style="color: var(--accent-color); margin-right: 6px;"></i> Scan & Pay using any UPI App</p>
+            <div style="background: white; padding: 12px; display: inline-block; border-radius: 8px; margin-bottom: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+              <img id="student-cert-qr-img" src="" alt="UPI QR Code" style="width: 180px; height: 180px; display: block; border-radius: 4px;">
+            </div>
+            <div style="font-size: 13px; color: var(--text-secondary);">
+              <p style="margin-bottom: 4px;">Payee Name: <strong style="color: var(--text-primary);">Ajay Shukla</strong></p>
+              <p>UPI ID: <strong style="color: var(--text-primary);">ajayshukla@upi</strong> 
+                <button type="button" onclick="navigator.clipboard.writeText('ajayshukla@upi'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
+                  <i class="far fa-copy"></i>
+                </button>
+              </p>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="cert-screenshot">Upload Payment Screenshot</label>
+            <input type="file" id="cert-screenshot" class="form-control" accept="image/*" required>
+          </div>
+
           <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">
-            Proceed to Secure Payment (₹499) <i class="fas fa-credit-card"></i>
+            Submit Details & Proof <i class="fas fa-upload" style="margin-left: 8px;"></i>
           </button>
         </form>
       </div>

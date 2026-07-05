@@ -36,6 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Load Admin Workspace Data
   loadAdminData();
 
+  // Add Certificate Filter Listener
+  const certFilter = document.getElementById('admin-cert-filter');
+  if (certFilter) {
+    certFilter.addEventListener('change', () => {
+      if (adminData && adminData.certificates) {
+        renderCertificates(adminData.certificates);
+      }
+    });
+  }
+
   // 4. Form Submit Listeners
   document.getElementById('add-course-form').addEventListener('submit', handleAddCourse);
   document.getElementById('edit-course-form').addEventListener('submit', handleEditCourse);
@@ -127,13 +137,16 @@ function renderOverviewLogs(payments, certificates) {
     if (recentCert.length === 0) {
       certTbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No certificate claims.</td></tr>`;
     } else {
-      certTbody.innerHTML = recentCert.map(c => `
-        <tr>
-          <td style="font-weight: 600; color: var(--text-primary);">${c.name}</td>
-          <td>${c.address.split(',').pop().trim() || 'ODISHA'}</td>
-          <td><span class="badge ${c.status === 'sent' ? 'approved' : 'pending'}">${c.status === 'sent' ? 'Sent' : 'Pending'}</span></td>
-        </tr>
-      `).join('');
+      certTbody.innerHTML = recentCert.map(c => {
+        const isCompleted = c.status === 'sent' || c.status === 'completed';
+        return `
+          <tr>
+            <td style="font-weight: 600; color: var(--text-primary);">${c.name}</td>
+            <td>${c.address.split(',').pop().trim() || 'ODISHA'}</td>
+            <td><span class="badge ${isCompleted ? 'approved' : 'pending'}">${isCompleted ? 'Completed' : 'Pending'}</span></td>
+          </tr>
+        `;
+      }).join('');
     }
   }
 }
@@ -240,7 +253,7 @@ function renderPayments(payments) {
   if (!tbody) return;
 
   if (payments.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted);">No payment logs found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align: center; color: var(--text-muted);">No payment logs found.</td></tr>`;
     return;
   }
 
@@ -253,7 +266,13 @@ function renderPayments(payments) {
       <td>₹${p.amount}</td>
       <td>${p.paymentType}</td>
       <td style="font-family: monospace; font-size:12px;">${p.paymentId || 'MANUAL'}</td>
-      <td><span class="badge ${p.status === 'captured' ? 'approved' : 'failed'}">${p.status}</span></td>
+      <td>
+        ${p.screenshot 
+          ? `<a href="${p.screenshot}" target="_blank" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-image"></i> View Receipt</a>` 
+          : '<span style="color: var(--text-muted);">N/A</span>'
+        }
+      </td>
+      <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status}</span></td>
       <td>${new Date(p.date).toLocaleDateString('en-IN')}</td>
       <td>
         <button onclick="openManualPaymentModal('${p.id}', '${p.status}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px;">
@@ -270,31 +289,56 @@ function renderCertificates(certificates) {
   if (!tbody) return;
 
   if (certificates.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No certificate requests found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted);">No certificate requests found.</td></tr>`;
     return;
   }
 
-  tbody.innerHTML = certificates.map(c => `
-    <tr>
-      <td>
-        <div style="font-weight: 600; color: var(--text-primary);">${c.name}</div>
-        <div style="font-size:12px; color:var(--text-muted);">${c.email} &bull; ${c.mobile}</div>
-      </td>
-      <td>
-        <div style="font-weight: 600;">${c.courseName}</div>
-        <div style="font-size:12px; color:var(--text-muted);">${c.certType}</div>
-      </td>
-      <td>${c.address}</td>
-      <td>${new Date(c.date).toLocaleDateString('en-IN')}</td>
-      <td><span class="badge ${c.status === 'sent' ? 'approved' : 'pending'}">${c.status === 'sent' ? 'Sent' : 'Pending'}</span></td>
-      <td>
-        ${c.status !== 'sent' 
-          ? `<button onclick="handleMarkCertSent('${c.id}')" class="btn-primary" style="padding: 6px 12px; font-size: 11px;">Mark Sent <i class="fas fa-check"></i></button>`
-          : `<i class="fas fa-check-double" style="color: var(--success); font-size: 18px;"></i> Sent`
-        }
-      </td>
-    </tr>
-  `).join('');
+  // Get active filter status
+  const filterVal = document.getElementById('admin-cert-filter')?.value || 'all';
+  
+  let filteredCerts = certificates;
+  if (filterVal === 'pending') {
+    filteredCerts = certificates.filter(c => c.status === 'pending');
+  } else if (filterVal === 'completed') {
+    filteredCerts = certificates.filter(c => c.status === 'sent' || c.status === 'completed');
+  }
+
+  if (filteredCerts.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-muted);">No certificate requests match this status.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filteredCerts.map(c => {
+    const isCompleted = c.status === 'sent' || c.status === 'completed';
+    return `
+      <tr>
+        <td style="font-weight: 600; color: var(--text-primary);">${c.name}</td>
+        <td>${c.mobile}</td>
+        <td>${c.email}</td>
+        <td style="font-weight: 600;">${c.courseName}</td>
+        <td>₹${c.amount || 499}</td>
+        <td style="font-family: monospace; font-size: 12px;">${c.paymentId || 'N/A'}</td>
+        <td>
+          ${c.screenshot 
+            ? `<a href="${c.screenshot}" target="_blank" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-image"></i> View Receipt</a>` 
+            : '<span style="color: var(--text-muted);">N/A</span>'
+          }
+        </td>
+        <td>
+          <span class="badge ${isCompleted ? 'approved' : 'pending'}">
+            ${isCompleted ? 'Completed' : 'Pending'}
+          </span>
+        </td>
+        <td>${new Date(c.date).toLocaleDateString('en-IN')}</td>
+        <td>
+          ${!isCompleted 
+            ? `<button onclick="handleMarkCertCompleted('${c.id}')" class="btn-primary" style="padding: 6px 12px; font-size: 11px;">Mark Completed <i class="fas fa-check"></i></button>`
+            : `<i class="fas fa-check-double" style="color: var(--success); font-size: 16px;"></i> Completed`
+          }
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 // Render Contact Messages
@@ -526,10 +570,10 @@ async function handleAddRecordedClass(e) {
   }
 }
 
-// --- CERTIFICATE SENT MARK HANDLER ---
-async function handleMarkCertSent(id) {
+// --- CERTIFICATE COMPLETED MARK HANDLER ---
+async function handleMarkCertCompleted(id) {
   try {
-    const res = await apiCall(`/certificates/${id}/status`, 'PUT', { status: 'sent' }, true);
+    const res = await apiCall(`/certificates/${id}/status`, 'PUT', { status: 'completed' }, true);
     showToast(res.message, 'success');
     await loadAdminData();
   } catch (error) {

@@ -14,8 +14,9 @@
   <!-- Navigation Bar -->
   <nav class="navbar">
     <div class="nav-container">
-      <a href="index.html" class="logo">
-        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      <a href="index.html" class="logo" style="display: flex; align-items: center; gap: 10px;">
+        <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
+        Sukla Digital Academy
       </a>
       <ul class="nav-links">
         <li><a href="index.html" class="active">Home</a></li>
@@ -98,20 +99,31 @@
     </div>
   </section>
 
-  <!-- Placement Achievers Spotlight Section -->
-  <section id="placement">
-    <div class="section-container" style="text-align: center;">
-      <span class="placement-spotlight-label">• PLACEMENT SPOTLIGHT</span>
-      <h2>Our Recent <span class="word-navy">Placement</span> <span class="word-red">Achievers</span></h2>
-      
-      <div class="carousel-container">
-        <button class="carousel-control prev-btn"><i class="fas fa-chevron-left"></i></button>
-        <div class="carousel-viewport">
-          <div class="carousel-track" id="achievers-carousel-track">
-            <!-- Renders dynamically -->
+  <!-- Founder section -->
+  <section class="section" style="background: var(--bg-secondary);">
+    <div class="section-container" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 60px; align-items: center;">
+      <div style="position: relative; text-align: center;">
+        <div class="glass-card" style="display: inline-block; padding: 12px;">
+          <div style="width: 280px; height: 350px; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            <img src="founder.png" alt="Ajay Shukla" class="founder-img-hover" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
         </div>
-        <button class="carousel-control next-btn"><i class="fas fa-chevron-right"></i></button>
+      </div>
+      <div>
+        <h2 style="font-size: 36px; margin-bottom: 20px;">Meet Our Founder, <span>Ajay Shukla</span></h2>
+        <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 16px;">
+          Ajay Shukla founded Sukla Digital Academy with a single mission: to bridge the gap between academic theory and practical corporate environments. With over a decade of software architecture and training experience, Ajay has mentored thousands of successful software engineers working across global tech companies.
+        </p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: var(--accent-color); font-size: 18px; margin-bottom: 6px;"><i class="fas fa-check-circle"></i> Practical Focus</h4>
+            <p style="font-size: 13px; color: var(--text-secondary);">Learn concepts by coding actual industry-grade applications.</p>
+          </div>
+          <div class="glass-card" style="padding: 16px;">
+            <h4 style="color: var(--accent-color); font-size: 18px; margin-bottom: 6px;"><i class="fas fa-check-circle"></i> Direct Referral</h4>
+            <p style="font-size: 13px; color: var(--text-secondary);">Top performing students get direct interview cards for partner firms.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -132,31 +144,63 @@
     </div>
   </section>
 
-  <!-- Founder section -->
-  <section class="section" style="background: var(--bg-secondary);">
-    <div class="section-container" style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 60px; align-items: center;">
-      <div style="position: relative; text-align: center;">
-        <div class="glass-card" style="display: inline-block; padding: 12px;">
-          <div style="width: 280px; height: 350px; background: var(--accent-gradient); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-            <i class="fas fa-user-tie" style="font-size: 100px; color: white;"></i>
+  <!-- Premium Certificate Section -->
+  <section class="section" id="certificate-unlock-section" style="background: linear-gradient(135deg, rgba(20, 20, 25, 0.6) 0%, rgba(10, 10, 12, 0.8) 100%); position: relative; overflow: hidden; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
+    <!-- Background Glow -->
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60%; height: 60%; background: radial-gradient(circle, rgba(255, 75, 43, 0.08) 0%, transparent 70%); pointer-events: none; z-index: 0;"></div>
+    
+    <div class="section-container" style="position: relative; z-index: 1;">
+      <div class="certificate-section-grid">
+        
+        <!-- Left Side: Content -->
+        <div>
+          <span class="placement-spotlight-label" style="margin-bottom: 12px;">• GET CERTIFIED</span>
+          <h2 style="font-size: 36px; margin-bottom: 20px; font-family: var(--font-header);">Verified Course <span>Certification</span></h2>
+          <p style="color: var(--text-secondary); margin-bottom: 30px; font-size: 16px; line-height: 1.6;">
+            Complete your details and unlock your verified course certificate. After successful payment, your certificate request will be sent to admin and you will receive your certificate within 24 hours.
+          </p>
+          
+          <div style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 36px;">
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div class="stat-card-icon" style="background: rgba(255, 75, 43, 0.1); color: var(--accent-color); width: 36px; height: 36px; border-radius: 8px; font-size: 14px;">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <p style="font-size: 14px; color: var(--text-primary);">ISO 9001:2015 Certified Industry Standard Verifiable ID</p>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+              <div class="stat-card-icon" style="background: rgba(255, 75, 43, 0.1); color: var(--accent-color); width: 36px; height: 36px; border-radius: 8px; font-size: 14px;">
+                <i class="fas fa-share-alt"></i>
+              </div>
+              <p style="font-size: 14px; color: var(--text-primary);">Directly shareable on LinkedIn, resumes, and portfolios</p>
+            </div>
+          </div>
+          
+          <button onclick="openCertificateUnlockModal()" class="btn-primary" style="padding: 14px 28px; font-size: 16px;">
+            Unlock Now <i class="fas fa-key" style="margin-left: 8px;"></i>
+          </button>
+        </div>
+        
+        <!-- Right Side: Beautiful Certificate Preview Card -->
+        <div style="position: relative; text-align: center; display: flex; justify-content: center; align-items: center;">
+          <div class="certificate-preview-card-wrapper">
+            
+            <!-- Certificate Image Preview (Blurred) -->
+            <img src="assets/certificate_preview.jpg" alt="Sukla Digital Academy Certificate Preview" class="certificate-blurred-image" style="width: 100%; height: 100%; object-fit: cover; filter: blur(5px); opacity: 0.6; display: block; transition: filter 0.3s ease, opacity 0.3s ease;">
+            
+            <!-- Locked Overlay Interface -->
+            <div class="certificate-lock-overlay">
+              <span class="badge pending locked-preview-badge">
+                <i class="fas fa-lock" style="margin-right: 6px;"></i> Locked Preview
+              </span>
+              
+              <div class="lock-pulse-circle">
+                <i class="fas fa-lock" style="font-size: 24px; color: var(--accent-color);"></i>
+              </div>
+            </div>
+            
           </div>
         </div>
-      </div>
-      <div>
-        <h2 style="font-size: 36px; margin-bottom: 20px;">Meet Our Founder, <span>Farhan Khan</span></h2>
-        <p style="color: var(--text-secondary); margin-bottom: 24px; font-size: 16px;">
-          Farhan Khan founded Sukla Digital Academy with a single mission: to bridge the gap between academic theory and practical corporate environments. With over a decade of software architecture and training experience, Farhan has mentored thousands of successful software engineers working across global tech companies.
-        </p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-          <div class="glass-card" style="padding: 16px;">
-            <h4 style="color: var(--accent-color); font-size: 18px; margin-bottom: 6px;"><i class="fas fa-check-circle"></i> Practical Focus</h4>
-            <p style="font-size: 13px; color: var(--text-secondary);">Learn concepts by coding actual industry-grade applications.</p>
-          </div>
-          <div class="glass-card" style="padding: 16px;">
-            <h4 style="color: var(--accent-color); font-size: 18px; margin-bottom: 6px;"><i class="fas fa-check-circle"></i> Direct Referral</h4>
-            <p style="font-size: 13px; color: var(--text-secondary);">Top performing students get direct interview cards for partner firms.</p>
-          </div>
-        </div>
+        
       </div>
     </div>
   </section>
@@ -199,6 +243,25 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Placement Achievers Spotlight Section -->
+  <section id="placement">
+    <div class="section-container" style="text-align: center;">
+      <span class="placement-spotlight-label">• PLACEMENT SPOTLIGHT</span>
+      <h2>Our Recent <span class="word-navy">Placement</span> <span class="word-red">Achievers</span></h2>
+      
+      <div class="glass-card" style="max-width: 600px; margin: 40px auto 0 auto; padding: 40px; text-align: center; border: 1.5px solid rgba(255, 75, 43, 0.2);">
+        <div class="lock-pulse-circle" style="width: 80px; height: 80px; background: rgba(255, 75, 43, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto;">
+          <i class="fas fa-lock" style="font-size: 32px; color: var(--accent-color);"></i>
+        </div>
+        <h3 style="font-size: 24px; margin-bottom: 12px; font-family: var(--font-header);">Placement Spotlight Locked</h3>
+        <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 24px;">We are currently updating our placement spotlight archives for the upcoming session. The achievers catalog will unlock soon!</p>
+        <span class="badge pending" style="padding: 8px 20px; font-size: 13px; background: rgba(255, 75, 43, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color); border-radius: 50px; font-weight: 600;">
+          <i class="fas fa-calendar-alt" style="margin-right: 6px;"></i> Releasing 20 August 2026
+        </span>
       </div>
     </div>
   </section>
@@ -277,7 +340,15 @@
             <div class="info-icon"><i class="fas fa-clock"></i></div>
             <div class="info-content">
               <h4>Working Hours</h4>
-              <p>Mon - Sat: 9:00 AM - 7:00 PM</p>
+              <p>Mon - Sat: 7:00 AM - 8:00 PM</p>
+            </div>
+          </div>
+          <div class="contact-info-card">
+            <div class="info-icon"><i class="fas fa-hourglass-half"></i></div>
+            <div class="info-content">
+              <h4>Batch Timings</h4>
+              <p>Morning: 7:30 AM - 8:30 AM</p>
+              <p>Evening: 7:30 PM - 8:30 PM</p>
             </div>
           </div>
         </div>
@@ -358,10 +429,12 @@
     </div>
     <div class="footer-bottom">
       <p>&copy; 2026 Sukla Digital Academy. All rights reserved.</p>
-      <p>Founder & Instructor: Farhan Khan</p>
+      <p>Founder & Instructor: Ajay Shukla</p>
     </div>
   </footer>
 
+  <!-- Razorpay Checkout Library -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="script.js"></script>
   <script>
     // Load popular courses preview
@@ -660,6 +733,14 @@
     }
     .faq-item.active .faq-question i {
       transform: rotate(180deg);
+    }
+    .founder-img-hover {
+      filter: grayscale(100%);
+      transition: filter 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .founder-img-hover:hover {
+      filter: grayscale(0%);
+      transform: scale(1.03);
     }
   </style>
 </body>

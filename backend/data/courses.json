@@ -7,7 +7,7 @@
     "price": 2999,
     "originalPrice": 5999,
     "rating": 4.8,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Master C fundamentals — variables, loops, functions, arrays, pointers, structures, and file handling.",
     "category": "language",
     "image": ""
@@ -20,7 +20,7 @@
     "price": 3999,
     "originalPrice": 7999,
     "rating": 4.7,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Learn OOP in C++ — classes, inheritance, polymorphism, templates, STL, and exception handling.",
     "category": "language",
     "image": ""
@@ -33,7 +33,7 @@
     "price": 5999,
     "originalPrice": 11999,
     "rating": 4.9,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Data Structures & Algorithms in C — linked lists, stacks, queues, trees, graphs, and sorting algorithms.",
     "category": "dsa",
     "image": ""
@@ -46,7 +46,7 @@
     "price": 6999,
     "originalPrice": 13999,
     "rating": 4.9,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Master DSA in C++ — arrays, recursion, sliding window, backtracking, dynamic programming, and graphs.",
     "category": "dsa",
     "image": ""
@@ -59,7 +59,7 @@
     "price": 4999,
     "originalPrice": 9999,
     "rating": 4.8,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Java fundamentals — syntax, OOPs, exceptions, collections, multithreading, and JDBC connectivity.",
     "category": "language",
     "image": ""
@@ -72,7 +72,7 @@
     "price": 4499,
     "originalPrice": 8999,
     "rating": 4.7,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Python from scratch — syntax, OOP, file handling, NumPy, Pandas, automation, and web scraping.",
     "category": "language",
     "image": ""
@@ -85,7 +85,7 @@
     "price": 7999,
     "originalPrice": 15999,
     "rating": 4.8,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Full web development — HTML5, CSS3, JavaScript ES6+, responsive design, Git, and deployment.",
     "category": "web",
     "image": ""
@@ -98,7 +98,7 @@
     "price": 11999,
     "originalPrice": 23999,
     "rating": 5.0,
-    "instructor": "Farhan Khan",
+    "instructor": "Ajay Shukla",
     "description": "Full-stack JS — MongoDB, Express, React, Node.js. Build production-grade apps with payment gateways.",
     "category": "web",
     "image": ""

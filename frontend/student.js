@@ -57,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     certForm.addEventListener('submit', handleCertificatePayment);
   }
 
+  const certCourseSelect = document.getElementById('cert-course');
+  if (certCourseSelect) {
+    certCourseSelect.addEventListener('change', updateStudentCertPriceAndQR);
+  }
+
   const coursePayForm = document.getElementById('course-payment-form');
   if (coursePayForm) {
     coursePayForm.addEventListener('submit', handleCoursePaymentSubmit);
@@ -206,7 +211,7 @@ function renderLiveClasses(purchasedCourses) {
         <h3 class="class-title"><i class="fas fa-dot-circle" style="color: var(--danger); animation: glowPulse 1.5s infinite;"></i> DSA & Logic Building Masterclass</h3>
         <span class="badge approved">LIVE NOW</span>
       </div>
-      <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Learn recursion and back-tracking optimization live with Farhan Khan. Interactive code reviews.</p>
+      <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Learn recursion and back-tracking optimization live with Ajay Shukla. Interactive code reviews.</p>
       <a href="https://meet.google.com/mock-sukla-meeting" target="_blank" class="btn-primary" style="align-self: flex-start;">
         Join Zoom/Google Meet <i class="fas fa-video"></i>
       </a>
@@ -347,7 +352,7 @@ function renderPayments(payments) {
       <td>₹${p.amount}</td>
       <td>${p.paymentType}</td>
       <td>${new Date(p.date).toLocaleDateString('en-IN')}</td>
-      <td><span class="badge ${p.status === 'captured' ? 'approved' : 'failed'}">${p.status}</span></td>
+      <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status}</span></td>
     </tr>
   `).join('');
 }
@@ -374,20 +379,26 @@ function renderCertificateView(certificates, purchasedCourses) {
     return;
   }
 
-  const validCerts = certificates.filter(c => c.status === 'pending' || c.status === 'sent');
+  const validCerts = certificates.filter(c => c.status === 'pending' || c.status === 'sent' || c.status === 'completed');
 
   if (validCerts.length > 0) {
+    const isReady = validCerts[0].status === 'sent' || validCerts[0].status === 'completed';
     container.innerHTML = `
       <div class="certificate-unlocked-container">
-        <i class="fas fa-check-circle certificate-unlocked-icon"></i>
-        <h3 class="certificate-title-unlocked">Certificate Order Placed!</h3>
+        <i class="fas fa-check-circle certificate-unlocked-icon" style="${isReady ? 'color: var(--success);' : ''}"></i>
+        <h3 class="certificate-title-unlocked">${isReady ? 'Certificate Ready!' : 'Certificate Order Placed!'}</h3>
         <div class="certificate-info-unlocked">
-          <p style="font-size: 15px; margin-bottom: 12px; font-weight: 600;">"Thanks for payment. Your certificate will be sent on WhatsApp and Email."</p>
+          <p style="font-size: 15px; margin-bottom: 12px; font-weight: 600;">
+            ${isReady 
+              ? 'Your certificate request is approved and generated. Check your email and WhatsApp!'
+              : 'Thanks for payment. Your certificate will be sent on WhatsApp and Email.'
+            }
+          </p>
           <div style="text-align: left; font-size: 13px; color: var(--text-secondary); margin-top: 20px;">
             <p><strong>Candidate Name:</strong> ${validCerts[0].name}</p>
             <p><strong>Course Program:</strong> ${validCerts[0].courseName}</p>
             <p><strong>Type:</strong> ${validCerts[0].certType}</p>
-            <p><strong>Status:</strong> <span class="badge ${validCerts[0].status === 'sent' ? 'approved' : 'pending'}">${validCerts[0].status === 'sent' ? 'Sent' : 'Processing'}</span></p>
+            <p><strong>Status:</strong> <span class="badge ${isReady ? 'approved' : 'pending'}">${isReady ? 'Completed' : 'Processing'}</span></p>
           </div>
         </div>
       </div>
@@ -512,6 +523,36 @@ async function handleCoursePaymentSubmit(e) {
   }
 }
 
+// Price mapping for course certificates
+const CERT_PRICES = {
+  'C Programming': 499,
+  'C++ Programming': 699,
+  'Python Programming': 799,
+  'Java Core': 799,
+  'Java Programming': 799,
+  'C++ with DSA': 999,
+  'DSA with C++': 999,
+  'C with DSA': 899,
+  'Web Development': 899,
+  'MERN Stack': 999
+};
+
+function updateStudentCertPriceAndQR() {
+  const courseSelect = document.getElementById('cert-course');
+  const priceVal = document.getElementById('student-cert-price-value');
+  const qrImg = document.getElementById('student-cert-qr-img');
+
+  if (!courseSelect || !priceVal || !qrImg) return;
+
+  const courseName = courseSelect.value;
+  const price = CERT_PRICES[courseName] || 499;
+
+  priceVal.innerText = '₹' + price;
+
+  const upiUrl = `upi://pay?pa=ajayshukla@upi&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
+  qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
+}
+
 // Certificate claim modals
 function openCertificateModal() {
   if (dashboardData.purchasedCourses.length === 0) {
@@ -524,8 +565,14 @@ function openCertificateModal() {
 
   document.getElementById('cert-fullname').value = user.name;
   document.getElementById('cert-email').value = user.email;
+  document.getElementById('cert-mobile').value = '';
+  document.getElementById('cert-address').value = '';
+  document.getElementById('cert-screenshot').value = '';
 
   modal.classList.add('active');
+
+  // Trigger initial QR and price computation
+  updateStudentCertPriceAndQR();
 }
 
 function closeCertificateModal() {
@@ -535,7 +582,7 @@ function closeCertificateModal() {
   }
 }
 
-// Razorpay Certificate Claim payment trigger
+// Manual Certificate Claim payment trigger
 async function handleCertificatePayment(e) {
   e.preventDefault();
 
@@ -545,71 +592,64 @@ async function handleCertificatePayment(e) {
   const courseName = document.getElementById('cert-course').value;
   const certificateType = document.getElementById('cert-type').value;
   const address = document.getElementById('cert-address').value.trim();
+  const screenshotInput = document.getElementById('cert-screenshot');
 
-  if (!fullName || !mobile || !email || !courseName || !certificateType || !address) {
-    showToast('Please fill out all certificate form fields.', 'error');
+  if (!fullName || !mobile || !email || !courseName || !certificateType || !address || screenshotInput.files.length === 0) {
+    showToast('Please fill out all certificate form fields and upload the screenshot.', 'error');
     return;
   }
 
+  // Mobile Validation: 10 digit number starting with 6-9
+  const phoneRegex = /^[6-9]\d{9}$/;
+  if (!phoneRegex.test(mobile)) {
+    showToast('Please enter a valid 10-digit mobile number.', 'error');
+    return;
+  }
+
+  const price = CERT_PRICES[courseName] || 499;
+
+  const formData = new FormData();
+  formData.append('fullName', fullName);
+  formData.append('mobile', mobile);
+  formData.append('email', email);
+  formData.append('courseName', courseName);
+  formData.append('certificateType', certificateType);
+  formData.append('address', address);
+  formData.append('amount', price);
+  formData.append('screenshot', screenshotInput.files[0]);
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHTML = submitBtn.innerHTML;
+
   try {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Submitting Request... <i class="fas fa-spinner fa-spin"></i>';
+
+    const token = Auth.getToken();
+    const response = await fetch(`${API_URL}/certificate-manual-request`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    const res = await response.json();
+    if (!response.ok) {
+      throw new Error(res.message || 'Submission failed.');
+    }
+
     closeCertificateModal();
-    showToast('Initializing certificate token payment...', 'info');
-
-    // 1. Generate Order for Certificate (₹499)
-    const orderData = await apiCall('/certificate-request', 'POST', {
-      fullName, mobile, email, courseName, certificateType, address
-    }, true);
-
-    // 2. Launch Razorpay Checkout
-    const options = {
-      key: RAZORPAY_KEY_ID,
-      amount: orderData.amount,
-      currency: orderData.currency,
-      name: 'Sukla Digital Academy',
-      description: `Certificate Claim Payment`,
-      order_id: orderData.orderId,
-      handler: async (response) => {
-        try {
-          // 3. Confirm Payment and record Certificate details
-          await apiCall('/verify-payment', 'POST', {
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-            paymentType: 'Certificate Payment',
-            amount: 499,
-            certificateDetails: {
-              fullName,
-              mobile,
-              email,
-              courseName,
-              certificateType,
-              address
-            }
-          }, true);
-
-          showToast('Payment verified successfully!', 'success');
-          
-          // Refresh and display success view
-          await loadDashboardData();
-
-        } catch (err) {
-          showToast(err.message || 'Verification failed. Contact support.', 'error');
-        }
-      },
-      prefill: {
-        name: fullName,
-        email: email,
-        contact: mobile
-      },
-      theme: {
-        color: '#ff4b2b'
-      }
-    };
-
-    const rzp = new Razorpay(options);
-    rzp.open();
+    showToast(res.message, 'success');
+    
+    // Refresh and display success view
+    await loadDashboardData();
 
   } catch (error) {
     showToast(error.message || 'Failed to submit certificate request.', 'error');
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
   }
 }

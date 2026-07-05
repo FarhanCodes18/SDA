@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const admin = require('firebase-admin');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,12 +45,54 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// JSON File Database Helper Functions
-const DATA_DIR = path.join(__dirname, 'data');
+// Configure Multer for Payment Screenshots
+const screenshotStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'uploads', 'payments');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, 'screenshot_' + Date.now() + ext);
+  }
+});
+const uploadScreenshot = multer({ storage: screenshotStorage });
 
+
+// Firebase Admin Configuration & Sync
+let db = null;
+let useFirebase = false;
+
+const firebaseKeyPath = path.join(__dirname, 'firebase-key.json');
+if (fs.existsSync(firebaseKeyPath)) {
+  try {
+    const serviceAccount = require(firebaseKeyPath);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    db = admin.firestore();
+    useFirebase = true;
+    console.log('Firebase initialized successfully! Connecting to Firestore database...');
+  } catch (err) {
+    console.error('Failed to initialize Firebase Admin SDK:', err);
+  }
+} else {
+  console.log('--------------------------------------------------');
+  console.log('NOTICE: firebase-key.json not found in backend folder.');
+  console.log('Please place your Firebase service account JSON key file as "firebase-key.json" to enable Firestore.');
+  console.log('Falling back to local JSON file database for now.');
+  console.log('--------------------------------------------------');
+}
+
+// JSON File Database Helper Functions with Firestore Caching / Synchronization
+const DATA_DIR = path.join(__dirname, 'data');
 const getFilePath = (filename) => path.join(DATA_DIR, filename);
 
-const readJSONFile = (filename) => {
+// Local synchronous fallback helpers
+const readLocalJSONFile = (filename) => {
   try {
     const filePath = getFilePath(filename);
     if (!fs.existsSync(filePath)) {
@@ -58,20 +101,126 @@ const readJSONFile = (filename) => {
     const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data || '[]');
   } catch (error) {
-    console.error(`Error reading ${filename}:`, error);
+    console.error(`Error reading local file ${filename}:`, error);
     return [];
   }
 };
 
-const writeJSONFile = (filename, data) => {
+const writeLocalJSONFile = (filename, data) => {
   try {
     const filePath = getFilePath(filename);
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
     return true;
   } catch (error) {
-    console.error(`Error writing to ${filename}:`, error);
+    console.error(`Error writing local file ${filename}:`, error);
     return false;
   }
+};
+
+// Global in-memory DB cache
+const dbCache = {};
+
+// Load cache from Firestore/JSON and then run seedDatabase
+const initDatabase = async () => {
+  const filenames = [
+    'users.json', 'courses.json', 'enrollments.json', 'payments.json',
+    'certificates.json', 'notices.json', 'announcements.json',
+    'recordedClasses.json', 'achievers.json', 'contacts.json', 'liveclass.json'
+  ];
+
+  // We perform initial reads from local JSON files to avoid uninitialized state
+  for (const filename of filenames) {
+    dbCache[filename] = readLocalJSONFile(filename);
+  }
+
+  if (useFirebase && db) {
+    console.log('Fetching collections from Firebase Firestore to populate cache...');
+    for (const filename of filenames) {
+      const collectionName = filename.replace('.json', '');
+      try {
+        const snapshot = await db.collection(collectionName).get();
+        if (!snapshot.empty) {
+          const data = [];
+          snapshot.forEach(doc => {
+            data.push({ id: doc.id, ...doc.data() });
+          });
+          dbCache[filename] = data;
+          console.log(`Successfully populated cache for "${filename}" from Firestore (${data.length} docs).`);
+        } else {
+          // If Firestore is empty, seed it with local JSON backup
+          console.log(`Firestore collection "${collectionName}" is empty. Seeding from local backup...`);
+          await syncCollectionToFirestore(collectionName, dbCache[filename]);
+        }
+      } catch (err) {
+        console.error(`Failed to load collection "${collectionName}" from Firestore:`, err.message);
+      }
+    }
+  }
+
+  // Run programmatic database seeding
+  await seedDatabase();
+};
+
+const syncCollectionToFirestore = async (collectionName, data) => {
+  if (!useFirebase || !db) return;
+  
+  try {
+    const collectionRef = db.collection(collectionName);
+    const snapshot = await collectionRef.get();
+    
+    // Track existing documents to delete any that are no longer in our local array
+    const existingIds = new Set();
+    snapshot.forEach(doc => existingIds.add(doc.id));
+
+    // Batch operations
+    const batch = db.batch();
+    
+    for (const item of data) {
+      const docId = item.id || `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const docRef = collectionRef.doc(docId);
+      
+      const docData = { ...item };
+      delete docData.id; // Avoid duplicate id inside document body
+      
+      batch.set(docRef, docData);
+      existingIds.delete(docId);
+    }
+
+    // Delete elements that are no longer present
+    for (const oldId of existingIds) {
+      batch.delete(collectionRef.doc(oldId));
+    }
+
+    await batch.commit();
+    console.log(`[Firestore Sync] Collection "${collectionName}" synced successfully.`);
+  } catch (err) {
+    console.error(`[Firestore Sync Error] Failed to sync collection "${collectionName}":`, err);
+  }
+};
+
+// API-facing helper functions
+const readJSONFile = (filename) => {
+  if (dbCache[filename]) {
+    return dbCache[filename];
+  }
+  dbCache[filename] = readLocalJSONFile(filename);
+  return dbCache[filename];
+};
+
+const writeJSONFile = (filename, data) => {
+  dbCache[filename] = data;
+  
+  // Backup to local file storage
+  writeLocalJSONFile(filename, data);
+
+  // Sync to Firestore asynchronously
+  if (useFirebase && db) {
+    const collectionName = filename.replace('.json', '');
+    syncCollectionToFirestore(collectionName, data).catch(err => {
+      console.error(`Error in async sync for ${collectionName}:`, err);
+    });
+  }
+  return true;
 };
 
 // Middleware for JWT Authentication
@@ -112,7 +261,7 @@ const seedDatabase = async () => {
       const hashedAdminPassword = await bcrypt.hash('admin123', 10);
       users.push({
         id: 'user_admin_01',
-        name: 'Admin Instructor',
+        name: 'Ajay Shukla',
         email: 'admin@sukla.com',
         password: hashedAdminPassword,
         role: 'admin',
@@ -121,35 +270,7 @@ const seedDatabase = async () => {
       console.log('Seeded Admin account (admin@sukla.com)');
     }
 
-    // Seed Student if not exists
-    const studentExists = users.some(u => u.email === 'student@sukla.com');
-    if (!studentExists) {
-      const hashedStudentPassword = await bcrypt.hash('student123', 10);
-      users.push({
-        id: 'user_student_01',
-        name: 'Student Learner',
-        email: 'student@sukla.com',
-        password: hashedStudentPassword,
-        role: 'student',
-        createdAt: new Date().toISOString()
-      });
-      console.log('Seeded Student account (student@sukla.com)');
-    }
-
-    // Seed default placement achievers if none exists
-    const achievers = readJSONFile('achievers.json');
-    if (achievers.length === 0) {
-      const defaultAchievers = [
-        { id: 'ach_1', name: 'Preksha Dwivedi', company: 'Zenus Group', image: '' },
-        { id: 'ach_2', name: 'Yojna Pardhi', company: 'Zenus Group', image: '' },
-        { id: 'ach_3', name: 'Himanshu Patle', company: 'Zenus Group', image: '' },
-        { id: 'ach_4', name: 'Vishakha Baghele', company: 'First Step Innovation', image: '' },
-        { id: 'ach_5', name: 'Dewang Malewar', company: 'First Step Innovation', image: '' }
-      ];
-      writeJSONFile('achievers.json', defaultAchievers);
-      console.log('Seeded 5 default placement achievers');
-    }
-
+    // Student seeding and default placement achiever seeding disabled by request.
     writeJSONFile('users.json', users);
   } catch (error) {
     console.error('Database seeding failed:', error);
@@ -165,7 +286,7 @@ const seedDatabase = async () => {
 // Register
 app.post('/api/register', async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, mobile, courseId } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Please provide name, email, and password.' });
@@ -185,6 +306,7 @@ app.post('/api/register', async (req, res) => {
       id: 'user_' + Date.now(),
       name,
       email: email.toLowerCase(),
+      mobile: mobile || '',
       password: hashedPassword,
       role: assignedRole,
       createdAt: new Date().toISOString()
@@ -192,6 +314,28 @@ app.post('/api/register', async (req, res) => {
 
     users.push(newUser);
     writeJSONFile('users.json', users);
+
+    // If a course is selected, automatically enroll the student
+    if (courseId) {
+      const courses = readJSONFile('courses.json');
+      const course = courses.find(c => c.id === courseId);
+      if (course) {
+        const enrollments = readJSONFile('enrollments.json');
+        const newEnrollment = {
+          id: 'enroll_' + Date.now(),
+          studentId: newUser.id,
+          courseId,
+          studentName: newUser.name,
+          studentMobile: mobile || '',
+          studentEmail: newUser.email,
+          address: '',
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+        enrollments.push(newEnrollment);
+        writeJSONFile('enrollments.json', enrollments);
+      }
+    }
 
     // Generate JWT
     const token = jwt.sign(
@@ -355,7 +499,7 @@ app.post('/api/courses', authenticateToken, isAdmin, (req, res) => {
       price: Number(price),
       originalPrice: Number(originalPrice || price * 2),
       rating: 4.8,
-      instructor: req.user.name || 'Farhan Khan',
+      instructor: req.user.name || 'Ajay Shukla',
       description,
       category: category || 'development'
     };
@@ -613,7 +757,9 @@ app.post('/api/verify-payment', authenticateToken, (req, res) => {
         courseName: certificateDetails.courseName,
         certType: certificateDetails.certificateType || certificateDetails.certType,
         address: certificateDetails.address,
-        status: 'pending', // Pending sending by admin
+        amount: Number(amount),
+        paymentId: razorpay_payment_id,
+        status: 'pending', // Pending sending/completion by admin
         date: new Date().toISOString()
       });
       writeJSONFile('certificates.json', certificates);
@@ -680,6 +826,13 @@ app.put('/api/payments/:id/status', authenticateToken, isAdmin, (req, res) => {
           enrollments[enrollIndex].status = 'approved';
           writeJSONFile('enrollments.json', enrollments);
         }
+      } else if (payment.paymentType === 'Certificate Payment') {
+        const certificates = readJSONFile('certificates.json');
+        const certIndex = certificates.findIndex(c => c.paymentId === payment.paymentId || (c.studentId === payment.studentId && c.courseName === payment.courseName));
+        if (certIndex !== -1) {
+          certificates[certIndex].status = 'completed';
+          writeJSONFile('certificates.json', certificates);
+        }
       }
     }
 
@@ -691,6 +844,89 @@ app.put('/api/payments/:id/status', authenticateToken, isAdmin, (req, res) => {
 
 // 6. CERTIFICATE ENDPOINTS
 
+// Price mapping for course certificates
+const CERT_PRICES = {
+  'C Programming': 499,
+  'C++ Programming': 699,
+  'Python Programming': 799,
+  'Java Core': 799,
+  'Java Programming': 799,
+  'C++ with DSA': 999,
+  'DSA with C++': 999,
+  'C with DSA': 899,
+  'Web Development': 899,
+  'MERN Stack': 999
+};
+
+// Request certificate manually with QR payment screenshot
+app.post('/api/certificate-manual-request', authenticateToken, uploadScreenshot.single('screenshot'), (req, res) => {
+  try {
+    const { fullName, mobile, email, courseName, amount } = req.body;
+    const studentId = req.user.id;
+
+    if (!fullName || !mobile || !email || !courseName || !amount) {
+      return res.status(400).json({ message: 'Missing required certificate details.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Payment screenshot is required.' });
+    }
+
+    // Resolve screenshot URL
+    const screenshotUrl = `${req.protocol}://${req.get('host')}/uploads/payments/${req.file.filename}`;
+
+    const certificates = readJSONFile('certificates.json');
+    const certId = 'cert_' + Date.now();
+    const manualPaymentId = 'MANUAL_' + Date.now();
+
+    const newCertificate = {
+      id: certId,
+      studentId,
+      name: fullName,
+      mobile,
+      email,
+      courseName,
+      certType: 'Verified Course Certificate',
+      address: 'Online Delivery',
+      amount: Number(amount),
+      screenshot: screenshotUrl,
+      paymentId: manualPaymentId,
+      status: 'pending',
+      date: new Date().toISOString()
+    };
+
+    certificates.push(newCertificate);
+    writeJSONFile('certificates.json', certificates);
+
+    // Save as pending payment in payments.json so admin can approve it
+    const payments = readJSONFile('payments.json');
+    payments.push({
+      id: 'pay_cert_' + Date.now(),
+      orderId: 'manual_order_' + Date.now(),
+      paymentId: manualPaymentId,
+      studentId,
+      studentName: fullName,
+      studentEmail: email,
+      studentMobile: mobile,
+      courseName: courseName,
+      paymentType: 'Certificate Payment',
+      amount: Number(amount),
+      screenshot: screenshotUrl,
+      status: 'pending',
+      date: new Date().toISOString()
+    });
+    writeJSONFile('payments.json', payments);
+
+    res.status(201).json({
+      message: 'Thank you for your submission! Your certificate will be received in the next 24 hours.',
+      certificate: newCertificate
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error processing certificate request.', error: error.message });
+  }
+});
+
 // Request certificate (Before payment - locks/saves info as pending)
 app.post('/api/certificate-request', authenticateToken, async (req, res) => {
   try {
@@ -701,14 +937,11 @@ app.post('/api/certificate-request', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Missing required certificate details.' });
     }
 
-    // We don't save to certificates.json yet, or we save it as a draft/pending payment.
-    // The spec states:
-    // "Before payment, open form modal and collect ... After form submit, open Razorpay payment. After successful payment ... Save full payment details in backend."
-    // So the frontend collects form data, submits to `/api/create-order` or `/api/certificate-request` to generate a Razorpay order, then completes payment.
-    // Let's create the Razorpay order here directly!
-    // Certificate cost is Rs 499 (standard price)
+    // Resolve course price securely from the mapping, fallback to 499
+    const price = CERT_PRICES[courseName] || 499;
+
     const options = {
-      amount: 499 * 100, // 499 INR in paise
+      amount: price * 100, // Amount in paise
       currency: 'INR',
       receipt: 'cert_rcpt_' + Date.now()
     };
@@ -736,11 +969,11 @@ app.get('/api/certificates', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
-// Update certificate status (mark as sent - Admin only)
+// Update certificate status (mark as sent/completed - Admin only)
 app.put('/api/certificates/:id/status', authenticateToken, isAdmin, (req, res) => {
   try {
     const certId = req.params.id;
-    const { status } = req.body; // 'pending' or 'sent'
+    const { status } = req.body; // 'pending', 'sent' or 'completed'
 
     const certificates = readJSONFile('certificates.json');
     const certIndex = certificates.findIndex(c => c.id === certId);
@@ -749,8 +982,20 @@ app.put('/api/certificates/:id/status', authenticateToken, isAdmin, (req, res) =
       return res.status(404).json({ message: 'Certificate request not found.' });
     }
 
-    certificates[certIndex].status = status || 'sent';
+    const oldStatus = certificates[certIndex].status;
+    certificates[certIndex].status = status || 'completed';
     writeJSONFile('certificates.json', certificates);
+
+    // If marked completed or sent, update matching transaction status in payments.json
+    if ((status === 'completed' || status === 'sent') && oldStatus === 'pending') {
+      const cert = certificates[certIndex];
+      const payments = readJSONFile('payments.json');
+      const payIndex = payments.findIndex(p => p.paymentId === cert.paymentId || (p.studentId === cert.studentId && p.courseName === cert.courseName && p.paymentType === 'Certificate Payment'));
+      if (payIndex !== -1) {
+        payments[payIndex].status = 'captured';
+        writeJSONFile('payments.json', payments);
+      }
+    }
 
     res.json({ message: 'Certificate request status updated!', certificate: certificates[certIndex] });
   } catch (error) {
@@ -1031,5 +1276,5 @@ app.delete('/api/achievers/:id', authenticateToken, isAdmin, (req, res) => {
 // Start Express server and run db seeder
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
-  await seedDatabase();
+  await initDatabase();
 });

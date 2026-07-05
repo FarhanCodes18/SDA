@@ -14,8 +14,9 @@
   <!-- Register Card Container -->
   <div class="glass-card auth-card">
     <div class="auth-header">
-      <a href="index.html" class="logo" style="justify-content: center; margin-bottom: 20px;">
-        <i class="fas fa-graduation-cap"></i> Sukla Digital Academy
+      <a href="index.html" class="logo" style="display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 20px;">
+        <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
+        Sukla Digital Academy
       </a>
       <h2>Create Account</h2>
       <p>Register to unlock practical courses & certifications</p>
@@ -27,7 +28,15 @@
         <label for="name">Full Name</label>
         <div class="auth-input-wrapper">
           <i class="fas fa-user"></i>
-          <input type="text" id="name" class="auth-input" placeholder="Farhan Khan" required>
+          <input type="text" id="name" class="auth-input" placeholder="Ajay Shukla" required>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label for="mobile">Mobile Number</label>
+        <div class="auth-input-wrapper">
+          <i class="fas fa-phone"></i>
+          <input type="tel" id="mobile" class="auth-input" placeholder="Enter 10-digit mobile number" required>
         </div>
       </div>
 
@@ -36,6 +45,16 @@
         <div class="auth-input-wrapper">
           <i class="fas fa-envelope"></i>
           <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label for="course">Select Course to Enroll</label>
+        <div class="auth-input-wrapper">
+          <i class="fas fa-book"></i>
+          <select id="course" class="auth-input" style="background-color: var(--bg-secondary); color: var(--text-primary);" required>
+            <option value="" disabled selected>Select a course</option>
+          </select>
         </div>
       </div>
 
@@ -59,10 +78,27 @@
 
   <script src="script.js"></script>
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       // If already logged in, redirect straight to dashboard
       if (Auth.isLoggedIn()) {
         Auth.redirectToDashboard();
+      }
+
+      // Populate courses in dropdown
+      const courseSelect = document.getElementById('course');
+      if (courseSelect) {
+        try {
+          const courses = await apiCall('/courses', 'GET', null, false);
+          courses.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.title;
+            courseSelect.appendChild(opt);
+          });
+        } catch (error) {
+          console.error('Error loading courses for register dropdown:', error);
+          showToast('Failed to load courses list.', 'error');
+        }
       }
 
       const form = document.getElementById('register-form');
@@ -70,16 +106,25 @@
         e.preventDefault();
         
         const name = document.getElementById('name').value.trim();
+        const mobile = document.getElementById('mobile').value.trim();
         const email = document.getElementById('email').value.trim();
+        const courseId = document.getElementById('course').value;
         const password = document.getElementById('password').value;
 
-        if (!name || !email || !password) {
+        if (!name || !mobile || !email || !courseId || !password) {
           showToast('Please fill in all fields.', 'error');
           return;
         }
 
+        // Validate Mobile Number
+        const phoneRegex = /^[6-9]\d{9}$/;
+        if (!phoneRegex.test(mobile)) {
+          showToast('Please enter a valid 10-digit mobile number starting with 6-9.', 'error');
+          return;
+        }
+
         try {
-          const response = await apiCall('/register', 'POST', { name, email, password }, false);
+          const response = await apiCall('/register', 'POST', { name, email, password, mobile, courseId }, false);
           
           Auth.saveToken(response.token);
           Auth.saveUser(response.user);
