@@ -352,7 +352,7 @@ function renderPayments(payments) {
       <td>₹${p.amount}</td>
       <td>${p.paymentType}</td>
       <td>${new Date(p.date).toLocaleDateString('en-IN')}</td>
-      <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status}</span></td>
+      <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status === 'captured' ? 'Received' : p.status}</span></td>
     </tr>
   `).join('');
 }
@@ -440,6 +440,17 @@ function openCoursePaymentModal(courseId, title, price) {
   document.getElementById('course-pay-coursename').value = title;
   document.getElementById('course-pay-amount').value = price;
 
+  // Clear previous screenshot selection
+  const screenshotInput = document.getElementById('course-pay-screenshot');
+  if (screenshotInput) screenshotInput.value = '';
+
+  // Generate dynamic QR Code for course price
+  const qrImg = document.getElementById('course-pay-qr-img');
+  if (qrImg) {
+    const upiUrl = `upi://pay?pa=7974271675-2@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Course%20Enrollment`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
+  }
+
   modal.classList.add('active');
 }
 
@@ -450,76 +461,74 @@ function closeCoursePaymentModal() {
   }
 }
 
-// Handle course payment form submission and launch Razorpay immediately
+// Handle course payment form submission and upload screenshot proof
 async function handleCoursePaymentSubmit(e) {
   e.preventDefault();
 
   const fullName = document.getElementById('course-pay-fullname').value.trim();
   const mobile = document.getElementById('course-pay-mobile').value.trim();
   const email = document.getElementById('course-pay-email').value.trim();
+  const screenshotInput = document.getElementById('course-pay-screenshot');
 
   if (!fullName || !mobile || !email) {
     showToast('Please fill out all verification details.', 'error');
     return;
   }
 
+  if (!screenshotInput || screenshotInput.files.length === 0) {
+    showToast('Please upload a payment screenshot receipt.', 'error');
+    return;
+  }
+
+  const file = screenshotInput.files[0];
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHTML = submitBtn.innerHTML;
+
   try {
+    // Disable submit button & show loading state
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Submitting Request... <i class="fas fa-spinner fa-spin"></i>';
+
+    const formData = new FormData();
+    formData.append('fullName', fullName);
+    formData.append('mobile', mobile);
+    formData.append('email', email);
+    formData.append('courseId', activeCourseIdToPurchase);
+    formData.append('courseName', activeCourseTitleToPurchase);
+    formData.append('amount', activeCoursePriceToPurchase);
+    formData.append('screenshot', file);
+
+    const token = Auth.getToken();
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_URL}/course-manual-request`, {
+      method: 'POST',
+      headers: headers,
+      body: formData
+    });
+
+    const res = await response.json();
+    if (!response.ok) {
+      throw new Error(res.message || 'Submission failed.');
+    }
+
     closeCoursePaymentModal();
-    showToast('Initializing payment checkout...', 'info');
-
-    // 1. Create order on backend
-    const orderData = await apiCall('/create-order', 'POST', {
-      amount: activeCoursePriceToPurchase,
-      currency: 'INR'
-    }, true);
-
-    // 2. Open Razorpay Checkout gateway immediately
-    const options = {
-      key: RAZORPAY_KEY_ID,
-      amount: orderData.amount,
-      currency: orderData.currency,
-      name: 'Sukla Digital Academy',
-      description: `Purchase Course: ${activeCourseTitleToPurchase}`,
-      order_id: orderData.orderId,
-      handler: async (response) => {
-        try {
-          // 3. Verify payment signature on backend
-          await apiCall('/verify-payment', 'POST', {
-            razorpay_payment_id: response.razorpay_payment_id,
-            razorpay_order_id: response.razorpay_order_id,
-            razorpay_signature: response.razorpay_signature,
-            paymentType: 'Course Payment',
-            courseId: activeCourseIdToPurchase,
-            studentName: fullName,
-            studentEmail: email,
-            studentMobile: mobile,
-            amount: activeCoursePriceToPurchase
-          }, true);
-
-          showToast('Payment successful. Your course has been unlocked.', 'success');
-          
-          // Reload dashboard data
-          await loadDashboardData();
-
-        } catch (err) {
-          showToast(err.message || 'Payment signature verification failed.', 'error');
-        }
-      },
-      prefill: {
-        name: fullName,
-        email: email,
-        contact: mobile
-      },
-      theme: {
-        color: '#ff4b2b'
-      }
-    };
-
-    const rzp = new Razorpay(options);
-    rzp.open();
+    showToast(res.message, 'success');
+    
+    // Refresh student dashboard data
+    await loadDashboardData();
 
   } catch (error) {
-    showToast(error.message || 'Failed to initialize Razorpay checkout.', 'error');
+    showToast(error.message || 'Failed to submit course purchase request.', 'error');
+  } finally {
+    // Reset button state
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
   }
 }
 
@@ -534,7 +543,8 @@ const CERT_PRICES = {
   'DSA with C++': 999,
   'C with DSA': 899,
   'Web Development': 899,
-  'MERN Stack': 999
+  'MERN Stack': 999,
+  'Web Designer': 1
 };
 
 function updateStudentCertPriceAndQR() {
@@ -549,7 +559,7 @@ function updateStudentCertPriceAndQR() {
 
   priceVal.innerText = '₹' + price;
 
-  const upiUrl = `upi://pay?pa=ajayshukla@upi&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
+  const upiUrl = `upi://pay?pa=7974271675-2@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
   qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 }
 
@@ -641,7 +651,7 @@ async function handleCertificatePayment(e) {
     }
 
     closeCertificateModal();
-    showToast(res.message, 'success');
+    showCertificateSuccessModal(fullName, courseName);
     
     // Refresh and display success view
     await loadDashboardData();
@@ -651,5 +661,45 @@ async function handleCertificatePayment(e) {
     submitBtn.disabled = false;
     submitBtn.style.opacity = '1';
     submitBtn.innerHTML = originalBtnHTML;
+  }
+}
+
+function showCertificateSuccessModal(name, course) {
+  let modal = document.getElementById('cert-success-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'cert-success-modal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="modal-content" style="text-align: center; max-width: 450px;">
+      <div class="modal-body" style="padding: 40px 24px;">
+        <div style="width: 72px; height: 72px; border-radius: 50%; background: rgba(16, 185, 129, 0.1); color: var(--success); display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto; font-size: 36px;">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <h3 style="font-size: 22px; margin-bottom: 12px; font-family: var(--font-header);">Submission Successful!</h3>
+        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+          Thank you for your submission! Your certificate request and payment proof have been received. We will verify and process your certificate within 24 hours.
+        </p>
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; margin-bottom: 28px; text-align: left; font-size: 13px;">
+          <p style="margin-bottom: 6px;"><strong style="color: var(--text-secondary);">Student:</strong> <span style="color: var(--text-primary); float: right;">${name}</span></p>
+          <p><strong style="color: var(--text-secondary);">Course:</strong> <span style="color: var(--text-primary); float: right;">${course}</span></p>
+        </div>
+        <button onclick="closeCertificateSuccessModal()" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+          Awesome! <i class="fas fa-thumbs-up" style="margin-left: 8px;"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+  modal.classList.add('active');
+}
+
+function closeCertificateSuccessModal() {
+  const modal = document.getElementById('cert-success-modal');
+  if (modal) {
+    modal.classList.remove('active');
   }
 }

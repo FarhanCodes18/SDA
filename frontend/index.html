@@ -81,19 +81,19 @@
   <section class="stats">
     <div class="stats-grid">
       <div class="stat-item">
-        <h3>10K+</h3>
+        <h3 class="stat-number" data-target="10000">0</h3>
         <p>Students Trained</p>
       </div>
       <div class="stat-item">
-        <h3>50+</h3>
+        <h3 class="stat-number" data-target="50">0</h3>
         <p>Premium Courses</p>
       </div>
       <div class="stat-item">
-        <h3>95%</h3>
+        <h3 class="stat-number" data-target="95">0</h3>
         <p>Placement & Internship Rate</p>
       </div>
       <div class="stat-item">
-        <h3>100+</h3>
+        <h3 class="stat-number" data-target="100">0</h3>
         <p>Hiring Partners</p>
       </div>
     </div>
@@ -433,8 +433,6 @@
     </div>
   </footer>
 
-  <!-- Razorpay Checkout Library -->
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
   <script src="script.js"></script>
   <script>
     // Load popular courses preview
@@ -716,6 +714,39 @@
             contactSection.scrollIntoView({ behavior: 'smooth' });
           }, 300);
         }
+      }
+
+      // 5. Stats Counter Animation
+      const statsSection = document.querySelector('.stats');
+      const statNumbers = document.querySelectorAll('.stat-number');
+      if (statsSection && statNumbers.length > 0) {
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              statNumbers.forEach(num => {
+                const target = parseInt(num.getAttribute('data-target'));
+                const duration = 2000; // 2 seconds
+                let current = 0;
+                
+                // Set counter steps
+                const step = target > 1000 ? Math.ceil(target / 100) : 1;
+                const intervalTime = target > 1000 ? 20 : Math.abs(Math.floor(duration / target));
+
+                const timer = setInterval(() => {
+                  current += step;
+                  if (current >= target) {
+                    num.innerText = target === 10000 ? '10K+' : (target === 95 ? '95%' : target + '+');
+                    clearInterval(timer);
+                  } else {
+                    num.innerText = target === 10000 ? Math.floor(current / 1000) + 'K+' : current;
+                  }
+                }, intervalTime);
+              });
+              observer.unobserve(statsSection);
+            }
+          });
+        }, { threshold: 0.25 });
+        observer.observe(statsSection);
       }
     });
   </script>

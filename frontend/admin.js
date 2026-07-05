@@ -119,14 +119,22 @@ function renderOverviewLogs(payments, certificates) {
   if (payTbody) {
     const recentPay = payments.slice(0, 5);
     if (recentPay.length === 0) {
-      payTbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No payment logs.</td></tr>`;
+      payTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No payment logs.</td></tr>`;
     } else {
       payTbody.innerHTML = recentPay.map(p => `
         <tr>
           <td style="font-weight: 600; color: var(--text-primary);">${p.studentName}</td>
           <td>${p.courseName}</td>
           <td>₹${p.amount}</td>
-          <td><span class="badge ${p.status === 'captured' ? 'approved' : 'failed'}">${p.status}</span></td>
+          <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status === 'captured' ? 'Received' : p.status}</span></td>
+          <td>
+            ${p.status === 'pending'
+              ? `<button onclick="approvePaymentDirectly('${p.id}')" class="btn-primary" style="padding: 4px 8px; font-size: 11px; background: var(--success); border-color: var(--success); box-shadow: none;">
+                   Approve
+                 </button>`
+              : '<span style="color: var(--text-muted); font-size: 11px;">N/A</span>'
+            }
+          </td>
         </tr>
       `).join('');
     }
@@ -272,12 +280,20 @@ function renderPayments(payments) {
           : '<span style="color: var(--text-muted);">N/A</span>'
         }
       </td>
-      <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status}</span></td>
+      <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status === 'captured' ? 'Received' : p.status}</span></td>
       <td>${new Date(p.date).toLocaleDateString('en-IN')}</td>
       <td>
-        <button onclick="openManualPaymentModal('${p.id}', '${p.status}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px;">
-          Update
-        </button>
+        <div style="display: flex; gap: 6px; align-items: center;">
+          ${p.status === 'pending'
+            ? `<button onclick="approvePaymentDirectly('${p.id}')" class="btn-primary" style="padding: 6px 12px; font-size: 11px; background: var(--success); border-color: var(--success); box-shadow: none;">
+                 <i class="fas fa-check"></i> Approve
+               </button>`
+            : ''
+          }
+          <button onclick="openManualPaymentModal('${p.id}', '${p.status}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px;">
+            Update
+          </button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -691,3 +707,22 @@ async function handleDeleteAchiever(id) {
     showToast(error.message || 'Failed to delete achiever.', 'error');
   }
 }
+
+// Quick manual payment approval action
+async function approvePaymentDirectly(payId) {
+  if (!confirm('Are you sure you want to approve this payment request? This will immediately activate enrollment/certificate for the student.')) {
+    return;
+  }
+
+  try {
+    showToast('Approving payment...', 'info');
+    const res = await apiCall(`/payments/${payId}/status`, 'PUT', { status: 'captured' }, true);
+    showToast(res.message || 'Payment approved successfully!', 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to approve payment.', 'error');
+  }
+}
+
+// Bind to window for global inline trigger access
+window.approvePaymentDirectly = approvePaymentDirectly;

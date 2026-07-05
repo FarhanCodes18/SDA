@@ -1,6 +1,7 @@
 // Global Configurations
-const API_URL = 'https://sda-gb0m.onrender.com/api';
-const RAZORPAY_KEY_ID = 'rzp_test_SyOt9emCtE5rH8'; // Expose ONLY Razorpay Key ID
+const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:'
+  ? 'http://localhost:5000/api'
+  : 'https://sda-gb0m.onrender.com/api';
 
 // 1. Unified Toast Notification System
 function showToast(message, type = 'info') {
@@ -45,20 +46,20 @@ document.head.appendChild(style);
 // 2. Authentication Utilities
 const Auth = {
   saveToken(token) {
-    localStorage.setItem('sda_token', token);
+    sessionStorage.setItem('sda_token', token);
   },
   getToken() {
-    return localStorage.getItem('sda_token');
+    return sessionStorage.getItem('sda_token');
   },
   removeToken() {
-    localStorage.removeItem('sda_token');
-    localStorage.removeItem('sda_user');
+    sessionStorage.removeItem('sda_token');
+    sessionStorage.removeItem('sda_user');
   },
   saveUser(user) {
-    localStorage.setItem('sda_user', JSON.stringify(user));
+    sessionStorage.setItem('sda_user', JSON.stringify(user));
   },
   getUser() {
-    const userStr = localStorage.getItem('sda_user');
+    const userStr = sessionStorage.getItem('sda_user');
     try {
       return userStr ? JSON.parse(userStr) : null;
     } catch {
@@ -324,14 +325,6 @@ function createCourseCard(course) {
 
 // 7. Certificate Unlock Flow
 function openCertificateUnlockModal() {
-  if (!Auth.isLoggedIn()) {
-    showToast('Please Login or Register to unlock your certificate.', 'error');
-    setTimeout(() => {
-      window.location.href = `login.html?redirect=index.html`;
-    }, 1500);
-    return;
-  }
-
   const user = Auth.getUser();
 
   // Create modal overlay structure if not present
@@ -372,6 +365,7 @@ function openCertificateUnlockModal() {
               <option value="Python Programming" data-price="799">Python Programming — ₹799</option>
               <option value="Java Programming" data-price="799">Java Programming — ₹799</option>
               <option value="DSA with C++" data-price="999">DSA with C++ — ₹999</option>
+              <option value="Web Designer" data-price="1">Web Designer — ₹1</option>
             </select>
           </div>
           
@@ -387,8 +381,8 @@ function openCertificateUnlockModal() {
             </div>
             <div style="font-size: 13px; color: var(--text-secondary);">
               <p style="margin-bottom: 4px;">Payee Name: <strong style="color: var(--text-primary);">Ajay Shukla</strong></p>
-              <p>UPI ID: <strong style="color: var(--text-primary);" id="upi-string">ajayshukla@upi</strong> 
-                <button type="button" onclick="navigator.clipboard.writeText('ajayshukla@upi'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
+              <p>UPI ID: <strong style="color: var(--text-primary);" id="upi-string">7974271675-2@ybl</strong> 
+                <button type="button" onclick="navigator.clipboard.writeText('7974271675-2@ybl'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
                   <i class="far fa-copy"></i>
                 </button>
               </p>
@@ -426,7 +420,7 @@ function openCertificateUnlockModal() {
       priceBox.style.display = 'block';
 
       // Update UPI QR Code URL dynamically
-      const upiUrl = `upi://pay?pa=ajayshukla@upi&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
+      const upiUrl = `upi://pay?pa=7974271675-2@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
       qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
       qrBox.style.display = 'block';
       uploadBox.style.display = 'block';
@@ -498,11 +492,13 @@ async function handleCertificateUnlockSubmit(e) {
     submitBtn.innerHTML = 'Submitting Request... <i class="fas fa-spinner fa-spin"></i>';
 
     const token = Auth.getToken();
+    const headers = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
     const response = await fetch(`${API_URL}/certificate-manual-request`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
+      headers: headers,
       body: formData
     });
 

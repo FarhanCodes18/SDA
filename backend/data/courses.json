@@ -102,5 +102,18 @@
     "description": "Full-stack JS — MongoDB, Express, React, Node.js. Build production-grade apps with payment gateways.",
     "category": "web",
     "image": ""
+  },
+  {
+    "id": "course_9",
+    "title": "Web Designer",
+    "duration": "1 Month",
+    "level": "Beginner",
+    "price": 1,
+    "originalPrice": 99,
+    "rating": 4.9,
+    "instructor": "Ajay Shukla",
+    "description": "Learn standard web designing layouts, color theory, typography, Figma and modern UI/UX principles.",
+    "category": "web",
+    "image": ""
   }
 ]

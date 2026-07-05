@@ -642,135 +642,8 @@ app.get('/api/enrollments/:studentId', authenticateToken, (req, res) => {
   }
 });
 
-// 5. RAZORPAY & PAYMENT ENDPOINTS
+// 5. MANUAL PAYMENT ENDPOINTS
 
-// Create order
-app.post('/api/create-order', authenticateToken, async (req, res) => {
-  try {
-    const { amount, currency } = req.body;
-    
-    if (!amount) {
-      return res.status(400).json({ message: 'Amount is required' });
-    }
-
-    const options = {
-      amount: Math.round(Number(amount) * 100), // Amount in paise
-      currency: currency || 'INR',
-      receipt: 'rcpt_' + Date.now()
-    };
-
-    const order = await razorpay.orders.create(options);
-    res.json({ orderId: order.id, amount: order.amount, currency: order.currency });
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating Razorpay order', error: error.message });
-  }
-});
-
-// Verify signature and save payments
-app.post('/api/verify-payment', authenticateToken, (req, res) => {
-  try {
-    const {
-      razorpay_payment_id,
-      razorpay_order_id,
-      razorpay_signature,
-      paymentType, // 'Course Payment' or 'Certificate Payment'
-      courseId, // if course payment
-      studentName,
-      studentEmail,
-      studentMobile,
-      certificateDetails, // if certificate payment
-      amount
-    } = req.body;
-
-    const studentId = req.user.id;
-
-    // Verify signature
-    const hmac = crypto.createHmac('sha256', razorpay.key_secret);
-    hmac.update(razorpay_order_id + '|' + razorpay_payment_id);
-    const generated_signature = hmac.digest('hex');
-
-    if (generated_signature !== razorpay_signature) {
-      return res.status(400).json({ message: 'Invalid payment signature. Verification failed.' });
-    }
-
-    // Resolve course details
-    const courses = readJSONFile('courses.json');
-    const course = courses.find(c => c.id === courseId);
-    const resolvedCourseName = paymentType === 'Course Payment'
-      ? (course ? course.title : courseId)
-      : certificateDetails.courseName;
-
-    // Capture payment in JSON
-    const payments = readJSONFile('payments.json');
-    const newPayment = {
-      id: 'pay_' + Date.now(),
-      orderId: razorpay_order_id,
-      paymentId: razorpay_payment_id,
-      studentId,
-      studentName: studentName || req.user.name,
-      studentEmail: studentEmail || req.user.email,
-      studentMobile: paymentType === 'Certificate Payment' ? certificateDetails.mobile : (studentMobile || ''),
-      courseName: resolvedCourseName,
-      paymentType,
-      amount: Number(amount),
-      status: 'captured',
-      date: new Date().toISOString()
-    };
-    payments.push(newPayment);
-    writeJSONFile('payments.json', payments);
-
-    if (paymentType === 'Course Payment') {
-      // Approve enrollment directly
-      const enrollments = readJSONFile('enrollments.json');
-      const enrollIndex = enrollments.findIndex(e => e.studentId === studentId && e.courseId === courseId);
-      
-      if (enrollIndex !== -1) {
-        enrollments[enrollIndex].status = 'approved';
-        enrollments[enrollIndex].studentName = studentName || enrollments[enrollIndex].studentName;
-        enrollments[enrollIndex].studentEmail = studentEmail || enrollments[enrollIndex].studentEmail;
-        enrollments[enrollIndex].studentMobile = studentMobile || enrollments[enrollIndex].studentMobile;
-      } else {
-        // Create matching enrollment as approved directly
-        enrollments.push({
-          id: 'enroll_' + Date.now(),
-          studentId,
-          courseId,
-          studentName: studentName || req.user.name,
-          studentEmail: studentEmail || req.user.email,
-          studentMobile: studentMobile || '',
-          address: '',
-          status: 'approved',
-          createdAt: new Date().toISOString()
-        });
-      }
-      writeJSONFile('enrollments.json', enrollments);
-    } else if (paymentType === 'Certificate Payment') {
-      // Unlock certificate & save request
-      const certificates = readJSONFile('certificates.json');
-      const certId = 'cert_' + Date.now();
-      certificates.push({
-        id: certId,
-        studentId,
-        name: certificateDetails.fullName || certificateDetails.name,
-        mobile: certificateDetails.mobile,
-        email: certificateDetails.email,
-        courseName: certificateDetails.courseName,
-        certType: certificateDetails.certificateType || certificateDetails.certType,
-        address: certificateDetails.address,
-        amount: Number(amount),
-        paymentId: razorpay_payment_id,
-        status: 'pending', // Pending sending/completion by admin
-        date: new Date().toISOString()
-      });
-      writeJSONFile('certificates.json', certificates);
-    }
-
-    res.json({ message: 'Payment verified and recorded successfully!', paymentId: razorpay_payment_id });
-
-  } catch (error) {
-    res.status(500).json({ message: 'Error verifying signature.', error: error.message });
-  }
-});
 
 // Get all payments (Admin only)
 app.get('/api/payments', authenticateToken, isAdmin, (req, res) => {
@@ -821,7 +694,11 @@ app.put('/api/payments/:id/status', authenticateToken, isAdmin, (req, res) => {
       const payment = payments[payIndex];
       if (payment.paymentType === 'Course Payment') {
         const enrollments = readJSONFile('enrollments.json');
-        const enrollIndex = enrollments.findIndex(e => e.studentId === payment.studentId && (e.courseId === payment.courseName || e.id === payment.courseId));
+        const courses = readJSONFile('courses.json');
+        const course = courses.find(c => c.title === payment.courseName || c.id === payment.courseName);
+        const targetCourseId = course ? course.id : payment.courseName;
+
+        const enrollIndex = enrollments.findIndex(e => e.studentId === payment.studentId && (e.courseId === targetCourseId || e.courseId === payment.courseName || e.id === payment.courseId));
         if (enrollIndex !== -1) {
           enrollments[enrollIndex].status = 'approved';
           writeJSONFile('enrollments.json', enrollments);
@@ -855,14 +732,27 @@ const CERT_PRICES = {
   'DSA with C++': 999,
   'C with DSA': 899,
   'Web Development': 899,
-  'MERN Stack': 999
+  'MERN Stack': 999,
+  'Web Designer': 1
 };
 
-// Request certificate manually with QR payment screenshot
-app.post('/api/certificate-manual-request', authenticateToken, uploadScreenshot.single('screenshot'), (req, res) => {
+// Request certificate manually with QR payment screenshot (Public - login optional)
+app.post('/api/certificate-manual-request', uploadScreenshot.single('screenshot'), (req, res) => {
   try {
-    const { fullName, mobile, email, courseName, amount } = req.body;
-    const studentId = req.user.id;
+    const { fullName, mobile, email, courseName, amount, certificateType, address } = req.body;
+    
+    // Extract studentId if token is present
+    let studentId = 'GUEST';
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        studentId = decoded.id;
+      } catch (err) {
+        // Continue as guest if token is invalid or expired
+      }
+    }
 
     if (!fullName || !mobile || !email || !courseName || !amount) {
       return res.status(400).json({ message: 'Missing required certificate details.' });
@@ -886,8 +776,8 @@ app.post('/api/certificate-manual-request', authenticateToken, uploadScreenshot.
       mobile,
       email,
       courseName,
-      certType: 'Verified Course Certificate',
-      address: 'Online Delivery',
+      certType: certificateType || 'Verified Course Certificate',
+      address: address || 'Online Delivery',
       amount: Number(amount),
       screenshot: screenshotUrl,
       paymentId: manualPaymentId,
@@ -924,6 +814,83 @@ app.post('/api/certificate-manual-request', authenticateToken, uploadScreenshot.
 
   } catch (error) {
     res.status(500).json({ message: 'Error processing certificate request.', error: error.message });
+  }
+});
+
+// Request course enrollment manually with QR payment screenshot
+app.post('/api/course-manual-request', authenticateToken, uploadScreenshot.single('screenshot'), (req, res) => {
+  try {
+    const { fullName, mobile, email, courseId, courseName, amount } = req.body;
+    const studentId = req.user.id;
+
+    if (!fullName || !mobile || !email || !courseId || !courseName || !amount) {
+      return res.status(400).json({ message: 'Missing required course details.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'Payment screenshot is required.' });
+    }
+
+    // Resolve screenshot URL
+    const screenshotUrl = `${req.protocol}://${req.get('host')}/uploads/payments/${req.file.filename}`;
+    const manualPaymentId = 'MANUAL_' + Date.now();
+
+    // Check if enrollment already exists
+    const enrollments = readJSONFile('enrollments.json');
+    let existingEnroll = enrollments.find(e => e.studentId === studentId && e.courseId === courseId);
+    
+    if (existingEnroll) {
+      if (existingEnroll.status === 'approved') {
+        return res.status(400).json({ message: 'You are already enrolled in this course.' });
+      }
+      // If it exists as pending, update details
+      existingEnroll.studentName = fullName;
+      existingEnroll.studentMobile = mobile;
+      existingEnroll.studentEmail = email;
+    } else {
+      // Create new pending enrollment
+      const newEnrollment = {
+        id: 'enroll_' + Date.now(),
+        studentId,
+        courseId,
+        studentName: fullName,
+        studentMobile: mobile,
+        studentEmail: email,
+        address: '',
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+      enrollments.push(newEnrollment);
+    }
+    writeJSONFile('enrollments.json', enrollments);
+
+    // Save as pending payment in payments.json so admin can approve it
+    const payments = readJSONFile('payments.json');
+    const newPayment = {
+      id: 'pay_course_' + Date.now(),
+      orderId: 'manual_order_' + Date.now(),
+      paymentId: manualPaymentId,
+      studentId,
+      studentName: fullName,
+      studentEmail: email,
+      studentMobile: mobile,
+      courseName: courseName,
+      paymentType: 'Course Payment',
+      amount: Number(amount),
+      screenshot: screenshotUrl,
+      status: 'pending',
+      date: new Date().toISOString()
+    };
+    payments.push(newPayment);
+    writeJSONFile('payments.json', payments);
+
+    res.status(201).json({
+      message: 'Thank you for your submission! Your course enrollment is pending verification by admin.',
+      payment: newPayment
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error processing course payment request.', error: error.message });
   }
 });
 

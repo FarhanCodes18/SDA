@@ -868,6 +868,17 @@ a {
   background: var(--bg-secondary);
 }
 
+/* Enable custom horizontal scrolling for multi-column tables to prevent clipping */
+#admin-payments .data-table {
+  min-width: 1300px;
+}
+#admin-certificates .data-table {
+  min-width: 1000px;
+}
+#admin-enrollments .data-table {
+  min-width: 900px;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -1038,6 +1049,34 @@ a {
 textarea.form-control {
   resize: vertical;
   min-height: 100px;
+}
+
+/* Custom Highlighted Dropdowns */
+select.form-control {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ff4b2b' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 12px;
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1.5px solid rgba(255, 75, 43, 0.45);
+  background-color: rgba(255, 75, 43, 0.04);
+  box-shadow: 0 0 12px rgba(255, 75, 43, 0.1);
+  font-weight: 600;
+}
+
+select.form-control:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 15px rgba(255, 75, 43, 0.3);
+  background-color: rgba(255, 75, 43, 0.08);
+}
+
+select.form-control option {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Certificate Lock Screen */

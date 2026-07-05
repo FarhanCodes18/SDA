@@ -1,1 +1,32 @@
-[]
+[
+  {
+    "id": "cert_1783261210216",
+    "studentId": "GUEST",
+    "name": "Web Designer Student",
+    "mobile": "9999999999",
+    "email": "test_designer_1783261210148@example.com",
+    "courseName": "Web Designer",
+    "certType": "Verified Course Certificate",
+    "address": "Online Delivery",
+    "amount": 1,
+    "screenshot": "http://localhost:5000/uploads/payments/screenshot_1783261210211.png",
+    "paymentId": "MANUAL_1783261210216",
+    "status": "completed",
+    "date": "2026-07-05T14:20:10.216Z"
+  },
+  {
+    "id": "cert_1783261451778",
+    "studentId": "GUEST",
+    "name": "Farhaan Qureshi",
+    "mobile": "7974271675",
+    "email": "fq10826@gmail.com",
+    "courseName": "Web Designer",
+    "certType": "Verified Course Certificate",
+    "address": "Online Delivery",
+    "amount": 1,
+    "screenshot": "http://localhost:5000/uploads/payments/screenshot_1783261451738.jpeg",
+    "paymentId": "MANUAL_1783261451778",
+    "status": "completed",
+    "date": "2026-07-05T14:24:11.778Z"
+  }
+]
