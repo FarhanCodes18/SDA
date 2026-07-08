@@ -6,14 +6,5 @@
     "password": "$2a$10$kr.IqNMY58REHj8XBKYmo.2aTv7UaA5jXxSuWl2QnAnRLrY6UDOfG",
     "role": "admin",
     "createdAt": "2026-06-07T07:23:31.058Z"
-  },
-  {
-    "id": "user_1783254987896",
-    "name": "Farhaan Qureshi",
-    "email": "fq10826@gmail.com",
-    "mobile": "7974271675",
-    "password": "$2a$10$Z1ZiJ.zR0WZtUAKK6H6GpOH4Wpy6Rh63IDcT0L9N7236Wej/x0PI2",
-    "role": "student",
-    "createdAt": "2026-07-05T12:36:27.896Z"
   }
 ]

@@ -1,16 +1,5 @@
 [
   {
-    "id": "enroll_1783254987897",
-    "studentId": "user_1783254987896",
-    "courseId": "course_6",
-    "studentName": "Farhaan Qureshi",
-    "studentMobile": "7974271675",
-    "studentEmail": "fq10826@gmail.com",
-    "address": "",
-    "status": "pending",
-    "createdAt": "2026-07-05T12:36:27.897Z"
-  },
-  {
     "id": "enroll_1783268168409",
     "studentId": "user_1783268163794",
     "courseId": "course_9",
@@ -20,16 +9,5 @@
     "address": "",
     "status": "approved",
     "createdAt": "2026-07-05T16:16:08.409Z"
-  },
-  {
-    "id": "enroll_1783268283096",
-    "studentId": "user_1783254987896",
-    "courseId": "course_1",
-    "studentName": "Farhaan Qureshi",
-    "studentMobile": "7974271675",
-    "studentEmail": "fq10826@gmail.com",
-    "address": "",
-    "status": "approved",
-    "createdAt": "2026-07-05T16:18:03.096Z"
   }
 ]

@@ -847,6 +847,7 @@ app.post('/api/course-manual-request', authenticateToken, uploadScreenshot.singl
       existingEnroll.studentName = fullName;
       existingEnroll.studentMobile = mobile;
       existingEnroll.studentEmail = email;
+      existingEnroll.screenshot = screenshotUrl;
     } else {
       // Create new pending enrollment
       const newEnrollment = {
@@ -858,6 +859,7 @@ app.post('/api/course-manual-request', authenticateToken, uploadScreenshot.singl
         studentEmail: email,
         address: '',
         status: 'pending',
+        screenshot: screenshotUrl,
         createdAt: new Date().toISOString()
       };
       enrollments.push(newEnrollment);
@@ -1237,6 +1239,45 @@ app.delete('/api/achievers/:id', authenticateToken, isAdmin, (req, res) => {
     res.json({ message: 'Achiever removed successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error removing achiever.', error: error.message });
+  }
+});
+
+// DELETE /api/students/:id - Admin Only
+app.delete('/api/students/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const studentId = req.params.id;
+    let users = readJSONFile('users.json');
+    const userIndex = users.findIndex(u => u.id === studentId);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    const user = users[userIndex];
+    if (user.role === 'admin') {
+      return res.status(400).json({ message: 'Cannot delete admin account.' });
+    }
+
+    // Remove user
+    users.splice(userIndex, 1);
+    writeJSONFile('users.json', users);
+
+    // Clean up student's enrollments, payments, and certificates
+    let enrollments = readJSONFile('enrollments.json');
+    enrollments = enrollments.filter(e => e.studentId !== studentId);
+    writeJSONFile('enrollments.json', enrollments);
+
+    let payments = readJSONFile('payments.json');
+    payments = payments.filter(p => p.studentId !== studentId);
+    writeJSONFile('payments.json', payments);
+
+    let certificates = readJSONFile('certificates.json');
+    certificates = certificates.filter(c => c.studentId !== studentId);
+    writeJSONFile('certificates.json', certificates);
+
+    res.json({ message: 'Student and associated records deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting student.', error: error.message });
   }
 });
 

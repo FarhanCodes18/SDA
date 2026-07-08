@@ -119,13 +119,19 @@ function renderOverviewLogs(payments, certificates) {
   if (payTbody) {
     const recentPay = payments.slice(0, 5);
     if (recentPay.length === 0) {
-      payTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No payment logs.</td></tr>`;
+      payTbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No payment logs.</td></tr>`;
     } else {
       payTbody.innerHTML = recentPay.map(p => `
         <tr>
           <td style="font-weight: 600; color: var(--text-primary);">${p.studentName}</td>
           <td>${p.courseName}</td>
           <td>₹${p.amount}</td>
+          <td>
+            ${p.screenshot 
+              ? `<a href="${p.screenshot}" target="_blank" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-image"></i> View Receipt</a>` 
+              : '<span style="color: var(--text-muted);">N/A</span>'
+            }
+          </td>
           <td><span class="badge ${p.status === 'captured' ? 'approved' : (p.status === 'pending' ? 'pending' : 'failed')}">${p.status === 'captured' ? 'Received' : p.status}</span></td>
           <td>
             ${p.status === 'pending'
@@ -165,7 +171,7 @@ function renderStudents(students) {
   if (!tbody) return;
 
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No students registered yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No students registered yet.</td></tr>`;
     return;
   }
 
@@ -175,6 +181,11 @@ function renderStudents(students) {
       <td style="font-weight: 600; color: var(--text-primary);">${s.name}</td>
       <td>${s.email}</td>
       <td>${new Date(s.createdAt).toLocaleDateString('en-IN')}</td>
+      <td>
+        <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+          <i class="fas fa-trash"></i> Delete
+        </button>
+      </td>
     </tr>
   `).join('');
 }
@@ -234,12 +245,24 @@ function renderEnrollments(enrollments, courses) {
   if (!tbody) return;
 
   if (enrollments.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No course enrollment requests found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No course enrollment requests found.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = enrollments.map(e => {
     const course = courses.find(c => c.id === e.courseId);
+    const courseTitle = course ? course.title : e.courseId;
+
+    // Fallback: try to find payment with matching student and course
+    const matchingPayment = adminData.payments?.find(p => 
+      p.studentId === e.studentId && 
+      (p.courseName === courseTitle || p.courseName === e.courseId) && 
+      p.paymentType === 'Course Payment'
+    );
+    
+    const screenshot = e.screenshot || matchingPayment?.screenshot;
+    const paymentId = matchingPayment?.id;
+
     return `
       <tr>
         <td>
@@ -247,9 +270,23 @@ function renderEnrollments(enrollments, courses) {
           <div style="font-size:12px; color:var(--text-muted);">${e.studentEmail} &bull; ${e.studentMobile}</div>
         </td>
         <td>${e.address || 'N/A'}</td>
-        <td style="font-weight: 600;">${course ? course.title : e.courseId}</td>
+        <td style="font-weight: 600;">${courseTitle}</td>
         <td>${new Date(e.createdAt).toLocaleDateString('en-IN')}</td>
+        <td>
+          ${screenshot 
+            ? `<a href="${screenshot}" target="_blank" class="btn-secondary" style="padding: 4px 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-image"></i> View Receipt</a>` 
+            : '<span style="color: var(--text-muted);">No proof uploaded</span>'
+          }
+        </td>
         <td><span class="badge ${e.status === 'approved' ? 'approved' : 'pending'}">${e.status}</span></td>
+        <td>
+          ${e.status === 'pending' && paymentId
+            ? `<button onclick="approvePaymentDirectly('${paymentId}')" class="btn-primary" style="padding: 6px 12px; font-size: 11px; background: var(--success); border-color: var(--success); box-shadow: none;">
+                 <i class="fas fa-check"></i> Approve
+               </button>`
+            : '<span style="color: var(--text-muted); font-size: 11px;">N/A</span>'
+          }
+        </td>
       </tr>
     `;
   }).join('');
@@ -724,5 +761,22 @@ async function approvePaymentDirectly(payId) {
   }
 }
 
+// Delete student registration and clean up records
+async function handleDeleteStudent(studentId) {
+  if (!confirm('Are you sure you want to delete this student registration? This will permanently wipe all their enrollments, certificate requests, and payment logs.')) {
+    return;
+  }
+
+  try {
+    showToast('Deleting student records...', 'info');
+    const res = await apiCall(`/students/${studentId}`, 'DELETE', null, true);
+    showToast(res.message || 'Student deleted successfully!', 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete student.', 'error');
+  }
+}
+
 // Bind to window for global inline trigger access
 window.approvePaymentDirectly = approvePaymentDirectly;
+window.handleDeleteStudent = handleDeleteStudent;

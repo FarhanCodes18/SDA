@@ -111,7 +111,19 @@ async function apiCall(endpoint, method = 'GET', data = null, authenticate = tru
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, config);
-    const result = await response.json();
+    
+    let result;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      result = await response.json();
+    } else {
+      // If server returned an HTML error page (like a 404 or 500)
+      const text = await response.text();
+      // Try to extract text if it's an express error page
+      const match = text.match(/<pre>(.*)<\/pre>/s);
+      const errMsg = match ? match[1] : (text.slice(0, 100) || `HTTP error! Status: ${response.status}`);
+      throw new Error(errMsg);
+    }
     
     if (!response.ok) {
       throw new Error(result.message || 'Something went wrong.');
@@ -297,10 +309,12 @@ async function handleEnrollmentSubmit(e) {
 
 // 6. Public Course Card Factory Render
 function createCourseCard(course) {
+  const discount = (course.id === 'course_1' || course.id === 'course_3' || course.id === 'course_5' || course.id === 'course_7' || course.id === 'course_9') ? '10% OFF' : '5% OFF';
   return `
     <div class="glass-card course-card" style="position: relative;">
+      <span class="course-card-badge" style="top: 16px; left: 16px; right: auto; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success);"><i class="fas fa-tags" style="margin-right: 4px;"></i> ${discount}</span>
       <span class="course-card-badge" style="background: rgba(255, 75, 43, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color);"><i class="fas fa-lock" style="margin-right: 4px;"></i> COMING SOON</span>
-      <h3 class="course-title">${course.title}</h3>
+      <h3 class="course-title" style="margin-top: 12px;">${course.title}</h3>
       <div class="course-meta">
         <span><i class="far fa-clock"></i> ${course.duration}</span>
         <span><i class="fas fa-layer-group"></i> ${course.level}</span>
@@ -314,6 +328,7 @@ function createCourseCard(course) {
         <div class="course-pricing">
           <span class="course-price-current">₹${course.price}</span>
           <span class="course-price-original">₹${course.originalPrice || course.price * 2}</span>
+          <span style="font-size: 11px; color: var(--warning); font-weight: 700; margin-top: 4px; white-space: nowrap;"><i class="fas fa-fire"></i> First 10 Seats Special Discount</span>
         </div>
         <button class="btn-primary" disabled style="background: var(--text-muted); color: var(--bg-primary); cursor: not-allowed; box-shadow: none; opacity: 0.6;">
           Locked <i class="fas fa-lock"></i>

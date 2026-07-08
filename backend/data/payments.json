@@ -43,20 +43,5 @@
     "screenshot": "http://localhost:5000/uploads/payments/screenshot_1783268163925.png",
     "status": "captured",
     "date": "2026-07-05T16:16:08.411Z"
-  },
-  {
-    "id": "pay_course_1783268283108",
-    "orderId": "manual_order_1783268283108",
-    "paymentId": "MANUAL_1783268283096",
-    "studentId": "user_1783254987896",
-    "studentName": "Farhaan Qureshi",
-    "studentEmail": "fq10826@gmail.com",
-    "studentMobile": "7974271675",
-    "courseName": "C Programming",
-    "paymentType": "Course Payment",
-    "amount": 2999,
-    "screenshot": "http://localhost:5000/uploads/payments/screenshot_1783268283007.jpeg",
-    "status": "captured",
-    "date": "2026-07-05T16:18:03.108Z"
   }
 ]

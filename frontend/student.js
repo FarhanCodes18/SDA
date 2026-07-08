@@ -131,11 +131,13 @@ function renderAvailableCourses(courses, purchasedCourses) {
 
   grid.innerHTML = courses.map(c => {
     const isPurchased = purchasedIds.includes(c.id);
+    const discount = (c.id === 'course_1' || c.id === 'course_3' || c.id === 'course_5' || c.id === 'course_7' || c.id === 'course_9') ? '10% OFF' : '5% OFF';
     return `
-      <div class="glass-card course-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
+      <div class="glass-card course-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
         <div>
+          <span class="course-card-badge" style="top: 12px; left: 12px; right: auto; font-size:10px; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success);"><i class="fas fa-tags"></i> ${discount}</span>
           <span class="course-card-badge" style="top: 12px; right: 12px; font-size:10px;">${c.category.toUpperCase()}</span>
-          <h4 style="font-size: 16px; margin-bottom: 8px; color: var(--text-primary);">${c.title}</h4>
+          <h4 style="font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: var(--text-primary);">${c.title}</h4>
           <div class="course-meta" style="font-size: 11px; margin-bottom: 12px; gap: 10px;">
             <span><i class="far fa-clock"></i> ${c.duration}</span>
             <span><i class="fas fa-layer-group"></i> ${c.level}</span>
@@ -143,7 +145,10 @@ function renderAvailableCourses(courses, purchasedCourses) {
           <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height:1.4;">${c.description}</p>
         </div>
         <div class="course-footer" style="padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-size: 18px; font-weight: 800; color: var(--text-primary);">₹${c.price}</span>
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-size: 18px; font-weight: 800; color: var(--text-primary);">₹${c.price}</span>
+            <span style="font-size: 10px; color: var(--warning); font-weight: 700; margin-top: 2px; white-space: nowrap;"><i class="fas fa-fire"></i> First 10 Seats Special Discount</span>
+          </div>
           ${isPurchased 
             ? `<button class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-color: var(--success); color: var(--success); cursor: default;" disabled>
                  Unlocked <i class="fas fa-check-circle"></i>
