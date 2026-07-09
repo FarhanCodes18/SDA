@@ -61,6 +61,21 @@ const screenshotStorage = multer.diskStorage({
 });
 const uploadScreenshot = multer({ storage: screenshotStorage });
 
+// Configure Multer for Profile Pictures
+const profileStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'uploads', 'profiles');
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, 'profile_' + Date.now() + ext);
+  }
+});
+const uploadProfilePic = multer({ storage: profileStorage });
 
 // Firebase Admin Configuration & Sync
 let db = null;
@@ -125,7 +140,8 @@ const initDatabase = async () => {
   const filenames = [
     'users.json', 'courses.json', 'enrollments.json', 'payments.json',
     'certificates.json', 'notices.json', 'announcements.json',
-    'recordedClasses.json', 'achievers.json', 'contacts.json', 'liveclass.json'
+    'recordedClasses.json', 'achievers.json', 'contacts.json', 'liveclass.json',
+    'attendance.json'
   ];
 
   // We perform initial reads from local JSON files to avoid uninitialized state
@@ -445,8 +461,53 @@ app.get('/api/student/dashboard/:studentId', authenticateToken, (req, res) => {
     const studentPayments = payments.filter(p => p.studentId === studentId);
     const studentCertificates = certificates.filter(c => c.studentId === studentId);
 
+    const users = readJSONFile('users.json');
+    const studentUser = users.find(u => u.id === studentId);
+    const userProfile = studentUser ? { ...studentUser } : null;
+    if (userProfile) {
+      delete userProfile.password;
+    }
+
+    // Fetch student attendance logs
+    const attendance = readJSONFile('attendance.json');
+    const studentAttendanceLogs = [];
+    let presentCount = 0;
+    let absentCount = 0;
+    let lateCount = 0;
+
+    attendance.forEach(sheet => {
+      const record = sheet.records.find(r => r.studentId === studentId);
+      if (record) {
+        studentAttendanceLogs.push({
+          date: sheet.date,
+          courseId: sheet.courseId,
+          status: record.status
+        });
+        if (record.status === 'present') presentCount++;
+        else if (record.status === 'absent') absentCount++;
+        else if (record.status === 'late') lateCount++;
+      }
+    });
+
+    // Sort logs descending by date
+    studentAttendanceLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const totalSessions = studentAttendanceLogs.length;
+    const attendancePercentage = totalSessions > 0
+      ? Math.round(((presentCount + lateCount) / totalSessions) * 100)
+      : 100;
+
+    const attendanceSummary = {
+      total: totalSessions,
+      present: presentCount,
+      absent: absentCount,
+      late: lateCount,
+      percentage: attendancePercentage
+    };
+
     // Return everything
     res.json({
+      user: userProfile,
       enrolledCourses,
       purchasedCourses,
       pendingPayments,
@@ -454,7 +515,11 @@ app.get('/api/student/dashboard/:studentId', authenticateToken, (req, res) => {
       certificates: studentCertificates,
       notices,
       announcements,
-      recordedClasses
+      recordedClasses,
+      attendance: {
+        records: studentAttendanceLogs,
+        summary: attendanceSummary
+      }
     });
 
   } catch (error) {
@@ -1143,12 +1208,11 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
         totalPayments,
         totalRevenue
       },
-      students: students.map(s => ({
-        id: s.id,
-        name: s.name,
-        email: s.email,
-        createdAt: s.createdAt
-      })),
+      students: students.map(s => {
+        const studentProfile = { ...s };
+        delete studentProfile.password;
+        return studentProfile;
+      }),
       courses,
       enrollments,
       payments,
@@ -1278,6 +1342,203 @@ app.delete('/api/students/:id', authenticateToken, isAdmin, (req, res) => {
     res.json({ message: 'Student and associated records deleted successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting student.', error: error.message });
+  }
+});
+
+// ==========================================
+// STUDENT PROFILE & SETTINGS ENDPOINTS
+// ==========================================
+
+// Upload Student Profile Picture
+app.post('/api/student/profile-pic', authenticateToken, uploadProfilePic.single('profilePic'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No profile picture file provided.' });
+    }
+
+    const studentId = req.user.id;
+    const profilePicUrl = `${req.protocol}://${req.get('host')}/uploads/profiles/${req.file.filename}`;
+
+    const users = readJSONFile('users.json');
+    const userIndex = users.findIndex(u => u.id === studentId);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'Student profile not found.' });
+    }
+
+    // Clean up old profile picture if exists and is local
+    const oldPic = users[userIndex].profilePic;
+    if (oldPic && oldPic.includes('/uploads/profiles/')) {
+      try {
+        const oldFilename = oldPic.split('/').pop();
+        const oldFilePath = path.join(__dirname, 'uploads', 'profiles', oldFilename);
+        if (fs.existsSync(oldFilePath)) {
+          fs.unlinkSync(oldFilePath);
+        }
+      } catch (err) {
+        console.error('Failed to delete old profile picture:', err.message);
+      }
+    }
+
+    users[userIndex].profilePic = profilePicUrl;
+    writeJSONFile('users.json', users);
+
+    // Prepare profile copy for response
+    const updatedUserProfile = { ...users[userIndex] };
+    delete updatedUserProfile.password;
+
+    res.json({
+      message: 'Profile picture uploaded successfully!',
+      profilePic: profilePicUrl,
+      user: updatedUserProfile
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error uploading profile picture.', error: error.message });
+  }
+});
+
+// Update Student Profile Details & Password
+app.put('/api/student/profile-update', authenticateToken, async (req, res) => {
+  try {
+    const studentId = req.user.id;
+    const { name, email, mobile, github, linkedin, portfolio, currentPassword, newPassword } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ message: 'Name and Email are required fields.' });
+    }
+
+    const users = readJSONFile('users.json');
+    const userIndex = users.findIndex(u => u.id === studentId);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'Student profile not found.' });
+    }
+
+    const user = users[userIndex];
+
+    // Check if email already in use
+    const emailConflict = users.some(u => u.id !== studentId && u.email.toLowerCase() === email.toLowerCase());
+    if (emailConflict) {
+      return res.status(400).json({ message: 'Email address is already in use by another account.' });
+    }
+
+    // Update password if newPassword is provided
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Current password is required to set a new password.' });
+      }
+
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Incorrect current password.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+    }
+
+    // Update fields
+    user.name = name;
+    user.email = email.toLowerCase();
+    user.mobile = mobile || '';
+    user.github = github || '';
+    user.linkedin = linkedin || '';
+    user.portfolio = portfolio || '';
+
+    writeJSONFile('users.json', users);
+
+    const updatedUser = { ...user };
+    delete updatedUser.password;
+
+    res.json({
+      message: 'Profile updated successfully!',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating profile details.', error: error.message });
+  }
+});
+
+// ==========================================
+// BATCH ATTENDANCE ENDPOINTS
+// ==========================================
+
+// Get Attendance Sheet for Course & Date
+app.get('/api/admin/attendance', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { courseId, date } = req.query;
+    if (!courseId || !date) {
+      return res.status(400).json({ message: 'Course ID and Date are required parameters.' });
+    }
+
+    const attendance = readJSONFile('attendance.json');
+    const enrollments = readJSONFile('enrollments.json');
+
+    // Find saved sheet
+    const existingRecord = attendance.find(a => a.courseId === courseId && a.date === date);
+
+    // Find all approved students enrolled in this course
+    const activeEnrollments = enrollments.filter(e => e.courseId === courseId && e.status === 'approved');
+
+    // Map active students to saved or default status
+    const studentRecords = activeEnrollments.map(e => {
+      const savedStudent = existingRecord?.records.find(r => r.studentId === e.studentId);
+      return {
+        studentId: e.studentId,
+        studentName: e.studentName,
+        studentEmail: e.studentEmail,
+        status: savedStudent ? savedStudent.status : 'present' // default to present
+      };
+    });
+
+    res.json({
+      courseId,
+      date,
+      records: studentRecords
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving attendance sheet.', error: error.message });
+  }
+});
+
+// Save Attendance Sheet for Course & Date
+app.post('/api/admin/attendance', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { courseId, date, records } = req.body;
+    if (!courseId || !date || !Array.isArray(records)) {
+      return res.status(400).json({ message: 'Missing courseId, date, or records list.' });
+    }
+
+    const attendance = readJSONFile('attendance.json');
+    const index = attendance.findIndex(a => a.courseId === courseId && a.date === date);
+
+    const sheetData = {
+      courseId,
+      date,
+      records: records.map(r => ({
+        studentId: r.studentId,
+        studentName: r.studentName,
+        studentEmail: r.studentEmail,
+        status: r.status // 'present', 'absent', 'late'
+      }))
+    };
+
+    if (index !== -1) {
+      // Update existing
+      attendance[index].records = sheetData.records;
+    } else {
+      // Append new
+      sheetData.id = 'att_' + Date.now();
+      attendance.push(sheetData);
+    }
+
+    writeJSONFile('attendance.json', attendance);
+    res.json({ message: 'Attendance sheet saved successfully!' });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error saving attendance sheet.', error: error.message });
   }
 });
 

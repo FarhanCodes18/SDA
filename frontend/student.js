@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Prepopulate sidebar profile
   document.getElementById('student-name').innerText = user.name;
   document.getElementById('student-welcome-name').innerText = user.name;
-  document.getElementById('student-avatar').innerText = user.name.charAt(0).toUpperCase();
+  updateSidebarAvatar(user);
 
   // 2. Tab Navigation System
   const sidebarItems = document.querySelectorAll('.sidebar-item');
@@ -66,6 +66,28 @@ document.addEventListener('DOMContentLoaded', () => {
   if (coursePayForm) {
     coursePayForm.addEventListener('submit', handleCoursePaymentSubmit);
   }
+
+  // Profile photo input change label update
+  const profilePicInput = document.getElementById('profile-pic-input');
+  const profilePicFilename = document.getElementById('profile-pic-filename');
+  if (profilePicInput && profilePicFilename) {
+    profilePicInput.addEventListener('change', () => {
+      const file = profilePicInput.files[0];
+      profilePicFilename.innerText = file ? file.name : 'No file selected';
+    });
+  }
+
+  // Profile photo form submission
+  const profilePicForm = document.getElementById('profile-pic-form');
+  if (profilePicForm) {
+    profilePicForm.addEventListener('submit', handleProfilePicSubmit);
+  }
+
+  // Profile details form submission
+  const profileDetailsForm = document.getElementById('profile-details-form');
+  if (profileDetailsForm) {
+    profileDetailsForm.addEventListener('submit', handleProfileDetailsSubmit);
+  }
 });
 
 let dashboardData = {};
@@ -78,6 +100,20 @@ async function loadDashboardData() {
   try {
     const data = await apiCall(`/student/dashboard/${user.id}`, 'GET', null, true);
     dashboardData = data;
+
+    // Save updated user data from backend response
+    if (data.user) {
+      Auth.saveUser(data.user);
+      // Update avatar with latest data
+      updateSidebarAvatar(data.user);
+      // Populate settings form
+      populateProfileForm(data.user);
+    }
+
+    // Render student attendance data
+    if (data.attendance) {
+      renderStudentAttendance(data.attendance);
+    }
 
     // Fetch all courses to show in available programs section
     const allCourses = await apiCall('/courses', 'GET', null, false);
@@ -707,4 +743,242 @@ function closeCertificateSuccessModal() {
   if (modal) {
     modal.classList.remove('active');
   }
+}
+
+// ==========================================
+// PROFILE MANAGEMENT HANDLERS & HELPERS
+// ==========================================
+
+function updateSidebarAvatar(user) {
+  const avatarEl = document.getElementById('student-avatar');
+  const displayEl = document.getElementById('profile-avatar-display');
+  if (!avatarEl) return;
+
+  if (user && user.profilePic) {
+    const imgHTML = `<img src="${user.profilePic}" alt="${user.name}">`;
+    avatarEl.innerHTML = imgHTML;
+    if (displayEl) displayEl.innerHTML = imgHTML;
+  } else {
+    const initial = user && user.name ? user.name.charAt(0).toUpperCase() : 'S';
+    avatarEl.innerHTML = initial;
+    if (displayEl) displayEl.innerHTML = initial;
+  }
+}
+
+function populateProfileForm(user) {
+  const fullnameInput = document.getElementById('profile-fullname');
+  const emailInput = document.getElementById('profile-email');
+  const mobileInput = document.getElementById('profile-mobile');
+  const githubInput = document.getElementById('profile-github');
+  const linkedinInput = document.getElementById('profile-linkedin');
+  const portfolioInput = document.getElementById('profile-portfolio');
+  const socialBadges = document.getElementById('profile-social-badges');
+
+  if (fullnameInput) fullnameInput.value = user.name || '';
+  if (emailInput) emailInput.value = user.email || '';
+  if (mobileInput) mobileInput.value = user.mobile || '';
+  if (githubInput) githubInput.value = user.github || '';
+  if (linkedinInput) linkedinInput.value = user.linkedin || '';
+  if (portfolioInput) portfolioInput.value = user.portfolio || '';
+
+  if (socialBadges) {
+    socialBadges.innerHTML = `
+      <span class="social-badge ${user.github ? 'connected' : 'missing'}">
+        <i class="fab fa-github"></i> ${user.github ? 'GitHub Linked' : 'No GitHub'}
+      </span>
+      <span class="social-badge ${user.linkedin ? 'connected' : 'missing'}">
+        <i class="fab fa-linkedin"></i> ${user.linkedin ? 'LinkedIn Linked' : 'No LinkedIn'}
+      </span>
+      <span class="social-badge ${user.portfolio ? 'connected' : 'missing'}">
+        <i class="fas fa-globe"></i> ${user.portfolio ? 'Portfolio Linked' : 'No Portfolio'}
+      </span>
+    `;
+  }
+}
+
+async function handleProfilePicSubmit(e) {
+  e.preventDefault();
+  const fileInput = document.getElementById('profile-pic-input');
+  if (!fileInput || fileInput.files.length === 0) {
+    showToast('Please select an image file first.', 'error');
+    return;
+  }
+
+  const submitBtn = document.getElementById('profile-pic-submit-btn');
+  const originalBtnHTML = submitBtn.innerHTML;
+
+  const file = fileInput.files[0];
+  const formData = new FormData();
+  formData.append('profilePic', file);
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Uploading... <i class="fas fa-spinner fa-spin"></i>';
+
+    const token = Auth.getToken();
+    const response = await fetch(`${API_URL}/student/profile-pic`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData
+    });
+
+    const res = await response.json();
+    if (!response.ok) {
+      throw new Error(res.message || 'Failed to upload profile picture.');
+    }
+
+    showToast(res.message, 'success');
+    
+    // Update user locally
+    Auth.saveUser(res.user);
+    updateSidebarAvatar(res.user);
+    
+    // Reset file input label
+    fileInput.value = '';
+    document.getElementById('profile-pic-filename').innerText = 'No file selected';
+
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
+  }
+}
+
+async function handleProfileDetailsSubmit(e) {
+  e.preventDefault();
+
+  const name = document.getElementById('profile-fullname').value.trim();
+  const email = document.getElementById('profile-email').value.trim();
+  const mobile = document.getElementById('profile-mobile').value.trim();
+  const github = document.getElementById('profile-github').value.trim();
+  const linkedin = document.getElementById('profile-linkedin').value.trim();
+  const portfolio = document.getElementById('profile-portfolio').value.trim();
+
+  const currentPassword = document.getElementById('profile-curr-pass').value;
+  const newPassword = document.getElementById('profile-new-pass').value;
+  const confPassword = document.getElementById('profile-conf-pass').value;
+
+  if (!name || !email) {
+    showToast('Name and Email are required.', 'error');
+    return;
+  }
+
+  // Password checks if newPassword entered
+  if (newPassword || confPassword) {
+    if (!currentPassword) {
+      showToast('Please enter your current password to set a new password.', 'error');
+      return;
+    }
+    if (newPassword !== confPassword) {
+      showToast('New password and confirm password do not match.', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showToast('New password must be at least 6 characters.', 'error');
+      return;
+    }
+  }
+
+  // Mobile Validation (if not empty)
+  if (mobile) {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(mobile)) {
+      showToast('Please enter a valid 10-digit mobile number.', 'error');
+      return;
+    }
+  }
+
+  const submitBtn = document.getElementById('profile-details-submit-btn');
+  const originalBtnHTML = submitBtn.innerHTML;
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Saving updates... <i class="fas fa-spinner fa-spin"></i>';
+
+    const updateData = {
+      name,
+      email,
+      mobile,
+      github,
+      linkedin,
+      portfolio
+    };
+
+    if (newPassword) {
+      updateData.currentPassword = currentPassword;
+      updateData.newPassword = newPassword;
+    }
+
+    const res = await apiCall('/student/profile-update', 'PUT', updateData, true);
+    showToast(res.message, 'success');
+
+    // Save updated user locally
+    Auth.saveUser(res.user);
+    updateSidebarAvatar(res.user);
+    populateProfileForm(res.user);
+
+    // Update header displays
+    document.getElementById('student-name').innerText = res.user.name;
+    document.getElementById('student-welcome-name').innerText = res.user.name;
+
+    // Reset password fields
+    document.getElementById('profile-curr-pass').value = '';
+    document.getElementById('profile-new-pass').value = '';
+    document.getElementById('profile-conf-pass').value = '';
+
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
+  }
+}
+
+function renderStudentAttendance(attendance) {
+  const totalEl = document.getElementById('att-stat-total');
+  const presentEl = document.getElementById('att-stat-present');
+  const absentEl = document.getElementById('att-stat-absent');
+  const pctEl = document.getElementById('att-stat-pct');
+  const tbody = document.getElementById('student-attendance-tbody');
+
+  if (totalEl) totalEl.innerText = attendance.summary.total;
+  if (presentEl) presentEl.innerText = attendance.summary.present + attendance.summary.late;
+  if (absentEl) absentEl.innerText = attendance.summary.absent;
+  if (pctEl) pctEl.innerText = attendance.summary.percentage + '%';
+
+  if (!tbody) return;
+
+  if (attendance.records.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">No attendance logs recorded yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = attendance.records.map(log => {
+    // Determine badge class and display label
+    let badgeClass = 'approved';
+    let label = 'Present';
+
+    if (log.status === 'absent') {
+      badgeClass = 'failed';
+      label = 'Absent';
+    } else if (log.status === 'late') {
+      badgeClass = 'pending';
+      label = 'Late';
+    }
+
+    return `
+      <tr>
+        <td>${new Date(log.date).toLocaleDateString('en-IN')}</td>
+        <td style="font-weight: 600; color: var(--text-primary);">${log.courseId}</td>
+        <td><span class="badge ${badgeClass}">${label}</span></td>
+      </tr>
+    `;
+  }).join('');
 }

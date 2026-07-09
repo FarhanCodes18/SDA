@@ -74,6 +74,9 @@
         <li class="sidebar-item" data-target="admin-placements">
           <a href="#"><i class="fas fa-user-tie"></i> Placement Achievers</a>
         </li>
+        <li class="sidebar-item" data-target="admin-attendance">
+          <a href="#"><i class="fas fa-calendar-check"></i> Attendance Manager</a>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -180,6 +183,7 @@
                 <th>Registration ID</th>
                 <th>Full Name</th>
                 <th>Email Address</th>
+                <th>Mobile Number</th>
                 <th>Joined Date</th>
                 <th>Action</th>
               </tr>
@@ -416,7 +420,111 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 12: BATCH ATTENDANCE ==================== -->
+      <section id="admin-attendance" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Batch Attendance Manager</h2>
+          <p style="color: var(--text-secondary);">Select a batch and date to view and mark attendance.</p>
+        </div>
+
+        <!-- Control Card -->
+        <div class="glass-card" style="margin-bottom: 30px; padding: 24px;">
+          <form id="attendance-control-form" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; align-items: flex-end;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="att-course-select" style="margin-bottom: 8px;">Select Course Batch</label>
+              <select id="att-course-select" class="form-control" required style="width: 100%;">
+                <!-- Prepopulated dynamically with courses -->
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label for="att-date-input" style="margin-bottom: 8px;">Attendance Date</label>
+              <input type="date" id="att-date-input" class="form-control" required style="width: 100%;">
+            </div>
+            <button type="submit" class="btn-primary" style="height: 46px; padding: 0 24px;">
+              Load Student Sheet <i class="fas fa-search" style="margin-left: 6px;"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- Student Sheet Table -->
+        <div id="attendance-sheet-card" class="glass-card" style="display: none; padding: 24px;">
+          <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;" id="att-sheet-title">Student Roll List</h3>
+          
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Email Address</th>
+                  <th style="text-align: center; width: 320px;">Attendance Status</th>
+                </tr>
+              </thead>
+              <tbody id="attendance-tbody">
+                <!-- Enrolled student list with status radios -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-top: 30px; display: flex; justify-content: flex-end;">
+            <button id="save-attendance-btn" class="btn-primary" style="padding: 12px 30px;">
+              Save Attendance Sheet <i class="fas fa-save" style="margin-left: 8px;"></i>
+            </button>
+          </div>
+        </div>
+      </section>
+
     </main>
+  </div>
+
+  <!-- STUDENT DETAILS MODAL -->
+  <div class="modal-overlay" id="student-details-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Student Profile Details</h3>
+        <button class="modal-close" onclick="closeStudentDetailsModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding-top: 20px;">
+        
+        <!-- Avatar Pic -->
+        <div style="width: 110px; height: 110px; border-radius: 50%; border: 3px solid var(--accent-color); padding: 4px; background: var(--bg-primary); margin: 0 auto 16px auto; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <div id="detail-avatar-display" class="sidebar-avatar" style="width: 100%; height: 100%; font-size: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent-gradient); margin: 0;">S</div>
+        </div>
+
+        <h4 id="detail-fullname" style="font-size: 20px; margin-bottom: 4px; color: var(--text-primary); font-family: var(--font-header);">Student Full Name</h4>
+        <p id="detail-regid" style="font-family: monospace; font-size: 12px; color: var(--text-secondary); margin-bottom: 24px;">ID: user_123456789</p>
+
+        <!-- Details List -->
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; text-align: left; margin-bottom: 24px; font-size: 14px;">
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
+            <span style="color: var(--text-secondary); font-weight:500;">Email:</span>
+            <span id="detail-email" style="color: var(--text-primary); font-weight:600;">student@email.com</span>
+          </div>
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
+            <span style="color: var(--text-secondary); font-weight:500;">WhatsApp:</span>
+            <span id="detail-mobile" style="color: var(--text-primary); font-weight:600;">9988776655</span>
+          </div>
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
+            <span style="color: var(--text-secondary); font-weight:500;">GitHub Profile:</span>
+            <a id="detail-github" href="#" target="_blank" style="color: var(--accent-color); font-weight:600; display: inline-flex; align-items: center; gap: 4px;">Link <i class="fas fa-external-link-alt" style="font-size: 10px;"></i></a>
+            <span id="detail-github-na" style="color: var(--text-muted); display: none;">Not Linked</span>
+          </div>
+          <div style="margin-bottom: 12px; display: flex; justify-weight: space-between; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
+            <span style="color: var(--text-secondary); font-weight:500;">LinkedIn:</span>
+            <a id="detail-linkedin" href="#" target="_blank" style="color: var(--accent-color); font-weight:600; display: inline-flex; align-items: center; gap: 4px;">Link <i class="fas fa-external-link-alt" style="font-size: 10px;"></i></a>
+            <span id="detail-linkedin-na" style="color: var(--text-muted); display: none;">Not Linked</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary); font-weight:500;">Portfolio:</span>
+            <a id="detail-portfolio" href="#" target="_blank" style="color: var(--accent-color); font-weight:600; display: inline-flex; align-items: center; gap: 4px;">Link <i class="fas fa-external-link-alt" style="font-size: 10px;"></i></a>
+            <span id="detail-portfolio-na" style="color: var(--text-muted); display: none;">Not Linked</span>
+          </div>
+        </div>
+
+        <button onclick="closeStudentDetailsModal()" class="btn-primary" style="width: 100%; justify-content: center;">
+          Close Profile Info
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ADD COURSE MODAL -->

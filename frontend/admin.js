@@ -54,6 +54,25 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('add-recorded-form').addEventListener('submit', handleAddRecordedClass);
   document.getElementById('manual-payment-form').addEventListener('submit', handleManualPaymentUpdate);
   document.getElementById('add-achiever-form').addEventListener('submit', handleAddAchiever);
+
+  // Set attendance date to today
+  const attDateInput = document.getElementById('att-date-input');
+  if (attDateInput) {
+    const today = new Date().toISOString().split('T')[0];
+    attDateInput.value = today;
+  }
+
+  // Attendance Sheet load form submission
+  const attControlForm = document.getElementById('attendance-control-form');
+  if (attControlForm) {
+    attControlForm.addEventListener('submit', handleLoadAttendanceSheet);
+  }
+
+  // Save Attendance Sheet click listener
+  const saveAttBtn = document.getElementById('save-attendance-btn');
+  if (saveAttBtn) {
+    saveAttBtn.addEventListener('click', handleSaveAttendanceSheet);
+  }
 });
 
 let adminData = {};
@@ -171,7 +190,7 @@ function renderStudents(students) {
   if (!tbody) return;
 
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No students registered yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No students registered yet.</td></tr>`;
     return;
   }
 
@@ -180,11 +199,17 @@ function renderStudents(students) {
       <td style="font-family: monospace; font-size:12px;">${s.id}</td>
       <td style="font-weight: 600; color: var(--text-primary);">${s.name}</td>
       <td>${s.email}</td>
+      <td>${s.mobile || '<span style="color:var(--text-muted)">N/A</span>'}</td>
       <td>${new Date(s.createdAt).toLocaleDateString('en-IN')}</td>
       <td>
-        <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
-          <i class="fas fa-trash"></i> Delete
-        </button>
+        <div style="display: flex; gap: 8px;">
+          <button onclick="openStudentDetailsModal('${s.id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+            <i class="fas fa-eye"></i> View Profile
+          </button>
+          <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
       </td>
     </tr>
   `).join('');
@@ -227,16 +252,27 @@ function renderCourses(courses) {
 // Populate course select options
 function populateCourseDropdowns(courses) {
   const select = document.getElementById('rec-course');
-  if (!select) return;
+  const attSelect = document.getElementById('att-course-select');
 
-  // Clear existing items except default
-  select.innerHTML = `<option value="all">Accessible to All Students</option>`;
-  courses.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c.id;
-    opt.innerText = c.title;
-    select.appendChild(opt);
-  });
+  if (select) {
+    select.innerHTML = `<option value="all">Accessible to All Students</option>`;
+    courses.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.innerText = c.title;
+      select.appendChild(opt);
+    });
+  }
+
+  if (attSelect) {
+    attSelect.innerHTML = `<option value="" disabled selected>Select Course Batch</option>`;
+    courses.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.innerText = c.title;
+      attSelect.appendChild(opt);
+    });
+  }
 }
 
 // Render Enrollments
@@ -780,3 +816,171 @@ async function handleDeleteStudent(studentId) {
 // Bind to window for global inline trigger access
 window.approvePaymentDirectly = approvePaymentDirectly;
 window.handleDeleteStudent = handleDeleteStudent;
+window.openStudentDetailsModal = openStudentDetailsModal;
+window.closeStudentDetailsModal = closeStudentDetailsModal;
+
+// ==========================================
+// STUDENT PROFILE MODAL & ATTENDANCE LOGIC
+// ==========================================
+
+function openStudentDetailsModal(studentId) {
+  const student = adminData.students.find(s => s.id === studentId);
+  if (!student) return;
+
+  document.getElementById('detail-fullname').innerText = student.name;
+  document.getElementById('detail-regid').innerText = 'ID: ' + student.id;
+  document.getElementById('detail-email').innerText = student.email;
+  document.getElementById('detail-mobile').innerText = student.mobile || 'N/A';
+
+  // Set avatar or profile image
+  const displayEl = document.getElementById('detail-avatar-display');
+  if (displayEl) {
+    if (student.profilePic) {
+      displayEl.innerHTML = `<img src="${student.profilePic}" alt="${student.name}" style="width:100%; height:100%; border-radius:50%; object-fit:cover; display:block;">`;
+    } else {
+      displayEl.innerHTML = student.name.charAt(0).toUpperCase();
+    }
+  }
+
+  // Set social links
+  const socialConfigs = [
+    { key: 'github', linkId: 'detail-github', naId: 'detail-github-na' },
+    { key: 'linkedin', linkId: 'detail-linkedin', naId: 'detail-linkedin-na' },
+    { key: 'portfolio', linkId: 'detail-portfolio', naId: 'detail-portfolio-na' }
+  ];
+
+  socialConfigs.forEach(cfg => {
+    const val = student[cfg.key];
+    const linkEl = document.getElementById(cfg.linkId);
+    const naEl = document.getElementById(cfg.naId);
+    if (linkEl && naEl) {
+      if (val) {
+        linkEl.href = val;
+        linkEl.style.display = 'inline-flex';
+        naEl.style.display = 'none';
+      } else {
+        linkEl.style.display = 'none';
+        naEl.style.display = 'inline';
+      }
+    }
+  });
+
+  document.getElementById('student-details-modal').classList.add('active');
+}
+
+function closeStudentDetailsModal() {
+  document.getElementById('student-details-modal').classList.remove('active');
+}
+
+let loadedAttendanceData = null;
+
+async function handleLoadAttendanceSheet(e) {
+  e.preventDefault();
+  const courseId = document.getElementById('att-course-select').value;
+  const date = document.getElementById('att-date-input').value;
+
+  if (!courseId || !date) {
+    showToast('Please select a course batch and date.', 'error');
+    return;
+  }
+
+  try {
+    showToast('Loading roll list...', 'info');
+    const res = await apiCall(`/admin/attendance?courseId=${courseId}&date=${date}`, 'GET', null, true);
+    loadedAttendanceData = res;
+
+    renderAttendanceSheet(res.records);
+
+    // Show sheet card
+    document.getElementById('attendance-sheet-card').style.display = 'block';
+    document.getElementById('att-sheet-title').innerText = `Student Roll List — ${date}`;
+
+  } catch (error) {
+    showToast(error.message || 'Failed to load attendance sheet.', 'error');
+  }
+}
+
+function renderAttendanceSheet(records) {
+  const tbody = document.getElementById('attendance-tbody');
+  if (!tbody) return;
+
+  if (records.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: var(--text-muted); padding: 20px;">No students enrolled & approved in this course yet.</td></tr>`;
+    document.getElementById('save-attendance-btn').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('save-attendance-btn').style.display = 'inline-flex';
+
+  tbody.innerHTML = records.map((r, index) => {
+    return `
+      <tr>
+        <td style="font-weight: 600; color: var(--text-primary);">${r.studentName}</td>
+        <td>${r.studentEmail}</td>
+        <td>
+          <div class="attendance-options" style="display: flex; gap: 15px; justify-content: center; align-items: center;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size:13px;">
+              <input type="radio" name="status-${index}" value="present" ${r.status === 'present' ? 'checked' : ''} style="accent-color: var(--success); width:16px; height:16px;">
+              <span style="color: var(--success); font-weight:600;">Present</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size:13px;">
+              <input type="radio" name="status-${index}" value="absent" ${r.status === 'absent' ? 'checked' : ''} style="accent-color: var(--danger); width:16px; height:16px;">
+              <span style="color: var(--danger); font-weight:600;">Absent</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size:13px;">
+              <input type="radio" name="status-${index}" value="late" ${r.status === 'late' ? 'checked' : ''} style="accent-color: var(--warning); width:16px; height:16px;">
+              <span style="color: var(--warning); font-weight:600;">Late</span>
+            </label>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function handleSaveAttendanceSheet() {
+  if (!loadedAttendanceData) return;
+
+  const tbody = document.getElementById('attendance-tbody');
+  const rows = tbody.querySelectorAll('tr');
+  const records = [];
+
+  for (let i = 0; i < loadedAttendanceData.records.length; i++) {
+    const originalRecord = loadedAttendanceData.records[i];
+    const radios = document.getElementsByName(`status-${i}`);
+    let selectedStatus = 'present';
+
+    for (const r of radios) {
+      if (r.checked) {
+        selectedStatus = r.value;
+        break;
+      }
+    }
+
+    records.push({
+      studentId: originalRecord.studentId,
+      studentName: originalRecord.studentName,
+      studentEmail: originalRecord.studentEmail,
+      status: selectedStatus
+    });
+  }
+
+  const courseId = loadedAttendanceData.courseId;
+  const date = loadedAttendanceData.date;
+
+  try {
+    showToast('Saving attendance...', 'info');
+    const res = await apiCall('/admin/attendance', 'POST', {
+      courseId,
+      date,
+      records
+    }, true);
+
+    showToast(res.message, 'success');
+    // Refresh sheet data locally
+    loadedAttendanceData.records = records;
+
+  } catch (error) {
+    showToast(error.message || 'Failed to save attendance.', 'error');
+  }
+}

@@ -1978,4 +1978,50 @@ html {
   }
 }
 
+/* Student Profile Settings Styles */
+.sidebar-avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+#profile-avatar-display img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Custom Social Badges */
+.social-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+}
+.social-badge.connected {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.social-badge.missing {
+  background: rgba(98, 98, 112, 0.1);
+  color: var(--text-muted);
+  border-color: rgba(98, 98, 112, 0.2);
+}
+
+@media (max-width: 992px) {
+  .profile-settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+
 

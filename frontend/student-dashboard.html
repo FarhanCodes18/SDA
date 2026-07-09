@@ -71,6 +71,12 @@
         <li class="sidebar-item" data-target="dashboard-certificate" id="sidebar-cert-item">
           <a href="#"><i class="fas fa-certificate"></i> Certificate</a>
         </li>
+        <li class="sidebar-item" data-target="dashboard-profile-settings">
+          <a href="#"><i class="fas fa-user-cog"></i> Profile Settings</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-attendance">
+          <a href="#"><i class="fas fa-user-check"></i> Attendance Log</a>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -239,6 +245,168 @@
 
         <div id="certificate-display-box" class="glass-card" style="padding:0;">
           <!-- Will render locked card, or success message, dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 9: PROFILE SETTINGS ==================== -->
+      <section id="dashboard-profile-settings" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Profile & Account Settings</h2>
+          <p style="color: var(--text-secondary);">Manage your profile picture, personal details, social links, and security settings.</p>
+        </div>
+
+        <div class="profile-settings-grid" style="display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 30px;">
+          <!-- Left Column: Avatar & Image Upload -->
+          <div class="glass-card" style="padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; height: fit-content;">
+            <h3 style="font-size: 18px; margin-bottom: 20px; color: var(--text-primary);">Profile Picture</h3>
+            
+            <div class="profile-avatar-container" style="position: relative; width: 140px; height: 140px; margin-bottom: 20px; border-radius: 50%; border: 3px solid var(--accent-color); padding: 4px; background: var(--bg-primary);">
+              <div id="profile-avatar-display" class="sidebar-avatar" style="width: 100%; height: 100%; font-size: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--accent-gradient); margin: 0;">S</div>
+            </div>
+
+            <form id="profile-pic-form" style="width: 100%;">
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-pic-input" class="btn-secondary" style="width: 100%; justify-content: center; cursor: pointer; font-size: 13px; padding: 10px 16px; border: 1.5px solid var(--border-color); background: rgba(255,255,255,0.02);">
+                  <i class="fas fa-image" style="margin-right: 6px;"></i> Choose Photo
+                </label>
+                <input type="file" id="profile-pic-input" accept="image/*" style="display: none;" required>
+                <span id="profile-pic-filename" style="display: block; font-size: 12px; color: var(--text-secondary); margin-top: 8px; font-weight: 500; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">No file selected</span>
+              </div>
+              <button type="submit" id="profile-pic-submit-btn" class="btn-primary" style="width: 100%; justify-content: center; font-size: 13px; padding: 10px 16px;">
+                Upload Photo <i class="fas fa-upload" style="margin-left: 6px;"></i>
+              </button>
+            </form>
+
+            <div style="width: 100%; border-top: 1px solid var(--border-color); margin-top: 24px; padding-top: 20px; text-align: left;">
+              <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--text-primary);"><i class="fas fa-link" style="color: var(--accent-color); margin-right: 6px;"></i> Social Profile Summary</h4>
+              <div id="profile-social-badges" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <!-- Renders GitHub, LinkedIn, Portfolio status badges -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Personal Info & Security -->
+          <div class="glass-card" style="padding: 30px;">
+            <form id="profile-details-form">
+              <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--text-primary);"><i class="fas fa-user" style="color: var(--accent-color); margin-right: 8px;"></i> Personal Information</h3>
+              
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-fullname">Full Name</label>
+                <input type="text" id="profile-fullname" class="form-control" required>
+              </div>
+              
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-email">Email Address</label>
+                <input type="email" id="profile-email" class="form-control" required>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-mobile">Mobile Number (WhatsApp)</label>
+                <input type="tel" id="profile-mobile" class="form-control" placeholder="10-digit mobile number">
+              </div>
+
+              <h3 style="font-size: 18px; margin-top: 30px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--text-primary);"><i class="fas fa-share-alt" style="color: #3b82f6; margin-right: 8px;"></i> Social Links</h3>
+              
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-github"><i class="fab fa-github" style="margin-right: 4px;"></i> GitHub Profile URL</label>
+                <input type="url" id="profile-github" class="form-control" placeholder="https://github.com/username">
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-linkedin"><i class="fab fa-linkedin" style="margin-right: 4px;"></i> LinkedIn Profile URL</label>
+                <input type="url" id="profile-linkedin" class="form-control" placeholder="https://linkedin.com/in/username">
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-portfolio"><i class="fas fa-globe" style="margin-right: 4px;"></i> Portfolio/Website URL</label>
+                <input type="url" id="profile-portfolio" class="form-control" placeholder="https://myportfolio.com">
+              </div>
+
+              <h3 style="font-size: 18px; margin-top: 30px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; color: var(--text-primary);"><i class="fas fa-shield-alt" style="color: var(--success); margin-right: 8px;"></i> Security & Password</h3>
+              <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 16px;"><i class="fas fa-info-circle" style="margin-right: 4px;"></i> Leave password fields empty if you do not want to change it.</p>
+
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label for="profile-curr-pass">Current Password</label>
+                <input type="password" id="profile-curr-pass" class="form-control" placeholder="Enter current password to verify">
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                  <label for="profile-new-pass">New Password</label>
+                  <input type="password" id="profile-new-pass" class="form-control" placeholder="Minimum 6 characters">
+                </div>
+                <div class="form-group">
+                  <label for="profile-conf-pass">Confirm Password</label>
+                  <input type="password" id="profile-conf-pass" class="form-control" placeholder="Re-enter new password">
+                </div>
+              </div>
+
+              <button type="submit" id="profile-details-submit-btn" class="btn-primary" style="margin-top: 30px; width: 100%; justify-content: center; padding: 14px;">
+                Save Profile Updates <i class="fas fa-check-double" style="margin-left: 8px;"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 10: STUDENT ATTENDANCE LOG ==================== -->
+      <section id="dashboard-attendance" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>My Attendance Logs</h2>
+          <p style="color: var(--text-secondary);">Track your daily attendance status and overall batch attendance metrics.</p>
+        </div>
+
+        <!-- Attendance Stats Cards -->
+        <div class="stats-cards-grid">
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Total Sessions</h5>
+              <h2 id="att-stat-total">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1);"><i class="fas fa-calendar-alt"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Present Days</h5>
+              <h2 id="att-stat-present">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color: var(--success); background: rgba(16, 185, 129, 0.1);"><i class="fas fa-calendar-check"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Absent Days</h5>
+              <h2 id="att-stat-absent">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color: var(--danger); background: rgba(239, 68, 68, 0.1);"><i class="fas fa-calendar-times"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Attendance Ratio</h5>
+              <h2 id="att-stat-pct">100%</h2>
+            </div>
+            <div class="stat-card-icon" style="color: var(--warning); background: rgba(245, 158, 11, 0.1);"><i class="fas fa-percent"></i></div>
+          </div>
+        </div>
+
+        <!-- Attendance Table Card -->
+        <div class="glass-card" style="padding: 24px;">
+          <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;"><i class="fas fa-history" style="color: var(--accent-color); margin-right: 8px;"></i> Attendance History</h3>
+          
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Session Date</th>
+                  <th>Course Batch</th>
+                  <th>Attendance Status</th>
+                </tr>
+              </thead>
+              <tbody id="student-attendance-tbody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
