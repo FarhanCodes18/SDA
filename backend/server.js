@@ -141,7 +141,7 @@ const initDatabase = async () => {
     'users.json', 'courses.json', 'enrollments.json', 'payments.json',
     'certificates.json', 'notices.json', 'announcements.json',
     'recordedClasses.json', 'achievers.json', 'contacts.json', 'liveclass.json',
-    'attendance.json'
+    'attendance.json', 'quizzes.json', 'quizResults.json'
   ];
 
   // We perform initial reads from local JSON files to avoid uninitialized state
@@ -436,6 +436,8 @@ app.get('/api/student/dashboard/:studentId', authenticateToken, (req, res) => {
     const notices = readJSONFile('notices.json');
     const announcements = readJSONFile('announcements.json');
     const recordedClasses = readJSONFile('recordedClasses.json');
+    const quizzes = readJSONFile('quizzes.json');
+    const quizResults = readJSONFile('quizResults.json');
 
     // Filter student-specific data
     const studentEnrollments = enrollments.filter(e => e.studentId === studentId);
@@ -505,6 +507,22 @@ app.get('/api/student/dashboard/:studentId', authenticateToken, (req, res) => {
       percentage: attendancePercentage
     };
 
+    // Filter quizzes matching student's unlocked courses and strip correctAnswerIndex
+    const purchasedCourseIds = purchasedCourses.map(c => c.id);
+    const studentQuizzes = quizzes
+      .filter(q => purchasedCourseIds.includes(q.courseId))
+      .map(q => ({
+        ...q,
+        questions: q.questions.map(quest => {
+          const qCopy = { ...quest };
+          delete qCopy.correctAnswerIndex;
+          return qCopy;
+        })
+      }));
+
+    // Filter student's quiz submissions
+    const studentQuizResults = quizResults.filter(r => r.studentId === studentId);
+
     // Return everything
     res.json({
       user: userProfile,
@@ -519,7 +537,9 @@ app.get('/api/student/dashboard/:studentId', authenticateToken, (req, res) => {
       attendance: {
         records: studentAttendanceLogs,
         summary: attendanceSummary
-      }
+      },
+      quizzes: studentQuizzes,
+      quizResults: studentQuizResults
     });
 
   } catch (error) {
@@ -1190,6 +1210,8 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
     const notices = readJSONFile('notices.json');
     const announcements = readJSONFile('announcements.json');
     const recordedClasses = readJSONFile('recordedClasses.json');
+    const quizzes = readJSONFile('quizzes.json');
+    const quizResults = readJSONFile('quizResults.json');
 
     const students = users.filter(u => u.role === 'student');
 
@@ -1221,7 +1243,9 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
       notices,
       announcements,
       recordedClasses,
-      achievers: readJSONFile('achievers.json')
+      achievers: readJSONFile('achievers.json'),
+      quizzes,
+      quizResults
     });
 
   } catch (error) {
@@ -1461,7 +1485,248 @@ app.put('/api/student/profile-update', authenticateToken, async (req, res) => {
 });
 
 // ==========================================
-// BATCH ATTENDANCE ENDPOINTS
+// QUIZZES & MCQ ENDPOINTS
+// ==========================================
+
+// 1. Get all quizzes (Authenticated - strips correct answers for students)
+app.get('/api/quizzes', authenticateToken, (req, res) => {
+  try {
+    const quizzes = readJSONFile('quizzes.json');
+    if (req.user.role === 'admin') {
+      return res.json(quizzes);
+    }
+
+    // For students, strip out correctAnswerIndex
+    const studentQuizzes = quizzes.map(q => ({
+      ...q,
+      questions: q.questions.map(quest => {
+        const qCopy = { ...quest };
+        delete qCopy.correctAnswerIndex;
+        return qCopy;
+      })
+    }));
+    res.json(studentQuizzes);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching quizzes.', error: error.message });
+  }
+});
+
+// 2. Get a single quiz details (strips correct answers for students)
+app.get('/api/quizzes/:id', authenticateToken, (req, res) => {
+  try {
+    const quizzes = readJSONFile('quizzes.json');
+    const quiz = quizzes.find(q => q.id === req.params.id);
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found.' });
+    }
+
+    if (req.user.role === 'admin') {
+      return res.json(quiz);
+    }
+
+    // For students, strip correct answers
+    const studentQuiz = {
+      ...quiz,
+      questions: quiz.questions.map(quest => {
+        const qCopy = { ...quest };
+        delete qCopy.correctAnswerIndex;
+        return qCopy;
+      })
+    };
+    res.json(studentQuiz);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching quiz details.', error: error.message });
+  }
+});
+
+// 3. Create a quiz (Admin only)
+app.post('/api/quizzes', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { courseId, title, questions } = req.body;
+    if (!courseId || !title || !Array.isArray(questions)) {
+      return res.status(400).json({ message: 'Missing courseId, title, or questions list.' });
+    }
+
+    const quizzes = readJSONFile('quizzes.json');
+    const newQuiz = {
+      id: 'quiz_' + Date.now(),
+      courseId,
+      title,
+      questions: questions.map((q, idx) => ({
+        id: 'q_' + idx + '_' + Date.now(),
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswerIndex: Number(q.correctAnswerIndex)
+      }))
+    };
+
+    quizzes.push(newQuiz);
+    writeJSONFile('quizzes.json', quizzes);
+
+    res.status(201).json({ message: 'Quiz created successfully!', quiz: newQuiz });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating quiz.', error: error.message });
+  }
+});
+
+// 4. Update a quiz (Admin only)
+app.put('/api/quizzes/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { courseId, title, questions } = req.body;
+    const quizzes = readJSONFile('quizzes.json');
+    const index = quizzes.findIndex(q => q.id === req.params.id);
+
+    if (index === -1) {
+      return res.status(404).json({ message: 'Quiz not found.' });
+    }
+
+    quizzes[index] = {
+      ...quizzes[index],
+      courseId: courseId || quizzes[index].courseId,
+      title: title || quizzes[index].title,
+      questions: questions ? questions.map((q, idx) => ({
+        id: q.id || 'q_' + idx + '_' + Date.now(),
+        questionText: q.questionText,
+        options: q.options,
+        correctAnswerIndex: Number(q.correctAnswerIndex)
+      })) : quizzes[index].questions
+    };
+
+    writeJSONFile('quizzes.json', quizzes);
+    res.json({ message: 'Quiz updated successfully!', quiz: quizzes[index] });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating quiz.', error: error.message });
+  }
+});
+
+// 5. Delete a quiz (Admin only)
+app.delete('/api/quizzes/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const quizzes = readJSONFile('quizzes.json');
+    const index = quizzes.findIndex(q => q.id === req.params.id);
+
+    if (index === -1) {
+      return res.status(404).json({ message: 'Quiz not found.' });
+    }
+
+    quizzes.splice(index, 1);
+    writeJSONFile('quizzes.json', quizzes);
+
+    // Also delete associated quiz results
+    let quizResults = readJSONFile('quizResults.json');
+    quizResults = quizResults.filter(r => r.quizId !== req.params.id);
+    writeJSONFile('quizResults.json', quizResults);
+
+    res.json({ message: 'Quiz deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting quiz.', error: error.message });
+  }
+});
+
+// 6. Submit a quiz (Student only / Authenticated)
+app.post('/api/quizzes/:id/submit', authenticateToken, (req, res) => {
+  try {
+    const quizId = req.params.id;
+    const { answers } = req.body; // indices corresponding to options selected by student
+
+    if (!Array.isArray(answers)) {
+      return res.status(400).json({ message: 'Missing or invalid answers array.' });
+    }
+
+    const quizzes = readJSONFile('quizzes.json');
+    const quiz = quizzes.find(q => q.id === quizId);
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found.' });
+    }
+
+    // Verify enrollment & payment status for this course
+    const enrollments = readJSONFile('enrollments.json');
+    const enrollment = enrollments.find(e => e.studentId === req.user.id && e.courseId === quiz.courseId);
+    if (req.user.role !== 'admin' && (!enrollment || enrollment.status !== 'approved')) {
+      return res.status(403).json({ message: 'You must enroll and complete payment for this course to submit the quiz.' });
+    }
+
+    let score = 0;
+    const total = quiz.questions.length;
+    const feedback = [];
+
+    quiz.questions.forEach((q, idx) => {
+      const studentAnswer = answers[idx];
+      const correctAnswer = q.correctAnswerIndex;
+      const isCorrect = studentAnswer === correctAnswer;
+      if (isCorrect) score++;
+
+      feedback.push({
+        questionText: q.questionText,
+        options: q.options,
+        studentAnswer,
+        correctAnswer,
+        isCorrect
+      });
+    });
+
+    const percentage = total > 0 ? Math.round((score / total) * 100) : 100;
+
+    const quizResults = readJSONFile('quizResults.json');
+    const newResult = {
+      id: 'res_' + Date.now(),
+      quizId,
+      quizTitle: quiz.title,
+      studentId: req.user.id,
+      studentName: req.user.name,
+      score,
+      total,
+      percentage,
+      answers,
+      date: new Date().toISOString()
+    };
+
+    quizResults.push(newResult);
+    writeJSONFile('quizResults.json', quizResults);
+
+    res.status(201).json({
+      message: 'Quiz submitted successfully!',
+      result: {
+        score,
+        total,
+        percentage,
+        feedback
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting quiz.', error: error.message });
+  }
+});
+
+// 7. Get student's own quiz results
+app.get('/api/quiz-results/student/:studentId', authenticateToken, (req, res) => {
+  try {
+    const studentId = req.params.studentId;
+    if (req.user.role !== 'admin' && req.user.id !== studentId) {
+      return res.status(403).json({ message: 'Access denied.' });
+    }
+
+    const quizResults = readJSONFile('quizResults.json');
+    const results = quizResults.filter(r => r.studentId === studentId);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching quiz results.' });
+  }
+});
+
+// 8. Get all quiz results (Admin only)
+app.get('/api/quiz-results/admin', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const quizResults = readJSONFile('quizResults.json');
+    res.json(quizResults);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching all quiz results.' });
+  }
+});
+
+// ==========================================
+// BATCH ATTENDANCE ENDPOINTS ENDPOINTS
 // ==========================================
 
 // Get Attendance Sheet for Course & Date
