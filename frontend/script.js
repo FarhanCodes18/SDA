@@ -170,20 +170,44 @@ function initHamburger() {
   const hamburger = document.querySelector('.hamburger');
   const navLinks = document.querySelector('.nav-links');
 
-  if (hamburger && navLinks) {
-    hamburger.addEventListener('click', () => {
-      const isVisible = navLinks.style.display === 'flex';
-      navLinks.style.display = isVisible ? 'none' : 'flex';
-      navLinks.style.flexDirection = 'column';
-      navLinks.style.position = 'absolute';
-      navLinks.style.top = '80px';
-      navLinks.style.left = '0';
-      navLinks.style.width = '100%';
-      navLinks.style.background = 'rgba(10, 10, 12, 0.95)';
-      navLinks.style.padding = '20px';
-      navLinks.style.borderBottom = '1px solid var(--border-color)';
+  if (!hamburger || !navLinks) return;
+
+  // Toggle menu open/close
+  hamburger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = navLinks.classList.contains('mobile-open');
+    if (isOpen) {
+      closeMobileMenu(hamburger, navLinks);
+    } else {
+      openMobileMenu(hamburger, navLinks);
+    }
+  });
+
+  // Close menu when any nav link is clicked
+  navLinks.querySelectorAll('a').forEach(link => {
+    link.addEventListener('click', () => {
+      closeMobileMenu(hamburger, navLinks);
     });
-  }
+  });
+
+  // Close menu when clicking outside the navbar
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.navbar')) {
+      closeMobileMenu(hamburger, navLinks);
+    }
+  });
+}
+
+function openMobileMenu(hamburger, navLinks) {
+  navLinks.classList.add('mobile-open');
+  hamburger.querySelector('i').classList.replace('fa-bars', 'fa-times');
+  hamburger.setAttribute('aria-expanded', 'true');
+}
+
+function closeMobileMenu(hamburger, navLinks) {
+  navLinks.classList.remove('mobile-open');
+  hamburger.querySelector('i').classList.replace('fa-times', 'fa-bars');
+  hamburger.setAttribute('aria-expanded', 'false');
 }
 
 function initFAQ() {
@@ -396,8 +420,8 @@ function openCertificateUnlockModal() {
             </div>
             <div style="font-size: 13px; color: var(--text-secondary);">
               <p style="margin-bottom: 4px;">Payee Name: <strong style="color: var(--text-primary);">Ajay Shukla</strong></p>
-              <p>UPI ID: <strong style="color: var(--text-primary);" id="upi-string">7974271675-2@ybl</strong> 
-                <button type="button" onclick="navigator.clipboard.writeText('7974271675-2@ybl'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
+              <p>UPI ID: <strong style="color: var(--text-primary);" id="upi-string">9302677702@ybl</strong> 
+                <button type="button" onclick="navigator.clipboard.writeText('9302677702@ybl'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
                   <i class="far fa-copy"></i>
                 </button>
               </p>
@@ -435,7 +459,7 @@ function openCertificateUnlockModal() {
       priceBox.style.display = 'block';
 
       // Update UPI QR Code URL dynamically
-      const upiUrl = `upi://pay?pa=7974271675-2@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
+      const upiUrl = `upi://pay?pa=9302677702@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
       qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
       qrBox.style.display = 'block';
       uploadBox.style.display = 'block';

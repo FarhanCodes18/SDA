@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-L286VZ2W2J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-L286VZ2W2J');
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register - Sukla Digital Academy</title>
@@ -48,15 +57,7 @@
         </div>
       </div>
 
-      <div class="auth-form-group">
-        <label for="course">Select Course to Enroll</label>
-        <div class="auth-input-wrapper">
-          <i class="fas fa-book"></i>
-          <select id="course" class="auth-input" style="background-color: var(--bg-secondary); color: var(--text-primary);" required>
-            <option value="" disabled selected>Select a course</option>
-          </select>
-        </div>
-      </div>
+
 
       <div class="auth-form-group">
         <label for="password">Password</label>
@@ -84,22 +85,7 @@
         Auth.redirectToDashboard();
       }
 
-      // Populate courses in dropdown
-      const courseSelect = document.getElementById('course');
-      if (courseSelect) {
-        try {
-          const courses = await apiCall('/courses', 'GET', null, false);
-          courses.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.textContent = c.title;
-            courseSelect.appendChild(opt);
-          });
-        } catch (error) {
-          console.error('Error loading courses for register dropdown:', error);
-          showToast('Failed to load courses list.', 'error');
-        }
-      }
+
 
       const form = document.getElementById('register-form');
       form.addEventListener('submit', async (e) => {
@@ -108,10 +94,9 @@
         const name = document.getElementById('name').value.trim();
         const mobile = document.getElementById('mobile').value.trim();
         const email = document.getElementById('email').value.trim();
-        const courseId = document.getElementById('course').value;
         const password = document.getElementById('password').value;
 
-        if (!name || !mobile || !email || !courseId || !password) {
+        if (!name || !mobile || !email || !password) {
           showToast('Please fill in all fields.', 'error');
           return;
         }
@@ -124,7 +109,7 @@
         }
 
         try {
-          const response = await apiCall('/register', 'POST', { name, email, password, mobile, courseId }, false);
+          const response = await apiCall('/register', 'POST', { name, email, password, mobile }, false);
           
           Auth.saveToken(response.token);
           Auth.saveUser(response.user);

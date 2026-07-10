@@ -47,13 +47,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 4. Form Submit Listeners
-  document.getElementById('add-course-form').addEventListener('submit', handleAddCourse);
-  document.getElementById('edit-course-form').addEventListener('submit', handleEditCourse);
-  document.getElementById('add-notice-form').addEventListener('submit', handleAddNotice);
-  document.getElementById('add-ann-form').addEventListener('submit', handleAddAnnouncement);
-  document.getElementById('add-recorded-form').addEventListener('submit', handleAddRecordedClass);
-  document.getElementById('manual-payment-form').addEventListener('submit', handleManualPaymentUpdate);
-  document.getElementById('add-achiever-form').addEventListener('submit', handleAddAchiever);
+  const addCourseForm = document.getElementById('add-course-form');
+  if (addCourseForm) addCourseForm.addEventListener('submit', handleAddCourse);
+
+  const editCourseForm = document.getElementById('edit-course-form');
+  if (editCourseForm) editCourseForm.addEventListener('submit', handleEditCourse);
+
+  const addNoticeForm = document.getElementById('add-notice-form');
+  if (addNoticeForm) addNoticeForm.addEventListener('submit', handleAddNotice);
+
+  const addAnnForm = document.getElementById('add-ann-form');
+  if (addAnnForm) addAnnForm.addEventListener('submit', handleAddAnnouncement);
+
+  const addRecordedForm = document.getElementById('add-recorded-form');
+  if (addRecordedForm) addRecordedForm.addEventListener('submit', handleAddRecordedClass);
+
+  const manualPaymentForm = document.getElementById('manual-payment-form');
+  if (manualPaymentForm) manualPaymentForm.addEventListener('submit', handleManualPaymentUpdate);
+
+  const addAchieverForm = document.getElementById('add-achiever-form');
+  if (addAchieverForm) addAchieverForm.addEventListener('submit', handleAddAchiever);
+  
+  // Quiz Form submission
+  const quizForm = document.getElementById('quiz-form');
+  if (quizForm) {
+    quizForm.addEventListener('submit', handleQuizFormSubmit);
+  }
 
   // Set attendance date to today
   const attDateInput = document.getElementById('att-date-input');
@@ -76,6 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 let adminData = {};
+let quizzesList = [];
+let quizResultsList = [];
 
 async function loadAdminData() {
   try {
@@ -87,6 +108,8 @@ async function loadAdminData() {
     document.getElementById('stat-students').innerText = data.stats.totalStudents;
     document.getElementById('stat-courses').innerText = data.stats.totalCourses;
     document.getElementById('stat-contacts').innerText = data.stats.totalContacts;
+    document.getElementById('stat-registrations').innerText = data.stats.totalStudents;
+    document.getElementById('stat-payments-count').innerText = data.stats.totalPayments;
 
     // B. Populate Overview recent logs
     renderOverviewLogs(data.payments, data.certificates);
@@ -123,6 +146,13 @@ async function loadAdminData() {
 
     // M. Populate Placement Achievers list
     renderAdminAchievers(data.achievers);
+
+    // N. Populate Quizzes List & Logs
+    quizzesList = data.quizzes || [];
+    quizResultsList = data.quizResults || [];
+    renderAdminQuizzes();
+    renderQuizResultsLogs();
+    populateQuizCourseDropdown(data.courses);
 
   } catch (error) {
     console.error('Error fetching admin data:', error);
@@ -175,7 +205,7 @@ function renderOverviewLogs(payments, certificates) {
         return `
           <tr>
             <td style="font-weight: 600; color: var(--text-primary);">${c.name}</td>
-            <td>${c.address.split(',').pop().trim() || 'ODISHA'}</td>
+            <td>${c.address.split(',').pop().trim() || 'BALAGHAT'}</td>
             <td><span class="badge ${isCompleted ? 'approved' : 'pending'}">${isCompleted ? 'Completed' : 'Pending'}</span></td>
           </tr>
         `;
@@ -984,3 +1014,256 @@ async function handleSaveAttendanceSheet() {
     showToast(error.message || 'Failed to save attendance.', 'error');
   }
 }
+
+// ==========================================
+// ADMIN QUIZ MANAGER TAB & FORM LOGIC
+// ==========================================
+
+function switchAdminQuizTab(tabName) {
+  const manageTab = document.getElementById('admin-quizzes-manage-tab');
+  const logsTab = document.getElementById('admin-quizzes-logs-tab');
+  const manageBtn = document.getElementById('tab-manage-quizzes-btn');
+  const logsBtn = document.getElementById('tab-quiz-logs-btn');
+
+  if (!manageTab || !logsTab || !manageBtn || !logsBtn) return;
+
+  if (tabName === 'manage') {
+    manageTab.style.display = 'block';
+    logsTab.style.display = 'none';
+    manageBtn.classList.add('active');
+    logsBtn.classList.remove('active');
+  } else {
+    manageTab.style.display = 'none';
+    logsTab.style.display = 'block';
+    manageBtn.classList.remove('active');
+    logsBtn.classList.add('active');
+  }
+}
+
+function populateQuizCourseDropdown(courses) {
+  const select = document.getElementById('quiz-course-select');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="" disabled selected>Select course batch...</option>';
+  courses.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.innerText = c.title;
+    select.appendChild(opt);
+  });
+}
+
+function renderAdminQuizzes() {
+  const grid = document.getElementById('admin-quizzes-grid');
+  if (!grid) return;
+
+  if (quizzesList.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1; text-align: center; color: var(--text-muted); padding: 40px;">No quizzes created yet. Click 'Create New Quiz' above.</div>`;
+    return;
+  }
+
+  grid.innerHTML = quizzesList.map(quiz => {
+    const course = adminData.courses?.find(c => c.id === quiz.courseId);
+    const courseTitle = course ? course.title : quiz.courseId;
+    return `
+      <div class="glass-card course-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <span class="course-card-badge" style="background: rgba(255, 75, 43, 0.1); border-color: rgba(255,75,43,0.25); color: var(--accent-color); font-size:10px;">${quiz.courseId.toUpperCase()}</span>
+          <h4 style="font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: var(--text-primary);">${quiz.title}</h4>
+          <div class="course-meta" style="font-size: 11px; margin-bottom: 12px; gap: 10px;">
+            <span><i class="far fa-question-circle"></i> ${quiz.questions.length} Questions</span>
+          </div>
+        </div>
+        <div class="course-footer" style="padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 8px;">
+          <button onclick="openEditQuizModal('${quiz.id}')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+          <button onclick="handleDeleteQuiz('${quiz.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 4px 8px; font-size: 11px;">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderQuizResultsLogs() {
+  const tbody = document.getElementById('quiz-logs-tbody');
+  if (!tbody) return;
+
+  if (quizResultsList.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 20px;">No quiz attempts recorded yet.</td></tr>`;
+    return;
+  }
+
+  const sorted = [...quizResultsList].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  tbody.innerHTML = sorted.map(r => {
+    const isPass = r.percentage >= 60;
+    return `
+      <tr>
+        <td style="font-weight: 600; color: var(--text-primary);">${r.studentName}</td>
+        <td>${r.quizTitle}</td>
+        <td>${r.score}/${r.total}</td>
+        <td>
+          <span class="badge ${isPass ? 'approved' : 'failed'}">${r.percentage}% (${isPass ? 'Pass' : 'Fail'})</span>
+        </td>
+        <td>${new Date(r.date).toLocaleString('en-IN')}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openAddQuizModal() {
+  document.getElementById('quiz-modal-title').innerText = 'Create Program Quiz';
+  document.getElementById('quiz-edit-id').value = '';
+  document.getElementById('quiz-form').reset();
+  document.getElementById('modal-questions-list-wrapper').innerHTML = '';
+  addQuizQuestionField();
+  document.getElementById('quiz-modal').classList.add('active');
+}
+
+function closeQuizModal() {
+  document.getElementById('quiz-modal').classList.remove('active');
+}
+
+function openEditQuizModal(quizId) {
+  const quiz = quizzesList.find(q => q.id === quizId);
+  if (!quiz) return;
+
+  document.getElementById('quiz-modal-title').innerText = 'Edit Program Quiz';
+  document.getElementById('quiz-edit-id').value = quiz.id;
+  document.getElementById('quiz-title-input').value = quiz.title;
+  document.getElementById('quiz-course-select').value = quiz.courseId;
+
+  const wrapper = document.getElementById('modal-questions-list-wrapper');
+  wrapper.innerHTML = '';
+
+  quiz.questions.forEach((q, idx) => {
+    addQuizQuestionField(q);
+  });
+
+  document.getElementById('quiz-modal').classList.add('active');
+}
+
+function addQuizQuestionField(qData = null) {
+  const wrapper = document.getElementById('modal-questions-list-wrapper');
+  if (!wrapper) return;
+  const index = wrapper.children.length;
+
+  const item = document.createElement('div');
+  item.className = 'admin-question-builder-item';
+  item.innerHTML = `
+    <button type="button" class="remove-question-btn" onclick="this.parentElement.remove()">Remove</button>
+    <div style="font-weight: 700; font-size:13px; color: var(--text-secondary); margin-bottom: 12px;"><i class="fas fa-question-circle" style="color: var(--accent-color);"></i> Question #${index + 1}</div>
+    
+    <div class="form-group" style="margin-bottom: 12px;">
+      <label style="font-size:12px;">Question Text</label>
+      <input type="text" class="form-control question-text-input" value="${qData ? qData.questionText.replace(/"/g, '&quot;') : ''}" required placeholder="Enter question description...">
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size:12px;">Option A</label>
+        <input type="text" class="form-control option-input" value="${qData ? qData.options[0].replace(/"/g, '&quot;') : ''}" required placeholder="Option A text">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size:12px;">Option B</label>
+        <input type="text" class="form-control option-input" value="${qData ? qData.options[1].replace(/"/g, '&quot;') : ''}" required placeholder="Option B text">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size:12px;">Option C</label>
+        <input type="text" class="form-control option-input" value="${qData ? qData.options[2].replace(/"/g, '&quot;') : ''}" required placeholder="Option C text">
+      </div>
+      <div class="form-group" style="margin-bottom: 0;">
+        <label style="font-size:12px;">Option D</label>
+        <input type="text" class="form-control option-input" value="${qData ? qData.options[3].replace(/"/g, '&quot;') : ''}" required placeholder="Option D text">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="font-size:12px;">Correct Answer Option</label>
+      <select class="form-control correct-option-select" required style="width: 200px; padding: 8px 12px; font-size:13px;">
+        <option value="0" ${qData && qData.correctAnswerIndex === 0 ? 'selected' : ''}>Option A</option>
+        <option value="1" ${qData && qData.correctAnswerIndex === 1 ? 'selected' : ''}>Option B</option>
+        <option value="2" ${qData && qData.correctAnswerIndex === 2 ? 'selected' : ''}>Option C</option>
+        <option value="3" ${qData && qData.correctAnswerIndex === 3 ? 'selected' : ''}>Option D</option>
+      </select>
+    </div>
+  `;
+
+  wrapper.appendChild(item);
+}
+
+async function handleQuizFormSubmit(e) {
+  e.preventDefault();
+
+  const quizId = document.getElementById('quiz-edit-id').value;
+  const courseId = document.getElementById('quiz-course-select').value;
+  const title = document.getElementById('quiz-title-input').value.trim();
+
+  const questionItems = document.querySelectorAll('.admin-question-builder-item');
+  if (questionItems.length === 0) {
+    showToast('Please add at least one question to the quiz.', 'error');
+    return;
+  }
+
+  const questions = [];
+  let validationError = false;
+
+  questionItems.forEach(item => {
+    const questionText = item.querySelector('.question-text-input').value.trim();
+    const optionInputs = item.querySelectorAll('.option-input');
+    const options = Array.from(optionInputs).map(inp => inp.value.trim());
+    const correctAnswerIndex = parseInt(item.querySelector('.correct-option-select').value);
+
+    if (!questionText || options.some(opt => !opt)) {
+      validationError = true;
+    }
+
+    questions.push({
+      questionText,
+      options,
+      correctAnswerIndex
+    });
+  });
+
+  if (validationError) {
+    showToast('Please fill out all question and option fields.', 'error');
+    return;
+  }
+
+  const url = quizId ? `/quizzes/${quizId}` : '/quizzes';
+  const method = quizId ? 'PUT' : 'POST';
+
+  try {
+    const res = await apiCall(url, method, { courseId, title, questions }, true);
+    
+    showToast(res.message, 'success');
+    closeQuizModal();
+    await loadAdminData();
+
+  } catch (error) {
+    showToast(error.message || 'Failed to save quiz details.', 'error');
+  }
+}
+
+async function handleDeleteQuiz(quizId) {
+  if (!confirm('Are you sure you want to delete this quiz? Student results for this quiz will also be removed.')) return;
+
+  try {
+    const res = await apiCall(`/quizzes/${quizId}`, 'DELETE', null, true);
+    showToast(res.message, 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete quiz.', 'error');
+  }
+}
+
+// Attach functions to global window object
+window.switchAdminQuizTab = switchAdminQuizTab;
+window.openAddQuizModal = openAddQuizModal;
+window.closeQuizModal = closeQuizModal;
+window.openEditQuizModal = openEditQuizModal;
+window.addQuizQuestionField = addQuizQuestionField;
+window.handleDeleteQuiz = handleDeleteQuiz;

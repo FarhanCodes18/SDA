@@ -88,12 +88,35 @@ document.addEventListener('DOMContentLoaded', () => {
   if (profileDetailsForm) {
     profileDetailsForm.addEventListener('submit', handleProfileDetailsSubmit);
   }
+
+  // Quiz navigation listeners
+  const quizPrevBtn = document.getElementById('quiz-prev-btn');
+  if (quizPrevBtn) {
+    quizPrevBtn.addEventListener('click', quizPrev);
+  }
+
+  const quizNextBtn = document.getElementById('quiz-next-btn');
+  if (quizNextBtn) {
+    quizNextBtn.addEventListener('click', quizNext);
+  }
+
+  const quizSubmitBtn = document.getElementById('quiz-submit-btn');
+  if (quizSubmitBtn) {
+    quizSubmitBtn.addEventListener('click', submitQuiz);
+  }
 });
 
 let dashboardData = {};
 let activeCourseIdToPurchase = null;
 let activeCoursePriceToPurchase = 0;
 let activeCourseTitleToPurchase = '';
+
+// Quiz system state variables
+let studentQuizzesList = [];
+let studentQuizResultsList = [];
+let activeQuizData = null;
+let currentQuestionIndex = 0;
+let studentAnswers = [];
 
 async function loadDashboardData() {
   const user = Auth.getUser();
@@ -124,10 +147,10 @@ async function loadDashboardData() {
     document.getElementById('overview-announcements-count').innerText = data.announcements.length;
 
     // B. Render Available Courses (All courses catalog directly on Overview Dashboard)
-    renderAvailableCourses(allCourses, data.purchasedCourses);
+    renderAvailableCourses(allCourses, data.purchasedCourses, data.enrolledCourses);
 
-    // C. Render Purchased Courses (My Courses Tab)
-    renderActiveCourses(data.purchasedCourses);
+    // C. Render Purchased Courses (My Courses Tab) — show all enrolled including pending
+    renderActiveCourses(data.purchasedCourses, data.enrolledCourses);
 
     // D. Render Live Classes
     renderLiveClasses(data.purchasedCourses);
@@ -147,6 +170,11 @@ async function loadDashboardData() {
     // I. Render Certificate status view
     renderCertificateView(data.certificates, data.purchasedCourses);
 
+    // J. Render Quizzes & MCQs
+    studentQuizzesList = data.quizzes || [];
+    studentQuizResultsList = data.quizResults || [];
+    renderStudentQuizzesList();
+
   } catch (error) {
     console.error('Error fetching dashboard details:', error);
     showToast('Failed to load dashboard information.', 'error');
@@ -154,7 +182,7 @@ async function loadDashboardData() {
 }
 
 // Render available courses on student dashboard overview
-function renderAvailableCourses(courses, purchasedCourses) {
+function renderAvailableCourses(courses, purchasedCourses, enrolledCourses) {
   const grid = document.getElementById('dashboard-available-courses');
   if (!grid) return;
 
@@ -164,9 +192,11 @@ function renderAvailableCourses(courses, purchasedCourses) {
   }
 
   const purchasedIds = purchasedCourses.map(c => c.id);
+  const enrolledIds = (enrolledCourses || []).map(c => c.id); // includes pending + approved
 
   grid.innerHTML = courses.map(c => {
     const isPurchased = purchasedIds.includes(c.id);
+    const isPending = !isPurchased && enrolledIds.includes(c.id);
     const discount = (c.id === 'course_1' || c.id === 'course_3' || c.id === 'course_5' || c.id === 'course_7' || c.id === 'course_9') ? '10% OFF' : '5% OFF';
     return `
       <div class="glass-card course-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
@@ -189,6 +219,10 @@ function renderAvailableCourses(courses, purchasedCourses) {
             ? `<button class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-color: var(--success); color: var(--success); cursor: default;" disabled>
                  Unlocked <i class="fas fa-check-circle"></i>
                </button>`
+            : isPending
+            ? `<button class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-color: var(--warning); color: var(--warning); cursor: not-allowed;" disabled>
+                 <i class="fas fa-hourglass-half"></i> Awaiting Approval
+               </button>`
             : `<button onclick="openCoursePaymentModal('${c.id}', '${c.title.replace(/'/g, "\\'")}', ${c.price})" class="btn-primary" style="padding: 6px 12px; font-size: 12px;">
                  Buy Now <i class="fas fa-shopping-cart"></i>
                </button>`
@@ -200,11 +234,14 @@ function renderAvailableCourses(courses, purchasedCourses) {
 }
 
 // Render active course grid
-function renderActiveCourses(purchasedCourses) {
+function renderActiveCourses(purchasedCourses, enrolledCourses) {
   const container = document.getElementById('purchased-list-container');
   if (!container) return;
 
-  if (purchasedCourses.length === 0) {
+  // Show all enrollments (approved + pending), fall back to purchasedCourses only
+  const allEnrolled = (enrolledCourses && enrolledCourses.length > 0) ? enrolledCourses : purchasedCourses;
+
+  if (allEnrolled.length === 0) {
     container.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 40px;">
         <i class="fas fa-lock" style="font-size: 40px; color: var(--accent-color); margin-bottom: 12px;"></i>
@@ -214,8 +251,12 @@ function renderActiveCourses(purchasedCourses) {
     return;
   }
 
-  container.innerHTML = purchasedCourses.map(c => `
-    <div class="glass-card course-card">
+  const purchasedIds = purchasedCourses.map(c => c.id);
+
+  container.innerHTML = allEnrolled.map(c => {
+    const isApproved = purchasedIds.includes(c.id) || c.enrollmentStatus === 'approved';
+    return `
+    <div class="glass-card course-card" style="${!isApproved ? 'opacity:0.88;' : ''}">
       <span class="course-card-badge">${c.category.toUpperCase()}</span>
       <h3 class="course-title">${c.title}</h3>
       <div class="course-meta">
@@ -224,11 +265,22 @@ function renderActiveCourses(purchasedCourses) {
       </div>
       <p class="course-description">${c.description}</p>
       <div class="course-footer" style="justify-content: flex-end;">
-        <span class="badge approved" style="padding: 8px 16px; font-size:12px;"><i class="fas fa-graduation-cap"></i> Enrolled & Active</span>
+        ${isApproved
+          ? `<span class="badge approved" style="padding: 8px 16px; font-size:12px;"><i class="fas fa-graduation-cap"></i> Enrolled &amp; Active</span>`
+          : `<span class="badge pending" style="padding: 8px 16px; font-size:12px; background: rgba(234,179,8,0.1); color: var(--warning); border-color: rgba(234,179,8,0.3);">
+               <i class="fas fa-hourglass-half"></i> Payment Under Review
+             </span>`
+        }
       </div>
+      ${!isApproved ? `
+      <div style="margin-top: 12px; padding: 12px; background: rgba(234,179,8,0.06); border: 1px solid rgba(234,179,8,0.2); border-radius: 8px; font-size: 12px; color: var(--warning); line-height:1.5;">
+        <i class="fas fa-info-circle"></i> Your payment screenshot has been submitted. Once the admin approves it, full course access will be unlocked automatically.
+      </div>` : ''}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
+
 
 // Render active live classes
 function renderLiveClasses(purchasedCourses) {
@@ -237,8 +289,10 @@ function renderLiveClasses(purchasedCourses) {
   
   if (purchasedCourses.length === 0) {
     const emptyMsg = `
-      <div style="text-align: center; color: var(--text-muted); padding: 24px;">
-        <p>Please purchase an available program to attend live class sessions.</p>
+      <div style="text-align: center; color: var(--text-muted); padding: 32px;">
+        <i class="fas fa-lock" style="font-size: 36px; color: var(--warning); margin-bottom: 12px; display:block;"></i>
+        <p style="font-weight: 600; margin-bottom: 6px; color: var(--text-secondary);">Live Class Access Locked</p>
+        <p style="font-size: 13px;">Purchase a course and wait for admin payment approval to join live sessions.</p>
       </div>
     `;
     if (container) container.innerHTML = emptyMsg;
@@ -473,10 +527,10 @@ function openCoursePaymentModal(courseId, title, price) {
   activeCoursePriceToPurchase = price;
 
   const modal = document.getElementById('course-payment-modal');
-  const user = Auth.getUser();
 
-  document.getElementById('course-pay-fullname').value = user.name;
-  document.getElementById('course-pay-email').value = user.email;
+  // Leave name, mobile, email BLANK — student must fill manually
+  document.getElementById('course-pay-fullname').value = '';
+  document.getElementById('course-pay-email').value = '';
   document.getElementById('course-pay-mobile').value = '';
   document.getElementById('course-pay-coursename').value = title;
   document.getElementById('course-pay-amount').value = price;
@@ -488,7 +542,7 @@ function openCoursePaymentModal(courseId, title, price) {
   // Generate dynamic QR Code for course price
   const qrImg = document.getElementById('course-pay-qr-img');
   if (qrImg) {
-    const upiUrl = `upi://pay?pa=7974271675-2@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Course%20Enrollment`;
+    const upiUrl = `upi://pay?pa=9302677702@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Course%20Enrollment`;
     qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
   }
 
@@ -600,7 +654,7 @@ function updateStudentCertPriceAndQR() {
 
   priceVal.innerText = '₹' + price;
 
-  const upiUrl = `upi://pay?pa=7974271675-2@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
+  const upiUrl = `upi://pay?pa=9302677702@ybl&pn=Ajay%20Shukla&am=${price}&cu=INR&tn=Certificate%20Request`;
   qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
 }
 
@@ -981,4 +1035,253 @@ function renderStudentAttendance(attendance) {
       </tr>
     `;
   }).join('');
+}
+
+// ==========================================
+// QUIZ PORTAL RENDERING & LOGIC
+// ==========================================
+
+function renderStudentQuizzesList() {
+  const container = document.getElementById('quizzes-grid-container');
+  if (!container) return;
+
+  if (studentQuizzesList.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 40px;">
+        <i class="fas fa-question-circle" style="font-size: 40px; color: var(--accent-color); margin-bottom: 12px;"></i>
+        <p>No active quizzes available for your unlocked programs.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = studentQuizzesList.map(quiz => {
+    const attempts = studentQuizResultsList.filter(r => r.quizId === quiz.id);
+    attempts.sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    const latestAttempt = attempts[0];
+    let attemptHTML = '';
+    let btnText = 'Start Quiz';
+    let btnIcon = 'fa-play';
+    let btnClass = 'btn-primary';
+
+    if (latestAttempt) {
+      const isPass = latestAttempt.percentage >= 60;
+      attemptHTML = `
+        <div style="margin-top: 12px; font-size: 13px; color: var(--text-secondary);">
+          <span>Last Score: <strong style="color: ${isPass ? 'var(--success)' : 'var(--danger)'};">${latestAttempt.score}/${latestAttempt.total} (${latestAttempt.percentage}%)</strong></span>
+          <span class="badge ${isPass ? 'approved' : 'failed'}" style="margin-left: 8px; font-size: 10px; padding: 2px 6px;">${isPass ? 'Passed' : 'Failed'}</span>
+        </div>
+      `;
+      btnText = 'Retake Quiz';
+      btnIcon = 'fa-redo';
+      btnClass = 'btn-secondary';
+    }
+
+    return `
+      <div class="glass-card course-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+          <span class="course-card-badge" style="background: rgba(255, 75, 43, 0.1); border-color: rgba(255,75,43,0.25); color: var(--accent-color); font-size:10px;">${quiz.courseId.toUpperCase()}</span>
+          <h4 style="font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: var(--text-primary);">${quiz.title}</h4>
+          <div class="course-meta" style="font-size: 11px; margin-bottom: 12px; gap: 10px;">
+            <span><i class="far fa-question-circle"></i> ${quiz.questions.length} MCQ Questions</span>
+            <span><i class="fas fa-percentage"></i> Passing: 60%</span>
+          </div>
+          ${attemptHTML}
+        </div>
+        <div class="course-footer" style="padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+          <button onclick="startQuiz('${quiz.id}')" class="${btnClass}" style="padding: 6px 12px; font-size: 12px;">
+            ${btnText} <i class="fas ${btnIcon}" style="margin-left: 4px;"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function startQuiz(quizId) {
+  const quiz = studentQuizzesList.find(q => q.id === quizId);
+  if (!quiz) return;
+
+  activeQuizData = quiz;
+  currentQuestionIndex = 0;
+  studentAnswers = new Array(quiz.questions.length).fill(null);
+
+  document.getElementById('quiz-list-view').style.display = 'none';
+  document.getElementById('quiz-result-view').style.display = 'none';
+  document.getElementById('quiz-active-view').style.display = 'block';
+
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  if (!activeQuizData) return;
+
+  const quest = activeQuizData.questions[currentQuestionIndex];
+  
+  document.getElementById('active-quiz-title').innerText = activeQuizData.title;
+  document.getElementById('active-quiz-progress').innerText = `Question ${currentQuestionIndex + 1} of ${activeQuizData.questions.length}`;
+  document.getElementById('quiz-question-text').innerText = `${currentQuestionIndex + 1}. ${quest.questionText}`;
+
+  const wrapper = document.getElementById('quiz-options-wrapper');
+  wrapper.innerHTML = quest.options.map((opt, idx) => {
+    const isSelected = studentAnswers[currentQuestionIndex] === idx;
+    const letter = String.fromCharCode(65 + idx);
+    return `
+      <div class="quiz-option-item ${isSelected ? 'selected' : ''}" onclick="selectQuizOption(${idx})">
+        <div class="quiz-option-prefix">${letter}</div>
+        <div>${opt}</div>
+      </div>
+    `;
+  }).join('');
+
+  const prevBtn = document.getElementById('quiz-prev-btn');
+  const nextBtn = document.getElementById('quiz-next-btn');
+  const submitBtn = document.getElementById('quiz-submit-btn');
+
+  prevBtn.style.visibility = currentQuestionIndex === 0 ? 'hidden' : 'visible';
+
+  if (currentQuestionIndex === activeQuizData.questions.length - 1) {
+    nextBtn.style.display = 'none';
+    submitBtn.style.display = 'inline-flex';
+  } else {
+    nextBtn.style.display = 'inline-flex';
+    submitBtn.style.display = 'none';
+  }
+}
+
+function selectQuizOption(optionIdx) {
+  studentAnswers[currentQuestionIndex] = optionIdx;
+  
+  const optionItems = document.querySelectorAll('.quiz-option-item');
+  optionItems.forEach((item, idx) => {
+    if (idx === optionIdx) {
+      item.classList.add('selected');
+    } else {
+      item.classList.remove('selected');
+    }
+  });
+}
+
+function quizNext() {
+  if (currentQuestionIndex < activeQuizData.questions.length - 1) {
+    currentQuestionIndex++;
+    renderQuizQuestion();
+  }
+}
+
+// Attach to window so onclick inline handlers can see them
+window.startQuiz = startQuiz;
+window.selectQuizOption = selectQuizOption;
+window.backToQuizzesList = backToQuizzesList;
+
+function quizPrev() {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    renderQuizQuestion();
+  }
+}
+
+async function submitQuiz() {
+  const unanswered = studentAnswers.some(ans => ans === null);
+  if (unanswered) {
+    if (!confirm('You have unanswered questions. Are you sure you want to submit the test?')) {
+      return;
+    }
+  }
+
+  const submitBtn = document.getElementById('quiz-submit-btn');
+  const originalHTML = submitBtn.innerHTML;
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Submitting... <i class="fas fa-spinner fa-spin"></i>';
+
+    const finalAnswers = studentAnswers.map(ans => ans === null ? -1 : ans);
+
+    const res = await apiCall(`/quizzes/${activeQuizData.id}/submit`, 'POST', { answers: finalAnswers }, true);
+    
+    showToast(res.message, 'success');
+    renderQuizResult(res.result);
+
+  } catch (error) {
+    showToast(error.message || 'Failed to submit quiz.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalHTML;
+  }
+}
+
+function renderQuizResult(result) {
+  document.getElementById('quiz-active-view').style.display = 'none';
+  document.getElementById('quiz-result-view').style.display = 'block';
+
+  const pct = result.percentage;
+  const isPass = pct >= 60;
+
+  const circle = document.getElementById('quiz-result-circle');
+  circle.className = `result-score-circle ${isPass ? 'pass' : 'fail'}`;
+
+  document.getElementById('quiz-result-pct').innerText = pct + '%';
+  document.getElementById('quiz-result-score').innerText = `${result.score}/${result.total}`;
+
+  const heading = document.getElementById('quiz-result-heading');
+  const message = document.getElementById('quiz-result-message');
+
+  if (isPass) {
+    heading.innerText = 'Congratulations! You Passed!';
+    message.innerText = `Great job! You scored ${result.score} out of ${result.total} questions correct and passed the test with a grade of ${pct}%.`;
+    heading.style.color = 'var(--success)';
+  } else {
+    heading.innerText = 'Test Failed!';
+    message.innerText = `You scored ${result.score} out of ${result.total} questions. The passing grade is 60%. Please study and try again.`;
+    heading.style.color = 'var(--danger)';
+  }
+
+  const reviewContainer = document.getElementById('quiz-answer-review-container');
+  reviewContainer.innerHTML = result.feedback.map((f, idx) => {
+    const isCorrect = f.isCorrect;
+    const statusIcon = isCorrect 
+      ? `<i class="fas fa-check-circle" style="color: var(--success); margin-right: 6px;"></i>` 
+      : `<i class="fas fa-times-circle" style="color: var(--danger); margin-right: 6px;"></i>`;
+
+    const optionsList = f.options.map((opt, optIdx) => {
+      let optClass = '';
+      let optBadge = '';
+
+      if (optIdx === f.correctAnswer) {
+        optClass = 'correct';
+        optBadge = ' <span class="badge approved" style="font-size:9px; padding:2px 6px; margin-left:8px;">Correct Answer</span>';
+      } else if (optIdx === f.studentAnswer && !isCorrect) {
+        optClass = 'incorrect-selected';
+        optBadge = ' <span class="badge failed" style="font-size:9px; padding:2px 6px; margin-left:8px;">Your Selection</span>';
+      } else if (optIdx === f.studentAnswer && isCorrect) {
+        optBadge = ' <span class="badge approved" style="font-size:9px; padding:2px 6px; margin-left:8px;">Your Choice</span>';
+      }
+
+      return `
+        <div class="review-option-item ${optClass}">
+          <strong>${String.fromCharCode(65 + optIdx)}.</strong> ${opt} ${optBadge}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="review-question-card">
+        <p style="font-weight: 600; font-size: 14px; color: var(--text-primary); margin-bottom: 8px;">
+          ${statusIcon} Question ${idx + 1}: ${f.questionText}
+        </p>
+        <div style="padding-left: 20px;">
+          ${optionsList}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function backToQuizzesList() {
+  document.getElementById('quiz-active-view').style.display = 'none';
+  document.getElementById('quiz-result-view').style.display = 'none';
+  document.getElementById('quiz-list-view').style.display = 'block';
+  loadDashboardData();
 }

@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-L286VZ2W2J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-L286VZ2W2J');
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - Sukla Digital Academy</title>
@@ -49,6 +58,9 @@
         </li>
         <li class="sidebar-item" data-target="admin-courses">
           <a href="#"><i class="fas fa-laptop-code"></i> Courses</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-quizzes">
+          <a href="#"><i class="fas fa-question-circle"></i> Quizzes Manager</a>
         </li>
         <li class="sidebar-item" data-target="admin-enrollments">
           <a href="#"><i class="fas fa-file-contract"></i> Enrollments</a>
@@ -126,6 +138,22 @@
               <h2 id="stat-contacts">0</h2>
             </div>
             <div class="stat-card-icon" style="color:#a855f7; background:rgba(168,85,247,0.1);"><i class="fas fa-envelope"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Total Registrations</h5>
+              <h2 id="stat-registrations">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color:#3b82f6; background:rgba(59,130,246,0.1);"><i class="fas fa-user-plus"></i></div>
+          </div>
+
+          <div class="glass-card stat-card">
+            <div class="stat-card-info">
+              <h5>Payments Submitted</h5>
+              <h2 id="stat-payments-count">0</h2>
+            </div>
+            <div class="stat-card-icon" style="color:#10b981; background:rgba(16,185,129,0.1);"><i class="fas fa-credit-card"></i></div>
           </div>
         </div>
 
@@ -473,6 +501,47 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 13: QUIZZES MANAGER ==================== -->
+      <section id="admin-quizzes" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Quizzes & Online Tests Manager</h2>
+          <button class="btn-primary" onclick="openAddQuizModal()"><i class="fas fa-plus"></i> Create New Quiz</button>
+        </div>
+
+        <!-- Double Tab Sub-navigation -->
+        <div class="admin-tabs-nav">
+          <button class="admin-tab-btn active" id="tab-manage-quizzes-btn" onclick="switchAdminQuizTab('manage')">Manage Quizzes</button>
+          <button class="admin-tab-btn" id="tab-quiz-logs-btn" onclick="switchAdminQuizTab('logs')">Student Performance Logs</button>
+        </div>
+
+        <!-- SUB-TAB 1: Manage Quizzes List -->
+        <div id="admin-quizzes-manage-tab">
+          <div class="courses-grid" id="admin-quizzes-grid">
+            <!-- Loaded dynamically -->
+          </div>
+        </div>
+
+        <!-- SUB-TAB 2: Student Performance Logs Table -->
+        <div id="admin-quizzes-logs-tab" style="display: none;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Quiz Title</th>
+                  <th>Questions Score</th>
+                  <th>Percentage</th>
+                  <th>Attempt Date</th>
+                </tr>
+              </thead>
+              <tbody id="quiz-logs-tbody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -641,6 +710,49 @@
             </select>
           </div>
           <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Update Status <i class="fas fa-save"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- CREATE/EDIT QUIZ MODAL -->
+  <div class="modal-overlay" id="quiz-modal">
+    <div class="modal-content" style="max-width: 700px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 class="modal-title" id="quiz-modal-title">Create Program Quiz</h3>
+        <button class="modal-close" onclick="closeQuizModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="overflow-y: auto; flex-grow: 1; padding: 24px;">
+        <form id="quiz-form">
+          <input type="hidden" id="quiz-edit-id">
+          
+          <div class="form-group">
+            <label for="quiz-title-input">Quiz Title</label>
+            <input type="text" class="form-control" id="quiz-title-input" placeholder="e.g. Variables & Scope Quiz" required>
+          </div>
+
+          <div class="form-group">
+            <label for="quiz-course-select">Associated Course Program</label>
+            <select class="form-control" id="quiz-course-select" required>
+              <option value="" disabled selected>Select course batch...</option>
+              <!-- Populated dynamically with courses list -->
+            </select>
+          </div>
+
+          <div style="border-top: 1px solid var(--border-color); margin-top: 24px; padding-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h4 style="font-size: 16px; color: var(--text-primary);"><i class="fas fa-list-ul" style="color: var(--accent-color); margin-right: 6px;"></i> Questions List</h4>
+              <button type="button" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="addQuizQuestionField()"><i class="fas fa-plus"></i> Add Question</button>
+            </div>
+
+            <div id="modal-questions-list-wrapper">
+              <!-- Dynamically appends question input fields -->
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 20px; padding: 14px;">
+            Save Quiz Details <i class="fas fa-save" style="margin-left: 6px;"></i>
+          </button>
         </form>
       </div>
     </div>

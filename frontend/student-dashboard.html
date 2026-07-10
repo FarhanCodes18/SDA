@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-L286VZ2W2J"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-L286VZ2W2J');
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Dashboard - Sukla Digital Academy</title>
@@ -64,6 +73,9 @@
         </li>
         <li class="sidebar-item" data-target="dashboard-courses">
           <a href="#"><i class="fas fa-book-open"></i> My Courses</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-quizzes">
+          <a href="#"><i class="fas fa-question-circle"></i> Quizzes / Tests</a>
         </li>
         <li class="sidebar-item" data-target="dashboard-payments">
           <a href="#"><i class="fas fa-wallet"></i> Payments</a>
@@ -409,6 +421,64 @@
           </div>
         </div>
       </section>
+      
+      <!-- ==================== TAB 11: QUIZZES / TESTS ==================== -->
+      <section id="dashboard-quizzes" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Quizzes & Online Tests</h2>
+          <p style="color: var(--text-secondary);">Test your technical skills and verify your knowledge.</p>
+        </div>
+
+        <!-- STATE A: Quiz List View -->
+        <div id="quiz-list-view">
+          <div class="courses-grid" id="quizzes-grid-container">
+            <!-- Renders quiz list dynamically -->
+          </div>
+        </div>
+
+        <!-- STATE B: Active Test Panel -->
+        <div id="quiz-active-view" class="glass-card" style="display: none; max-width: 800px; margin: 0 auto; padding: 30px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 24px;">
+            <h3 id="active-quiz-title" style="font-size: 20px;">Quiz Title</h3>
+            <span id="active-quiz-progress" class="badge approved" style="font-size: 12px; padding: 6px 12px;">Question 1 of 5</span>
+          </div>
+
+          <div id="quiz-question-container">
+            <h4 id="quiz-question-text" style="font-size: 16px; margin-bottom: 20px; line-height: 1.5; color: var(--text-primary);">Question Text?</h4>
+            <div class="quiz-options-container" id="quiz-options-wrapper">
+              <!-- Render options dynamically -->
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <button id="quiz-prev-btn" class="btn-secondary" style="padding: 10px 20px; font-size: 13px;"><i class="fas fa-chevron-left"></i> Previous</button>
+            <button id="quiz-next-btn" class="btn-primary" style="padding: 10px 20px; font-size: 13px;">Next <i class="fas fa-chevron-right"></i></button>
+            <button id="quiz-submit-btn" class="btn-primary" style="display: none; padding: 10px 24px; font-size: 13px; background: var(--success); box-shadow: none; border-color: var(--success);">Submit Test <i class="fas fa-check"></i></button>
+          </div>
+        </div>
+
+        <!-- STATE C: Quiz Result Overview -->
+        <div id="quiz-result-view" class="glass-card" style="display: none; max-width: 600px; margin: 0 auto; padding: 40px 30px; text-align: center;">
+          <div id="quiz-result-circle" class="result-score-circle">
+            <h2 id="quiz-result-pct" style="font-size: 32px; color: var(--text-primary);">0%</h2>
+            <span style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Score: <span id="quiz-result-score">0/0</span></span>
+          </div>
+
+          <h3 id="quiz-result-heading" style="font-size: 22px; margin-bottom: 8px;">Quiz Finished!</h3>
+          <p id="quiz-result-message" style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 30px;">You passed the test successfully.</p>
+
+          <div style="text-align: left; margin-bottom: 30px;">
+            <h4 style="font-size: 15px; margin-bottom: 16px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"><i class="fas fa-list-ol" style="color: var(--accent-color); margin-right: 6px;"></i> Answer Review</h4>
+            <div id="quiz-answer-review-container" style="max-height: 350px; overflow-y: auto; padding-right: 8px;">
+              <!-- Renders answer review dynamically -->
+            </div>
+          </div>
+
+          <button onclick="backToQuizzesList()" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+            Back to Quizzes List <i class="fas fa-chevron-left" style="margin-left: 6px;"></i>
+          </button>
+        </div>
+      </section>
 
     </main>
   </div>
@@ -451,8 +521,8 @@
             </div>
             <div style="font-size: 13px; color: var(--text-secondary);">
               <p style="margin-bottom: 4px;">Payee Name: <strong style="color: var(--text-primary);">Ajay Shukla</strong></p>
-              <p>UPI ID: <strong style="color: var(--text-primary);">7974271675-2@ybl</strong> 
-                <button type="button" onclick="navigator.clipboard.writeText('7974271675-2@ybl'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
+              <p>UPI ID: <strong style="color: var(--text-primary);">9302677702@ybl</strong> 
+                <button type="button" onclick="navigator.clipboard.writeText('9302677702@ybl'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
                   <i class="far fa-copy"></i>
                 </button>
               </p>
@@ -528,8 +598,8 @@
             </div>
             <div style="font-size: 13px; color: var(--text-secondary);">
               <p style="margin-bottom: 4px;">Payee Name: <strong style="color: var(--text-primary);">Ajay Shukla</strong></p>
-              <p>UPI ID: <strong style="color: var(--text-primary);">7974271675-2@ybl</strong> 
-                <button type="button" onclick="navigator.clipboard.writeText('7974271675-2@ybl'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
+              <p>UPI ID: <strong style="color: var(--text-primary);">9302677702@ybl</strong> 
+                <button type="button" onclick="navigator.clipboard.writeText('9302677702@ybl'); showToast('UPI ID copied!', 'success');" style="background:none; border:none; color: var(--accent-color); cursor:pointer; padding: 0 4px;" title="Copy UPI ID">
                   <i class="far fa-copy"></i>
                 </button>
               </p>
