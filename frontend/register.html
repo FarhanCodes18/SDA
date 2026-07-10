@@ -108,7 +108,14 @@
           return;
         }
 
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalBtnHTML = submitBtn.innerHTML;
+
         try {
+          submitBtn.disabled = true;
+          submitBtn.style.opacity = '0.7';
+          submitBtn.innerHTML = 'Creating Account... <i class="fas fa-spinner fa-spin"></i>';
+
           const response = await apiCall('/register', 'POST', { name, email, password, mobile }, false);
           
           Auth.saveToken(response.token);
@@ -121,6 +128,9 @@
           }, 1200);
 
         } catch (error) {
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = '1';
+          submitBtn.innerHTML = originalBtnHTML;
           showToast(error.message || 'Registration failed. Try a different email.', 'error');
         }
       });

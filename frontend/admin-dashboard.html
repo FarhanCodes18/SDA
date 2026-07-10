@@ -33,6 +33,7 @@
           <i class="fas fa-sign-out-alt"></i> Logout
         </button>
       </div>
+      <button class="hamburger"><i class="fas fa-bars"></i></button>
     </div>
   </nav>
 
@@ -158,7 +159,7 @@
         </div>
 
         <!-- Recent Logs on Overview -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px;">
+        <div class="responsive-grid-1-1">
           <div>
             <h3 style="font-size: 18px; margin-bottom: 16px;">Latest Student Payments</h3>
             <div class="table-responsive">
@@ -457,7 +458,7 @@
 
         <!-- Control Card -->
         <div class="glass-card" style="margin-bottom: 30px; padding: 24px;">
-          <form id="attendance-control-form" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 20px; align-items: flex-end;">
+          <form id="attendance-control-form" class="attendance-control-grid">
             <div class="form-group" style="margin-bottom: 0;">
               <label for="att-course-select" style="margin-bottom: 8px;">Select Course Batch</label>
               <select id="att-course-select" class="form-control" required style="width: 100%;">

@@ -138,7 +138,7 @@
         </div>
 
         <!-- Quick Notices Grid -->
-        <div style="display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 30px; margin-top: 40px;">
+        <div class="responsive-grid-1-3-0-7">
           <div>
             <h3 style="font-size: 22px; margin-bottom: 20px;"><i class="fas fa-graduation-cap" style="color: var(--accent-color);"></i> Available Programs</h3>
             <div class="courses-grid" id="dashboard-available-courses" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
@@ -267,7 +267,7 @@
           <p style="color: var(--text-secondary);">Manage your profile picture, personal details, social links, and security settings.</p>
         </div>
 
-        <div class="profile-settings-grid" style="display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 30px;">
+        <div class="profile-settings-grid responsive-grid-profile">
           <!-- Left Column: Avatar & Image Upload -->
           <div class="glass-card" style="padding: 30px; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; height: fit-content;">
             <h3 style="font-size: 18px; margin-bottom: 20px; color: var(--text-primary);">Profile Picture</h3>
@@ -340,7 +340,7 @@
                 <input type="password" id="profile-curr-pass" class="form-control" placeholder="Enter current password to verify">
               </div>
 
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div class="responsive-grid-two-col">
                 <div class="form-group">
                   <label for="profile-new-pass">New Password</label>
                   <input type="password" id="profile-new-pass" class="form-control" placeholder="Minimum 6 characters">

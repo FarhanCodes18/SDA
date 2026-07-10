@@ -34,7 +34,52 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 3. Load Admin Workspace Data
-  loadAdminData();
+  loadAdminData().then(async () => {
+    try {
+      const db = await getFirestoreDB();
+      let isFirstUserLoad = true;
+      let isFirstPaymentLoad = true;
+      let isFirstEnrollmentLoad = true;
+      let isFirstCertLoad = true;
+      let isFirstContactLoad = true;
+
+      db.collection('users').onSnapshot(() => {
+        if (isFirstUserLoad) { isFirstUserLoad = false; return; }
+        console.log("Real-time update: users collection changed. Refreshing dashboard...");
+        loadAdminData();
+      });
+      db.collection('payments').onSnapshot(() => {
+        if (isFirstPaymentLoad) { isFirstPaymentLoad = false; return; }
+        console.log("Real-time update: payments collection changed. Refreshing dashboard...");
+        loadAdminData();
+      });
+      db.collection('enrollments').onSnapshot(() => {
+        if (isFirstEnrollmentLoad) { isFirstEnrollmentLoad = false; return; }
+        console.log("Real-time update: enrollments collection changed. Refreshing dashboard...");
+        loadAdminData();
+      });
+      db.collection('certificates').onSnapshot(() => {
+        if (isFirstCertLoad) { isFirstCertLoad = false; return; }
+        console.log("Real-time update: certificates collection changed. Refreshing dashboard...");
+        loadAdminData();
+      });
+      db.collection('contacts').onSnapshot(() => {
+        if (isFirstContactLoad) { isFirstContactLoad = false; return; }
+        console.log("Real-time update: contacts collection changed. Refreshing dashboard...");
+        loadAdminData();
+      });
+    } catch (e) {
+      console.error("Failed to setup Firestore real-time listeners:", e);
+    }
+  });
+
+  // Auto-refresh when admin switches back to this tab
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log("Tab became active. Refreshing admin dashboard...");
+      loadAdminData();
+    }
+  });
 
   // Add Certificate Filter Listener
   const certFilter = document.getElementById('admin-cert-filter');
@@ -1162,7 +1207,7 @@ function addQuizQuestionField(qData = null) {
       <input type="text" class="form-control question-text-input" value="${qData ? qData.questionText.replace(/"/g, '&quot;') : ''}" required placeholder="Enter question description...">
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+    <div class="responsive-grid-two-col" style="gap: 12px; margin-bottom: 12px;">
       <div class="form-group" style="margin-bottom: 0;">
         <label style="font-size:12px;">Option A</label>
         <input type="text" class="form-control option-input" value="${qData ? qData.options[0].replace(/"/g, '&quot;') : ''}" required placeholder="Option A text">

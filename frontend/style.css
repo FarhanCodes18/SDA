@@ -1338,34 +1338,46 @@ select.form-control option {
     grid-template-columns: repeat(2, 1fr);
   }
   .dashboard-wrapper {
-    flex-direction: column;
+    flex-direction: row;
   }
   .sidebar {
-    width: 100%;
-    position: static;
+    position: fixed;
+    top: 80px;
+    bottom: 0;
+    left: 0;
+    width: var(--sidebar-width) !important;
     height: auto;
-    border-right: none;
-    border-bottom: 1px solid var(--border-color);
-    padding: 16px 0;
+    transform: translateX(-100%);
+    z-index: 95;
+    border-right: 1px solid var(--border-color);
+    border-bottom: none;
+    display: flex !important;
+    flex-direction: column;
+    padding: 24px 0 !important;
+    background: var(--bg-secondary);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar.open {
+    transform: translateX(0);
   }
   .sidebar-profile {
-    display: none;
+    display: flex !important;
   }
   .sidebar-menu {
-    flex-direction: row;
-    overflow-x: auto;
-    padding: 0 16px;
-    padding-bottom: 8px;
+    flex-direction: column !important;
+    overflow-x: visible !important;
+    padding: 0 12px !important;
   }
   .sidebar-item a {
     white-space: nowrap;
   }
   .sidebar-footer {
-    display: none;
+    display: block !important;
   }
   .dashboard-content {
-    margin-left: 0;
-    padding: 24px;
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding: 24px !important;
   }
   .sidebar-toggle-btn {
     display: inline-flex;
@@ -2509,4 +2521,134 @@ html {
   width: 100%;
   height: 3px;
   background: var(--accent-gradient);
+}
+
+/* ========================================================
+   ADDITIONAL RESPONSIVE UTILITIES & HELPER CLASSES
+   ======================================================== */
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 80px;
+  left: 0;
+  width: 100vw;
+  height: calc(100vh - 80px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 91;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Explicit Stats Cards Responsive Grid */
+@media (min-width: 1024px) {
+  .stats-cards-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+@media (max-width: 1023px) and (min-width: 768px) {
+  .stats-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 767px) {
+  .stats-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Horizontal Table scroll and default minimum sizes */
+.table-responsive .data-table {
+  min-width: 800px;
+}
+
+/* Responsive grid layouts replacing hardcoded inline styles */
+.responsive-grid-1-3-0-7 {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.responsive-grid-1-1 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  margin-top: 40px;
+}
+
+.responsive-grid-profile {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 30px;
+}
+
+.responsive-grid-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.attendance-control-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 20px;
+  align-items: flex-end;
+}
+
+@media (max-width: 1023px) {
+  .responsive-grid-1-3-0-7,
+  .responsive-grid-1-1 {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .responsive-grid-profile {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .attendance-control-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    align-items: stretch;
+  }
+  .attendance-control-grid button {
+    width: 100%;
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 576px) {
+  .responsive-grid-two-col {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  /* Modal footer button stacking */
+  .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .modal-footer button {
+    width: 100%;
+  }
+}
+
+/* General Mobile adjustments to prevent clipping */
+img {
+  max-width: 100%;
+  height: auto;
+}
+iframe {
+  max-width: 100%;
 }
