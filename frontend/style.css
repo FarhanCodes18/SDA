@@ -3122,3 +3122,77 @@ iframe {
   }
 }
 
+/* ==========================================
+   INTERACTIVE COURSE FINDER & PROJECTS SHOWCASE
+   ========================================== */
+.wizard-opt-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-start;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.wizard-opt-btn i {
+  font-size: 18px;
+  color: var(--accent-color);
+  transition: transform 0.25s ease;
+}
+
+.wizard-opt-btn:hover {
+  background: rgba(255, 75, 43, 0.05);
+  border-color: rgba(255, 75, 43, 0.4);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(255, 75, 43, 0.08);
+}
+
+.wizard-opt-btn:hover i {
+  transform: scale(1.15);
+}
+
+.progress-dot {
+  display: inline-block;
+  height: 6px;
+  border-radius: 50px;
+}
+
+.project-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(255, 75, 43, 0.25);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 75, 43, 0.05);
+}
+
+.project-img-wrapper img {
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-card:hover .project-img-wrapper img {
+  transform: scale(1.08);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 576px) {
+  .responsive-grid-two-col {
+    grid-template-columns: 1fr !important;
+  }
+}
+

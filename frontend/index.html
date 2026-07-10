@@ -10,11 +10,13 @@
   <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sukla Digital Academy - Unlock Your Tech Career</title>
+  <title>Best Computer Institute in Balaghat | Python, Full Stack, Tally, Data Analytics | Sukla Digital Academy</title>
+  <meta name="description" content="Join Sukla Digital Academy, the best computer institute in Balaghat. Learn Python, Full Stack Development, Data Analytics, Tally, MS Office, Digital Marketing and AI with certification.">
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
 <body>
   <!-- Google Tag Manager (noscript) -->
@@ -50,7 +52,7 @@
         <div class="hero-badge">
           <i class="fas fa-sparkles"></i> Practical Training & Internships
         </div>
-        <h1>Unlock Your First <span>Job & Internship</span> With Us</h1>
+        <h1>Best Computer Institute in Balaghat <span>Unlock Your First Job & Internship</span></h1>
         <p>Learn coding, DSA, web development, and essential career skills with hands-on projects, expert mentorship, and industry-aligned training programs.</p>
         <div class="online-only-notice" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 75, 43, 0.1); border: 1px solid rgba(255, 75, 43, 0.25); padding: 8px 16px; border-radius: 8px; font-size: 13px; color: var(--accent-color); font-weight: 600; margin-bottom: 24px;">
           <i class="fas fa-info-circle"></i> Note: Only online classes are conducted (in English).
@@ -163,6 +165,49 @@
     </div>
   </section>
 
+  <!-- ==================== INTERACTIVE COURSE FINDER SECTION ==================== -->
+  <section class="section" id="course-finder-section" style="background: var(--bg-secondary); border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); position: relative; overflow: hidden;">
+    <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at 10% 20%, rgba(255, 75, 43, 0.04) 0%, transparent 60%); pointer-events: none;"></div>
+    <div class="section-container" style="max-width: 720px; position: relative; z-index: 1;">
+      <div class="section-header">
+        <h2>Career <span>Advisor</span></h2>
+        <p>Confused about which career path to choose? Answer 3 quick questions and let our dynamic advisor find the perfect program for you.</p>
+      </div>
+
+      <div class="glass-card" style="padding: 32px; min-height: 380px; display: flex; flex-direction: column; justify-content: space-between; border: 1.5px solid rgba(255, 75, 43, 0.15); position: relative;">
+        <!-- Step Progress Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+          <span style="font-size: 11px; font-weight: 800; color: var(--accent-color); text-transform: uppercase; letter-spacing: 1px;" id="finder-step-label">Step 1 of 3</span>
+          <div style="display: flex; gap: 8px;" id="finder-progress-dots">
+            <span class="progress-dot active" style="width: 24px; height: 6px; background: var(--accent-gradient); border-radius: 50px; transition: var(--transition);"></span>
+            <span class="progress-dot" style="width: 6px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 50%; transition: var(--transition);"></span>
+            <span class="progress-dot" style="width: 6px; height: 6px; background: rgba(255,255,255,0.15); border-radius: 50%; transition: var(--transition);"></span>
+          </div>
+        </div>
+
+        <!-- Wizard Step Containers -->
+        <div id="finder-wizard-body" style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; transition: opacity 0.3s ease;">
+          <!-- Step 1 View (Default) -->
+          <div class="wizard-step-view active-step" id="step-view-1">
+            <h3 style="font-size: 20px; margin-bottom: 20px; color: var(--text-primary);">What is your current education or professional background?</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;" class="responsive-grid-two-col">
+              <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'college')"><i class="fas fa-university"></i> College Student</button>
+              <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'jobseeker')"><i class="fas fa-search-dollar"></i> Job Seeker / Graduate</button>
+              <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'school')"><i class="fas fa-school"></i> School Student</button>
+              <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'working')"><i class="fas fa-briefcase"></i> Working Professional</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);" id="finder-footer-nav">
+          <button class="btn-secondary" style="padding: 8px 20px; font-size: 13px; opacity: 0.5; cursor: not-allowed;" id="finder-back-btn" disabled onclick="navigateFinderBack()"><i class="fas fa-chevron-left"></i> Back</button>
+          <span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-info-circle"></i> AI-powered recommendations</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- Premium Certificate Section -->
   <section class="section" id="certificate-unlock-section" style="background: linear-gradient(135deg, rgba(20, 20, 25, 0.6) 0%, rgba(10, 10, 12, 0.8) 100%); position: relative; overflow: hidden; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);">
     <!-- Background Glow -->
@@ -220,6 +265,85 @@
           </div>
         </div>
         
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== STUDENT PROJECTS SHOWCASE ==================== -->
+  <section class="section" id="student-projects-section" style="position: relative; overflow: hidden;">
+    <div class="section-container">
+      <div class="section-header">
+        <h2>Student <span>Projects</span></h2>
+        <p>Proof of work speaks louder than words! Check out some of the actual web apps, systems, and programs designed and built by our graduates.</p>
+      </div>
+
+      <div class="courses-grid" style="grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 30px;">
+        <!-- Project 1: Expense Tracker -->
+        <div class="glass-card project-card" style="display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 0;">
+          <div class="project-img-wrapper" style="width: 100%; height: 180px; position: relative; overflow: hidden;">
+            <img src="assets/project_expense.png" alt="Personal Expense Tracker" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            <span class="course-card-badge" style="top: 12px; right: 12px; font-size: 11px; z-index: 10; background: rgba(59, 130, 246, 0.2); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3);">React &amp; CSS</span>
+          </div>
+          <div style="padding: 24px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">Personal Expense Tracker</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">A sleek budget management application to track daily payments, set category thresholds, and visualize monthly spending ratios with responsive rings.</p>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px; gap: 8px;">
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;"><i class="fas fa-user-circle"></i> Priya Rathore</span>
+              <div style="display: flex; gap: 8px;">
+                <a href="https://cerulean-medovik-833f5e.netlify.app" target="_blank" class="btn-primary" style="font-size: 11px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; min-height: auto;"><i class="fas fa-external-link-alt"></i> Live App</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project 2: iOS Calculator Clone -->
+        <div class="glass-card project-card" style="display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 0;">
+          <div class="project-img-wrapper" style="width: 100%; height: 180px; position: relative; overflow: hidden;">
+            <img src="assets/project_calculator.png" alt="iOS Calculator Clone" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            <span class="course-card-badge" style="top: 12px; right: 12px; font-size: 11px; z-index: 10; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">JavaScript</span>
+          </div>
+          <div style="padding: 24px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">iOS Calculator Clone</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">A responsive, pixel-perfect clone of the standard iOS Calculator app. Features state persistence, keyboard controls, and beautiful circular buttons grids.</p>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px; gap: 8px;">
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;"><i class="fas fa-user-circle"></i> Rahul Chouhan</span>
+              <div style="display: flex; gap: 8px;">
+                <a href="https://poetic-brigadeiros-5e583e.netlify.app" target="_blank" class="btn-primary" style="font-size: 11px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; min-height: auto;"><i class="fas fa-external-link-alt"></i> Live App</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Project 3: Locked Project -->
+        <div class="glass-card project-card" style="display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 0; opacity: 0.88; position: relative;">
+          
+          <!-- Locked overlay -->
+          <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(10, 10, 12, 0.6); backdrop-filter: blur(4px); z-index: 15; text-align: center; padding: 20px;">
+            <div class="lock-pulse-circle" style="width: 50px; height: 50px; background: rgba(255, 75, 43, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid var(--accent-color);">
+              <i class="fas fa-lock" style="font-size: 18px; color: var(--accent-color);"></i>
+            </div>
+            <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; font-family: var(--font-header);">Project Slot Locked</h4>
+            <p style="font-size: 11px; color: var(--text-secondary); max-width: 220px; line-height: 1.5;">This project showcase slot is locked and will release soon for the next training session.</p>
+          </div>
+
+          <div class="project-img-wrapper" style="width: 100%; height: 180px; position: relative; overflow: hidden;">
+            <img src="assets/project_locked.png" alt="Locked Student Project" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+            <span class="course-card-badge" style="top: 12px; right: 12px; font-size: 11px; z-index: 10; background: rgba(239,68,68,0.2); color: var(--danger); border-color: rgba(239,68,68,0.3);">C++ &amp; DSA</span>
+          </div>
+          <div style="padding: 24px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+              <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">SmartRoll - Attendance Console</h3>
+              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">A database-backed console app for colleges that manages student records using hash-table data structures for super-fast lookups and reports.</p>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px;">
+              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;"><i class="fas fa-user-circle"></i> Vivek Patle</span>
+              <a href="#" class="btn-secondary" style="font-size: 11px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; min-height: auto; pointer-events: none; opacity: 0.5;"><i class="fab fa-github"></i> Source Code</a>
+            </div>
+        </div>
       </div>
     </div>
   </section>
@@ -794,6 +918,190 @@
           });
         }, { threshold: 0.25 });
         observer.observe(statsSection);
+      }
+
+      // ==========================================
+      // 6. Interactive Course Finder Advisor logic
+      // ==========================================
+      let finderStep = 1;
+      const finderSelections = {
+        background: '',
+        goal: '',
+        mode: ''
+      };
+
+      const stepViews = {
+        1: `
+          <h3 style="font-size: 18px; margin-bottom: 20px; color: var(--text-primary); text-align: center;">What is your current education or professional background?</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;" class="responsive-grid-two-col">
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'college')"><i class="fas fa-university"></i> College Student</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'jobseeker')"><i class="fas fa-search-dollar"></i> Job Seeker / Graduate</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'school')"><i class="fas fa-school"></i> School Student</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(1, 'working')"><i class="fas fa-briefcase"></i> Working Professional</button>
+          </div>
+        `,
+        2: `
+          <h3 style="font-size: 18px; margin-bottom: 20px; color: var(--text-primary); text-align: center;">What is your main learning goal or area of interest?</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;" class="responsive-grid-two-col">
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(2, 'coding')"><i class="fas fa-code"></i> Software &amp; Web Coding</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(2, 'data')"><i class="fas fa-chart-pie"></i> Data Analytics &amp; Math</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(2, 'finance')"><i class="fas fa-file-invoice-dollar"></i> Accounting &amp; Tally</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(2, 'office')"><i class="fas fa-desktop"></i> Office Tools &amp; Basics</button>
+          </div>
+        `,
+        3: `
+          <h3 style="font-size: 18px; margin-bottom: 20px; color: var(--text-primary); text-align: center;">How do you prefer to attend classes?</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;" class="responsive-grid-two-col">
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(3, 'online')"><i class="fas fa-laptop-house"></i> Full Online (Flexible)</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(3, 'offline')"><i class="fas fa-chalkboard-teacher"></i> Offline Classes (Balaghat)</button>
+            <button class="filter-btn wizard-opt-btn" onclick="selectFinderOption(3, 'library')"><i class="fas fa-photo-video"></i> Self-Paced Video Library</button>
+          </div>
+        `
+      };
+
+      window.selectFinderOption = function(step, value) {
+        if (step === 1) finderSelections.background = value;
+        if (step === 2) finderSelections.goal = value;
+        if (step === 3) finderSelections.mode = value;
+
+        if (step < 3) {
+          finderStep++;
+          updateFinderWizard();
+        } else {
+          showFinderResult();
+        }
+      };
+
+      window.navigateFinderBack = function() {
+        if (finderStep > 1) {
+          finderStep--;
+          updateFinderWizard();
+        }
+      };
+
+      window.resetFinderWizard = function() {
+        finderStep = 1;
+        finderSelections.background = '';
+        finderSelections.goal = '';
+        finderSelections.mode = '';
+        updateFinderWizard();
+      };
+
+      function updateFinderWizard() {
+        const stepLabel = document.getElementById('finder-step-label');
+        const wizardBody = document.getElementById('finder-wizard-body');
+        const backBtn = document.getElementById('finder-back-btn');
+        const dots = document.querySelectorAll('#finder-progress-dots .progress-dot');
+
+        stepLabel.innerText = `Step ${finderStep} of 3`;
+
+        dots.forEach((dot, idx) => {
+          dot.classList.remove('active');
+          dot.style.background = 'rgba(255,255,255,0.15)';
+          dot.style.width = '6px';
+          dot.style.borderRadius = '50%';
+          if (idx === finderStep - 1) {
+            dot.classList.add('active');
+            dot.style.background = 'var(--accent-gradient)';
+            dot.style.width = '24px';
+            dot.style.borderRadius = '50px';
+          }
+        });
+
+        if (finderStep > 1) {
+          backBtn.disabled = false;
+          backBtn.style.opacity = '1';
+          backBtn.style.cursor = 'pointer';
+        } else {
+          backBtn.disabled = true;
+          backBtn.style.opacity = '0.5';
+          backBtn.style.cursor = 'not-allowed';
+        }
+
+        wizardBody.style.opacity = '0';
+        setTimeout(() => {
+          wizardBody.innerHTML = stepViews[finderStep];
+          wizardBody.style.opacity = '1';
+        }, 150);
+      }
+
+      function showFinderResult() {
+        const stepLabel = document.getElementById('finder-step-label');
+        const wizardBody = document.getElementById('finder-wizard-body');
+        const backBtn = document.getElementById('finder-back-btn');
+        const dots = document.querySelectorAll('#finder-progress-dots .progress-dot');
+
+        stepLabel.innerText = 'Recommendation';
+        dots.forEach(dot => {
+          dot.style.background = 'var(--success)';
+          dot.style.width = '10px';
+          dot.style.height = '10px';
+        });
+
+        backBtn.disabled = true;
+        backBtn.style.opacity = '0.5';
+        backBtn.style.cursor = 'not-allowed';
+
+        const { background, goal, mode } = finderSelections;
+        let recommendedTitle = '';
+        let recommendedDesc = '';
+        let recommendedLink = 'courses.html';
+        let recommendedIcon = 'fa-code';
+        let recommendedGradient = 'linear-gradient(135deg, #ff416c, #ff4b2b)';
+
+        if (goal === 'coding') {
+          if (background === 'school') {
+            recommendedTitle = 'Python Programming & Basics';
+            recommendedDesc = 'Python is the absolute best starting point for young students to grasp coding logic, variables, and basic computational algorithms with clean syntax.';
+            recommendedIcon = 'fa-brain';
+            recommendedGradient = 'linear-gradient(135deg, #10b981, #047857)';
+          } else if (background === 'working') {
+            recommendedTitle = 'MERN Stack & Web Development';
+            recommendedDesc = 'Perfect for professionals aiming for software job switches. Master React.js, Node.js, Express, MongoDB, and construct actual server-side SaaS dashboards.';
+            recommendedIcon = 'fa-layer-group';
+            recommendedGradient = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
+          } else {
+            recommendedTitle = 'DSA & Logic Building with C++';
+            recommendedDesc = 'Master memory management, trees, sorting algorithms, and system programming - crucial for cracking product company tech interviews and building problem-solving core.';
+            recommendedIcon = 'fa-laptop-code';
+            recommendedGradient = 'linear-gradient(135deg, #8b5cf6, #6d28d9)';
+          }
+        } else if (goal === 'data') {
+          recommendedTitle = 'Data Analytics Masterclass';
+          recommendedDesc = 'Dive deep into SQL database querying, Advanced Excel statistical dashboards, Python data science models, and chart reports. Essential skill for business analyst roles.';
+          recommendedIcon = 'fa-chart-bar';
+          recommendedGradient = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        } else if (goal === 'finance') {
+          recommendedTitle = 'Tally Prime & Accounting Professional';
+          recommendedDesc = 'Master business ledger creation, GST tax filings, balance sheets compilation, and banking reconciliation models inside Tally Prime. Highly in-demand job role in local markets.';
+          recommendedIcon = 'fa-calculator';
+          recommendedGradient = 'linear-gradient(135deg, #10b981, #059669)';
+        } else { // office
+          recommendedTitle = 'MS Office & Advanced Excel';
+          recommendedDesc = 'Build robust professional fundamentals in corporate documents layouts, presentation decks design, and advanced Excel lookup, index/match, and data pivots modeling.';
+          recommendedIcon = 'fa-file-excel';
+          recommendedGradient = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+        }
+
+        wizardBody.style.opacity = '0';
+        setTimeout(() => {
+          wizardBody.innerHTML = `
+            <div style="text-align: center; padding: 10px 0; animation: fadeIn 0.4s ease;">
+              <div style="width: 70px; height: 70px; border-radius: 50%; background: ${recommendedGradient}; color: white; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 30px; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
+                <i class="fas ${recommendedIcon}"></i>
+              </div>
+              <h3 style="font-size: 20px; margin-bottom: 8px; color: var(--text-primary); font-family: var(--font-header);">Recommended Program:</h3>
+              <h4 style="font-size: 18px; margin-bottom: 12px; background: ${recommendedGradient}; -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800;">${recommendedTitle}</h4>
+              <p style="font-size: 13.5px; color: var(--text-secondary); line-height: 1.6; max-width: 480px; margin: 0 auto 20px auto;">${recommendedDesc}</p>
+              
+              <div style="display: flex; gap: 12px; justify-content: center; align-items: center; flex-wrap: wrap;">
+                <a href="${recommendedLink}" class="btn-primary" style="font-size: 12px; padding: 10px 20px; min-height: auto;">Explore Syllabus <i class="fas fa-chevron-right"></i></a>
+                <button onclick="resetFinderWizard()" class="btn-secondary" style="font-size: 12px; padding: 9px 18px; border-color: var(--border-color);"><i class="fas fa-redo"></i> Restart</button>
+              </div>
+            </div>
+          `;
+          wizardBody.style.opacity = '1';
+        }, 150);
       }
     });
   </script>
