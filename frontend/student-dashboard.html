@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-L286VZ2W2J"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-L286VZ2W2J');
-  </script>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-M6JXD6NF');</script>
+  <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Dashboard - Sukla Digital Academy</title>
@@ -19,6 +17,10 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M6JXD6NF"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
 
   <!-- Navigation Bar -->
   <nav class="navbar">
@@ -88,6 +90,12 @@
         </li>
         <li class="sidebar-item" data-target="dashboard-attendance">
           <a href="#"><i class="fas fa-user-check"></i> Attendance Log</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-assignments">
+          <a href="#"><i class="fas fa-file-alt"></i> Assignments</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-streak">
+          <a href="#"><i class="fas fa-fire"></i> My Streak</a>
         </li>
       </ul>
 
@@ -480,6 +488,57 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 12: ASSIGNMENTS ==================== -->
+      <section id="dashboard-assignments" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>My Assignments</h2>
+          <p style="color: var(--text-secondary);">Submit your assignments and track grades from your instructor.</p>
+        </div>
+        <div class="assignments-grid" id="assignments-grid-container">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+      <!-- ==================== TAB 13: STREAK TRACKER ==================== -->
+      <section id="dashboard-streak" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>My Learning Streak</h2>
+          <p style="color: var(--text-secondary);">Stay consistent — log in every day to maintain and grow your streak!</p>
+        </div>
+
+        <!-- Streak Hero Card -->
+        <div class="streak-hero-card">
+          <span class="streak-fire-icon">🔥</span>
+          <div class="streak-count" id="streak-current-count">0</div>
+          <div class="streak-label">Day Streak</div>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-top: 12px;" id="streak-hero-msg">Login every day to keep your streak alive!</p>
+        </div>
+
+        <!-- Streak Stats Row -->
+        <div class="streak-stats-row">
+          <div class="streak-stat-card">
+            <h3 id="streak-stat-current">0</h3>
+            <p>Current Streak</p>
+          </div>
+          <div class="streak-stat-card">
+            <h3 id="streak-stat-longest">0</h3>
+            <p>Longest Streak</p>
+          </div>
+          <div class="streak-stat-card">
+            <h3 id="streak-stat-today">—</h3>
+            <p>Last Login</p>
+          </div>
+        </div>
+
+        <!-- Milestone Badges -->
+        <div class="streak-badges-section glass-card" style="padding: 28px;">
+          <h3><i class="fas fa-medal" style="color: var(--warning);"></i> Streak Milestones</h3>
+          <div class="streak-badges-grid" id="streak-badges-grid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -623,5 +682,36 @@
   <script src="script.js"></script>
   <!-- Student Dashboard Manager Logic -->
   <script src="student.js"></script>
+
+  <!-- Assignment Submit Modal -->
+  <div class="modal-overlay" id="assignment-submit-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Submit Assignment</h3>
+        <button class="modal-close" onclick="closeAssignmentModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div style="background: rgba(255,75,43,0.06); border: 1px solid rgba(255,75,43,0.2); border-radius: 10px; padding: 14px; margin-bottom: 20px;">
+          <h4 id="submit-modal-title" style="font-size: 15px; color: var(--text-primary); margin-bottom: 4px;"></h4>
+          <p id="submit-modal-due" style="font-size: 12px; color: var(--text-secondary);"></p>
+        </div>
+        <form id="assignment-submit-form">
+          <input type="hidden" id="submit-assignment-id">
+          <div class="form-group">
+            <label for="submit-file">Upload File (PDF, Image, ZIP)</label>
+            <input type="file" id="submit-file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.zip,.docx">
+          </div>
+          <div class="form-group">
+            <label for="submit-notes">Additional Notes (Optional)</label>
+            <textarea id="submit-notes" class="assignment-notes-area" placeholder="Add any notes for your instructor..."></textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;">
+            Submit Assignment <i class="fas fa-paper-plane" style="margin-left: 6px;"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

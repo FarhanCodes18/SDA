@@ -141,7 +141,8 @@ const initDatabase = async () => {
     'users.json', 'courses.json', 'enrollments.json', 'payments.json',
     'certificates.json', 'notices.json', 'announcements.json',
     'recordedClasses.json', 'achievers.json', 'contacts.json', 'liveclass.json',
-    'attendance.json', 'quizzes.json', 'quizResults.json'
+    'attendance.json', 'quizzes.json', 'quizResults.json',
+    'assignments.json', 'submissions.json'
   ];
 
   // We perform initial reads from local JSON files to avoid uninitialized state
@@ -386,16 +387,51 @@ app.post('/api/login', async (req, res) => {
     }
 
     const users = readJSONFile('users.json');
-    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const userIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
 
-    if (!user) {
+    if (userIndex === -1) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
 
+    const user = users[userIndex];
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
+
+    // ==========================================
+    // STREAK TRACKER: Update login streak
+    // ==========================================
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const lastLogin = user.lastLoginDate || null;
+    let streak = user.streak || 0;
+    let longestStreak = user.longestStreak || 0;
+
+    if (lastLogin === today) {
+      // Already logged in today — streak stays same
+    } else if (lastLogin) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+      if (lastLogin === yesterdayStr) {
+        // Consecutive day — increment streak
+        streak += 1;
+      } else {
+        // Missed a day — reset streak
+        streak = 1;
+      }
+    } else {
+      // First ever login
+      streak = 1;
+    }
+
+    if (streak > longestStreak) longestStreak = streak;
+
+    users[userIndex].lastLoginDate = today;
+    users[userIndex].streak = streak;
+    users[userIndex].longestStreak = longestStreak;
+    writeJSONFile('users.json', users);
 
     const token = jwt.sign(
       { id: user.id, name: user.name, email: user.email, role: user.role },
@@ -410,7 +446,10 @@ app.post('/api/login', async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: user.role
+        role: user.role,
+        streak,
+        longestStreak,
+        lastLoginDate: today
       }
     });
 
@@ -523,6 +562,24 @@ app.get('/api/student/dashboard/:studentId', authenticateToken, (req, res) => {
     // Filter student's quiz submissions
     const studentQuizResults = quizResults.filter(r => r.studentId === studentId);
 
+    // Fetch assignments for courses the student is enrolled in (all enrolled including pending)
+    const allAssignments = readJSONFile('assignments.json');
+    const enrolledCourseIds = studentEnrollments.map(e => e.courseId);
+    const studentAssignments = allAssignments.filter(
+      a => a.courseId === 'all' || enrolledCourseIds.includes(a.courseId)
+    );
+
+    // Fetch student's submission records
+    const allSubmissions = readJSONFile('submissions.json');
+    const studentSubmissions = allSubmissions.filter(s => s.studentId === studentId);
+
+    // Streak info from users.json
+    const streakInfo = {
+      streak: studentUser ? (studentUser.streak || 0) : 0,
+      longestStreak: studentUser ? (studentUser.longestStreak || 0) : 0,
+      lastLoginDate: studentUser ? (studentUser.lastLoginDate || null) : null
+    };
+
     // Return everything
     res.json({
       user: userProfile,
@@ -539,7 +596,10 @@ app.get('/api/student/dashboard/:studentId', authenticateToken, (req, res) => {
         summary: attendanceSummary
       },
       quizzes: studentQuizzes,
-      quizResults: studentQuizResults
+      quizResults: studentQuizResults,
+      assignments: studentAssignments,
+      submissions: studentSubmissions,
+      streak: streakInfo
     });
 
   } catch (error) {
@@ -1124,6 +1184,26 @@ app.post('/api/announcements', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
+// Delete announcement
+app.delete('/api/announcements/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const id = req.params.id;
+    let announcements = readJSONFile('announcements.json');
+    const index = announcements.findIndex(a => a.id === id);
+
+    if (index === -1) {
+      return res.status(404).json({ message: 'Announcement not found.' });
+    }
+
+    announcements.splice(index, 1);
+    writeJSONFile('announcements.json', announcements);
+
+    res.json({ message: 'Announcement deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting announcement.', error: error.message });
+  }
+});
+
 // Recorded Classes
 app.get('/api/recorded-classes', (req, res) => {
   try {
@@ -1212,6 +1292,8 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
     const recordedClasses = readJSONFile('recordedClasses.json');
     const quizzes = readJSONFile('quizzes.json');
     const quizResults = readJSONFile('quizResults.json');
+    const assignments = readJSONFile('assignments.json');
+    const submissions = readJSONFile('submissions.json');
 
     const students = users.filter(u => u.role === 'student');
 
@@ -1245,11 +1327,193 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
       recordedClasses,
       achievers: readJSONFile('achievers.json'),
       quizzes,
-      quizResults
+      quizResults,
+      assignments,
+      submissions
     });
 
   } catch (error) {
     res.status(500).json({ message: 'Error fetching admin summary data.', error: error.message });
+  }
+});
+
+// ==========================================
+// 11. ASSIGNMENT ENDPOINTS
+// ==========================================
+
+// GET /api/assignments - Admin fetches all, student fetches own
+app.get('/api/assignments', authenticateToken, (req, res) => {
+  try {
+    const assignments = readJSONFile('assignments.json');
+    if (req.user.role === 'admin') {
+      return res.json(assignments);
+    }
+    // For students, filter by enrolled courses
+    const enrollments = readJSONFile('enrollments.json');
+    const enrolledIds = enrollments
+      .filter(e => e.studentId === req.user.id)
+      .map(e => e.courseId);
+    const studentAssignments = assignments.filter(
+      a => a.courseId === 'all' || enrolledIds.includes(a.courseId)
+    );
+    res.json(studentAssignments);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching assignments.', error: error.message });
+  }
+});
+
+// POST /api/assignments - Admin creates assignment
+app.post('/api/assignments', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { title, description, dueDate, courseId, maxMarks } = req.body;
+    if (!title || !description) {
+      return res.status(400).json({ message: 'Title and description are required.' });
+    }
+    const assignments = readJSONFile('assignments.json');
+    const newAssignment = {
+      id: 'asgn_' + Date.now(),
+      title,
+      description,
+      dueDate: dueDate || null,
+      courseId: courseId || 'all',
+      maxMarks: Number(maxMarks) || 100,
+      createdAt: new Date().toISOString(),
+      createdBy: req.user.name
+    };
+    assignments.unshift(newAssignment);
+    writeJSONFile('assignments.json', assignments);
+    res.status(201).json({ message: 'Assignment created successfully!', assignment: newAssignment });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating assignment.', error: error.message });
+  }
+});
+
+// DELETE /api/assignments/:id - Admin deletes assignment
+app.delete('/api/assignments/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    let assignments = readJSONFile('assignments.json');
+    const index = assignments.findIndex(a => a.id === req.params.id);
+    if (index === -1) return res.status(404).json({ message: 'Assignment not found.' });
+    assignments.splice(index, 1);
+    writeJSONFile('assignments.json', assignments);
+    res.json({ message: 'Assignment deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting assignment.', error: error.message });
+  }
+});
+
+// Configure Multer for Assignment Submissions
+const submissionStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'uploads', 'submissions');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, 'submission_' + Date.now() + ext);
+  }
+});
+const uploadSubmission = multer({ storage: submissionStorage });
+
+// POST /api/assignments/:id/submit - Student submits assignment
+app.post('/api/assignments/:id/submit', authenticateToken, uploadSubmission.single('file'), (req, res) => {
+  try {
+    const assignmentId = req.params.id;
+    const studentId = req.user.id;
+    const { notes } = req.body;
+
+    const assignments = readJSONFile('assignments.json');
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found.' });
+
+    const submissions = readJSONFile('submissions.json');
+    // Check if already submitted
+    const existing = submissions.find(s => s.assignmentId === assignmentId && s.studentId === studentId);
+    if (existing) {
+      return res.status(400).json({ message: 'You have already submitted this assignment.' });
+    }
+
+    const fileUrl = req.file
+      ? `${req.protocol}://${req.get('host')}/uploads/submissions/${req.file.filename}`
+      : null;
+
+    const users = readJSONFile('users.json');
+    const student = users.find(u => u.id === studentId);
+
+    const newSubmission = {
+      id: 'sub_' + Date.now(),
+      assignmentId,
+      assignmentTitle: assignment.title,
+      studentId,
+      studentName: student ? student.name : req.user.name,
+      studentEmail: student ? student.email : req.user.email,
+      fileUrl,
+      notes: notes || '',
+      status: 'submitted',
+      marks: null,
+      feedback: '',
+      submittedAt: new Date().toISOString()
+    };
+
+    submissions.push(newSubmission);
+    writeJSONFile('submissions.json', submissions);
+    res.status(201).json({ message: 'Assignment submitted successfully!', submission: newSubmission });
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting assignment.', error: error.message });
+  }
+});
+
+// GET /api/submissions - Admin gets all submissions
+app.get('/api/submissions', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const submissions = readJSONFile('submissions.json');
+    res.json(submissions);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching submissions.', error: error.message });
+  }
+});
+
+// PUT /api/submissions/:id/grade - Admin grades submission
+app.put('/api/submissions/:id/grade', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { marks, feedback } = req.body;
+    const submissions = readJSONFile('submissions.json');
+    const index = submissions.findIndex(s => s.id === req.params.id);
+    if (index === -1) return res.status(404).json({ message: 'Submission not found.' });
+
+    submissions[index].marks = marks !== undefined ? Number(marks) : submissions[index].marks;
+    submissions[index].feedback = feedback || submissions[index].feedback;
+    submissions[index].status = 'graded';
+    submissions[index].gradedAt = new Date().toISOString();
+    writeJSONFile('submissions.json', submissions);
+    res.json({ message: 'Submission graded successfully!', submission: submissions[index] });
+  } catch (error) {
+    res.status(500).json({ message: 'Error grading submission.', error: error.message });
+  }
+});
+
+// ==========================================
+// 12. ENROLLMENT PROGRESS ENDPOINT
+// ==========================================
+
+// PUT /api/enrollments/:id/progress - Admin updates course progress
+app.put('/api/enrollments/:id/progress', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const enrollId = req.params.id;
+    const { progress } = req.body; // 0-100
+    if (progress === undefined || progress < 0 || progress > 100) {
+      return res.status(400).json({ message: 'Progress must be a number between 0 and 100.' });
+    }
+    const enrollments = readJSONFile('enrollments.json');
+    const index = enrollments.findIndex(e => e.id === enrollId);
+    if (index === -1) return res.status(404).json({ message: 'Enrollment not found.' });
+    enrollments[index].progress = Number(progress);
+    enrollments[index].progressUpdatedAt = new Date().toISOString();
+    writeJSONFile('enrollments.json', enrollments);
+    res.json({ message: 'Course progress updated!', enrollment: enrollments[index] });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating progress.', error: error.message });
   }
 });
 

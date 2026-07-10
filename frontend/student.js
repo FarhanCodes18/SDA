@@ -104,6 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (quizSubmitBtn) {
     quizSubmitBtn.addEventListener('click', submitQuiz);
   }
+
+  // Assignment submit form listener
+  const assignSubmitForm = document.getElementById('assignment-submit-form');
+  if (assignSubmitForm) {
+    assignSubmitForm.addEventListener('submit', handleAssignmentSubmit);
+  }
 });
 
 let dashboardData = {};
@@ -117,6 +123,9 @@ let studentQuizResultsList = [];
 let activeQuizData = null;
 let currentQuestionIndex = 0;
 let studentAnswers = [];
+
+// Assignment state
+let activeAssignmentData = null;
 
 async function loadDashboardData() {
   const user = Auth.getUser();
@@ -174,6 +183,14 @@ async function loadDashboardData() {
     studentQuizzesList = data.quizzes || [];
     studentQuizResultsList = data.quizResults || [];
     renderStudentQuizzesList();
+
+    // K. Render Assignments
+    renderAssignments(data.assignments || [], data.submissions || []);
+
+    // L. Render Streak Tracker
+    if (data.streak) {
+      renderStreakTracker(data.streak);
+    }
 
   } catch (error) {
     console.error('Error fetching dashboard details:', error);
@@ -233,7 +250,7 @@ function renderAvailableCourses(courses, purchasedCourses, enrolledCourses) {
   }).join('');
 }
 
-// Render active course grid
+// Render active course grid (with Progress Bars)
 function renderActiveCourses(purchasedCourses, enrolledCourses) {
   const container = document.getElementById('purchased-list-container');
   if (!container) return;
@@ -255,6 +272,28 @@ function renderActiveCourses(purchasedCourses, enrolledCourses) {
 
   container.innerHTML = allEnrolled.map(c => {
     const isApproved = purchasedIds.includes(c.id) || c.enrollmentStatus === 'approved';
+    const progress = c.progress !== undefined ? c.progress : 0;
+
+    // Determine progress milestone label
+    let milestoneClass = 'not-started';
+    let milestoneLabel = '🔒 Not Started';
+    if (progress >= 100) { milestoneClass = 'completed'; milestoneLabel = '✅ Completed'; }
+    else if (progress >= 75) { milestoneClass = 'almost'; milestoneLabel = '🏁 Almost Done'; }
+    else if (progress > 0) { milestoneClass = 'in-progress'; milestoneLabel = '⚡ In Progress'; }
+
+    const progressHTML = isApproved ? `
+      <div class="course-progress-wrapper">
+        <div class="course-progress-header">
+          <span class="course-progress-label"><i class="fas fa-chart-line" style="color: var(--accent-color);"></i> Course Progress</span>
+          <span class="course-progress-pct">${progress}%</span>
+        </div>
+        <div class="course-progress-bar-track">
+          <div class="course-progress-bar-fill" style="width: 0%" data-target-width="${progress}%"></div>
+        </div>
+        <span class="progress-milestone ${milestoneClass}">${milestoneLabel}</span>
+      </div>
+    ` : '';
+
     return `
     <div class="glass-card course-card" style="${!isApproved ? 'opacity:0.88;' : ''}">
       <span class="course-card-badge">${c.category.toUpperCase()}</span>
@@ -272,6 +311,7 @@ function renderActiveCourses(purchasedCourses, enrolledCourses) {
              </span>`
         }
       </div>
+      ${progressHTML}
       ${!isApproved ? `
       <div style="margin-top: 12px; padding: 12px; background: rgba(234,179,8,0.06); border: 1px solid rgba(234,179,8,0.2); border-radius: 8px; font-size: 12px; color: var(--warning); line-height:1.5;">
         <i class="fas fa-info-circle"></i> Your payment screenshot has been submitted. Once the admin approves it, full course access will be unlocked automatically.
@@ -279,6 +319,14 @@ function renderActiveCourses(purchasedCourses, enrolledCourses) {
     </div>
   `;
   }).join('');
+
+  // Animate progress bars after render
+  setTimeout(() => {
+    document.querySelectorAll('.course-progress-bar-fill').forEach(bar => {
+      const target = bar.getAttribute('data-target-width');
+      if (target) bar.style.width = target;
+    });
+  }, 100);
 }
 
 
@@ -1285,3 +1333,206 @@ function backToQuizzesList() {
   document.getElementById('quiz-list-view').style.display = 'block';
   loadDashboardData();
 }
+
+// ==========================================
+// ASSIGNMENTS: Render student assignments
+// ==========================================
+function renderAssignments(assignments, submissions) {
+  const container = document.getElementById('assignments-grid-container');
+  if (!container) return;
+
+  if (assignments.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 60px 20px;">
+        <i class="fas fa-file-alt" style="font-size: 48px; color: var(--text-muted); margin-bottom: 16px; display:block;"></i>
+        <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">No Assignments Yet</h3>
+        <p>Your instructor hasn't posted any assignments. Check back later!</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = assignments.map(a => {
+    const submission = submissions.find(s => s.assignmentId === a.id);
+    const today = new Date();
+    const dueDate = a.dueDate ? new Date(a.dueDate) : null;
+    const diffDays = dueDate ? Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24)) : null;
+
+    let dueDateClass = '';
+    let dueDateText = 'No due date';
+    if (dueDate) {
+      dueDateText = `Due: ${dueDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+      if (diffDays < 0) dueDateClass = 'due-date-overdue';
+      else if (diffDays <= 3) dueDateClass = 'due-date-near';
+    }
+
+    let statusBadge = '<span class="badge-pending-sub"><i class="fas fa-clock"></i> Not Submitted</span>';
+    let gradeHTML = '';
+    let actionBtn = `<button onclick="openAssignmentModal('${a.id}')" class="btn-primary" style="font-size: 12px; padding: 8px 16px;">
+      Submit <i class="fas fa-upload"></i>
+    </button>`;
+
+    if (submission) {
+      if (submission.status === 'graded') {
+        statusBadge = `<span class="badge-graded"><i class="fas fa-check-double"></i> Graded</span>`;
+        gradeHTML = `
+          <div class="grade-display-box">
+            <div class="grade-score">${submission.marks} / ${a.maxMarks}</div>
+            ${submission.feedback ? `<div class="grade-feedback"><i class="fas fa-comment" style="color:var(--success); margin-right:4px;"></i> ${submission.feedback}</div>` : ''}
+          </div>
+        `;
+        actionBtn = '';
+      } else {
+        statusBadge = `<span class="badge-submitted"><i class="fas fa-paper-plane"></i> Submitted</span>`;
+        actionBtn = '<button class="btn-secondary" style="font-size:12px; padding:8px 16px; cursor:not-allowed; opacity:0.6;" disabled>Already Submitted</button>';
+      }
+    }
+
+    return `
+      <div class="assignment-card">
+        <div class="assignment-card-header">
+          <span class="assignment-title">${a.title}</span>
+          ${statusBadge}
+        </div>
+        <div class="assignment-meta">
+          <span><i class="fas fa-star" style="color:var(--warning);"></i> Max Marks: <strong>${a.maxMarks}</strong></span>
+          <span class="${dueDateClass}"><i class="fas fa-calendar-alt"></i> ${dueDateText}</span>
+        </div>
+        <p class="assignment-desc">${a.description}</p>
+        ${gradeHTML}
+        <div class="assignment-footer">
+          <span style="font-size: 11px; color: var(--text-muted);"><i class="fas fa-user-tie"></i> By ${a.createdBy || 'Instructor'}</span>
+          ${actionBtn}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openAssignmentModal(assignmentId) {
+  const assignment = (dashboardData.assignments || []).find(a => a.id === assignmentId);
+  if (!assignment) return;
+
+  activeAssignmentData = assignment;
+  document.getElementById('submit-assignment-id').value = assignmentId;
+  document.getElementById('submit-modal-title').innerText = assignment.title;
+  const dueDate = assignment.dueDate
+    ? `Due: ${new Date(assignment.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`
+    : 'No due date set';
+  document.getElementById('submit-modal-due').innerText = dueDate;
+  document.getElementById('submit-file').value = '';
+  document.getElementById('submit-notes').value = '';
+
+  document.getElementById('assignment-submit-modal').classList.add('active');
+}
+
+function closeAssignmentModal() {
+  document.getElementById('assignment-submit-modal').classList.remove('active');
+  activeAssignmentData = null;
+}
+
+async function handleAssignmentSubmit(e) {
+  e.preventDefault();
+
+  const assignmentId = document.getElementById('submit-assignment-id').value;
+  const fileInput = document.getElementById('submit-file');
+  const notes = document.getElementById('submit-notes').value.trim();
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const origHTML = submitBtn.innerHTML;
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Submitting... <i class="fas fa-spinner fa-spin"></i>';
+
+    const formData = new FormData();
+    formData.append('notes', notes);
+    if (fileInput.files.length > 0) {
+      formData.append('file', fileInput.files[0]);
+    }
+
+    const token = Auth.getToken();
+    const response = await fetch(`${API_URL}/assignments/${assignmentId}/submit`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData
+    });
+
+    const res = await response.json();
+    if (!response.ok) throw new Error(res.message || 'Submission failed.');
+
+    closeAssignmentModal();
+    showToast('Assignment submitted successfully! 🎉', 'success');
+    await loadDashboardData();
+
+  } catch (error) {
+    showToast(error.message || 'Failed to submit assignment.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = origHTML;
+  }
+}
+
+// ==========================================
+// STREAK TRACKER: Render streak dashboard
+// ==========================================
+function renderStreakTracker(streak) {
+  const current = streak.streak || 0;
+  const longest = streak.longestStreak || 0;
+  const lastLogin = streak.lastLoginDate;
+
+  // Update hero card
+  const countEl = document.getElementById('streak-current-count');
+  const heroMsg = document.getElementById('streak-hero-msg');
+  const statCurrent = document.getElementById('streak-stat-current');
+  const statLongest = document.getElementById('streak-stat-longest');
+  const statToday = document.getElementById('streak-stat-today');
+
+  if (countEl) countEl.innerText = current;
+  if (statCurrent) statCurrent.innerText = current;
+  if (statLongest) statLongest.innerText = longest;
+  if (statToday && lastLogin) {
+    const d = new Date(lastLogin);
+    statToday.innerText = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  }
+
+  if (heroMsg) {
+    if (current === 0) {
+      heroMsg.innerText = 'Login every day to start your streak!';
+    } else if (current < 7) {
+      heroMsg.innerText = `🔥 Keep going! ${7 - current} more days to earn the Week Warrior badge!`;
+    } else if (current < 30) {
+      heroMsg.innerText = `⚡ Amazing! ${30 - current} more days to earn the Monthly Champion badge!`;
+    } else {
+      heroMsg.innerText = `🏆 Incredible dedication! You're a learning legend!`;
+    }
+  }
+
+  // Milestone badges configuration
+  const MILESTONES = [
+    { days: 1,   icon: '🌱', name: 'First Step',      req: '1 day streak' },
+    { days: 3,   icon: '⚡', name: 'Getting Warm',    req: '3 day streak' },
+    { days: 7,   icon: '🔥', name: 'Week Warrior',    req: '7 day streak' },
+    { days: 14,  icon: '💪', name: 'Fortnight Force', req: '14 day streak' },
+    { days: 30,  icon: '🏆', name: 'Monthly Champ',   req: '30 day streak' },
+    { days: 60,  icon: '🚀', name: 'Rocket Scholar',  req: '60 day streak' },
+    { days: 100, icon: '🌟', name: 'Century Star',    req: '100 day streak' },
+    { days: 365, icon: '👑', name: 'Legend',          req: '365 day streak' },
+  ];
+
+  const badgesGrid = document.getElementById('streak-badges-grid');
+  if (!badgesGrid) return;
+
+  badgesGrid.innerHTML = MILESTONES.map(m => {
+    const unlocked = current >= m.days;
+    return `
+      <div class="streak-badge-card ${unlocked ? 'unlocked' : 'locked'}">
+        ${unlocked ? '<div class="unlocked-check"><i class="fas fa-check"></i></div>' : ''}
+        <span class="badge-icon">${m.icon}</span>
+        <span class="badge-name">${m.name}</span>
+        <span class="badge-req">${m.req}</span>
+      </div>
+    `;
+  }).join('');
+}
+

@@ -2652,3 +2652,473 @@ img {
 iframe {
   max-width: 100%;
 }
+
+/* ==========================================
+   COURSE PROGRESS BAR STYLES
+   ========================================== */
+
+.course-progress-wrapper {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.course-progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.course-progress-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.course-progress-pct {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent-color);
+}
+
+.course-progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 50px;
+  overflow: hidden;
+  position: relative;
+}
+
+.course-progress-bar-fill {
+  height: 100%;
+  border-radius: 50px;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 8px rgba(255, 75, 43, 0.5);
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.course-progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  animation: progressShimmer 2s infinite;
+}
+
+@keyframes progressShimmer {
+  0% { left: -60%; }
+  100% { left: 160%; }
+}
+
+.progress-milestone {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 50px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.progress-milestone.not-started { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+.progress-milestone.in-progress { background: rgba(245,158,11,0.1); color: var(--warning); }
+.progress-milestone.almost { background: rgba(59,130,246,0.1); color: #3b82f6; }
+.progress-milestone.completed { background: rgba(16,185,129,0.1); color: var(--success); }
+
+/* Admin progress input row */
+.progress-update-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.progress-update-row input[type="number"] {
+  width: 70px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ==========================================
+   STREAK TRACKER STYLES
+   ========================================== */
+
+.streak-hero-card {
+  background: linear-gradient(135deg, rgba(255, 75, 43, 0.12) 0%, rgba(255, 65, 108, 0.08) 100%);
+  border: 1.5px solid rgba(255, 75, 43, 0.25);
+  border-radius: 20px;
+  padding: 36px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.streak-hero-card::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  left: -20%;
+  width: 60%;
+  height: 180%;
+  background: radial-gradient(circle, rgba(255,75,43,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.streak-fire-icon {
+  font-size: 64px;
+  display: block;
+  margin-bottom: 8px;
+  animation: fireFlicker 1.5s ease-in-out infinite alternate;
+  filter: drop-shadow(0 0 16px rgba(255, 75, 43, 0.6));
+}
+
+@keyframes fireFlicker {
+  0% { transform: scale(1) rotate(-2deg); filter: drop-shadow(0 0 12px rgba(255, 75, 43, 0.5)); }
+  100% { transform: scale(1.07) rotate(2deg); filter: drop-shadow(0 0 22px rgba(255, 75, 43, 0.8)); }
+}
+
+.streak-count {
+  font-size: 72px;
+  font-family: var(--font-header);
+  font-weight: 800;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.streak-label {
+  font-size: 16px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.streak-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.streak-stat-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.streak-stat-card h3 {
+  font-size: 28px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+}
+
+.streak-stat-card p {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* Milestone Badges */
+.streak-badges-section h3 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.streak-badges-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 14px;
+}
+
+.streak-badge-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 20px 16px;
+  text-align: center;
+  position: relative;
+  transition: var(--transition);
+}
+
+.streak-badge-card.unlocked {
+  border-color: rgba(255, 75, 43, 0.35);
+  background: rgba(255, 75, 43, 0.06);
+}
+
+.streak-badge-card.locked {
+  opacity: 0.45;
+  filter: grayscale(0.5);
+}
+
+.streak-badge-card .badge-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.streak-badge-card .badge-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.streak-badge-card .badge-req {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.streak-badge-card.unlocked .badge-icon {
+  animation: badgePop 0.5s ease;
+  filter: drop-shadow(0 0 8px rgba(255,75,43,0.5));
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0.7); }
+  70% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.unlocked-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  background: var(--accent-gradient);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: white;
+}
+
+/* ==========================================
+   ASSIGNMENT STYLES
+   ========================================== */
+
+.assignment-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.assignment-card:hover {
+  border-color: rgba(255, 75, 43, 0.25);
+  transform: translateY(-3px);
+}
+
+.assignment-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+  gap: 12px;
+}
+
+.assignment-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.assignment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.assignment-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  flex-grow: 1;
+}
+
+.assignment-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Submission status badges */
+.badge-submitted {
+  background: rgba(59,130,246,0.12);
+  color: #3b82f6;
+  border: 1px solid rgba(59,130,246,0.25);
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge-graded {
+  background: rgba(16,185,129,0.12);
+  color: var(--success);
+  border: 1px solid rgba(16,185,129,0.25);
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge-pending-sub {
+  background: rgba(245,158,11,0.12);
+  color: var(--warning);
+  border: 1px solid rgba(245,158,11,0.25);
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Grade display in student panel */
+.grade-display-box {
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-top: 10px;
+}
+
+.grade-score {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--success);
+  font-family: var(--font-header);
+}
+
+.grade-feedback {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* Assignment notes textarea */
+.assignment-notes-area {
+  width: 100%;
+  min-height: 80px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-family: var(--font-main);
+  font-size: 13px;
+  padding: 10px 14px;
+  resize: vertical;
+  transition: var(--transition);
+}
+
+.assignment-notes-area:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+/* Due date warning */
+.due-date-overdue {
+  color: var(--danger) !important;
+  font-weight: 700;
+}
+
+.due-date-near {
+  color: var(--warning) !important;
+  font-weight: 700;
+}
+
+/* Admin assignments grid */
+.assignments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 24px;
+}
+
+/* Admin grade modal / inline */
+.grade-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.grade-input-row input {
+  width: 90px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+/* Streak admin row */
+.streak-admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,75,43,0.08);
+  border: 1px solid rgba(255,75,43,0.2);
+  padding: 3px 10px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-color);
+}
+
+@media (max-width: 576px) {
+  .streak-stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .streak-count { font-size: 52px; }
+  .streak-fire-icon { font-size: 48px; }
+  .streak-badges-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+

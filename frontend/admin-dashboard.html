@@ -1,15 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-L286VZ2W2J"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-L286VZ2W2J');
-  </script>
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-M6JXD6NF');</script>
+  <!-- End Google Tag Manager -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard - Sukla Digital Academy</title>
@@ -19,6 +17,10 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Google Tag Manager (noscript) -->
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M6JXD6NF"
+  height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  <!-- End Google Tag Manager (noscript) -->
 
   <!-- Navigation Bar -->
   <nav class="navbar">
@@ -89,6 +91,9 @@
         </li>
         <li class="sidebar-item" data-target="admin-attendance">
           <a href="#"><i class="fas fa-calendar-check"></i> Attendance Manager</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-assignments">
+          <a href="#"><i class="fas fa-file-alt"></i> Assignments Manager</a>
         </li>
       </ul>
 
@@ -250,6 +255,7 @@
                 <th>Date Requested</th>
                 <th>Payment Proof</th>
                 <th>Billing Status</th>
+                <th>Course Progress</th>
                 <th>Action</th>
               </tr>
             </thead>
@@ -537,6 +543,85 @@
               </thead>
               <tbody id="quiz-logs-tbody">
                 <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 14: ASSIGNMENTS MANAGER ==================== -->
+      <section id="admin-assignments" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Assignments Manager</h2>
+          <p style="color: var(--text-secondary);">Create assignments and review/grade student submissions.</p>
+        </div>
+
+        <!-- Sub-tabs -->
+        <div class="admin-tabs-nav">
+          <button class="admin-tab-btn active" id="tab-create-assign-btn" onclick="switchAdminAssignTab('create')">Manage Assignments</button>
+          <button class="admin-tab-btn" id="tab-submissions-btn" onclick="switchAdminAssignTab('submissions')">Student Submissions</button>
+        </div>
+
+        <!-- SUB-TAB 1: Create & Manage Assignments -->
+        <div id="admin-assign-manage-tab">
+          <!-- Create Form -->
+          <div class="glass-card" style="max-width: 640px; margin-bottom: 36px; padding: 28px;">
+            <h3 style="font-size: 18px; margin-bottom: 20px;">Create New Assignment</h3>
+            <form id="add-assignment-form">
+              <div class="form-group">
+                <label for="asgn-title">Assignment Title</label>
+                <input type="text" id="asgn-title" class="form-control" placeholder="e.g. Build a Login Page" required>
+              </div>
+              <div class="form-group">
+                <label for="asgn-desc">Description / Instructions</label>
+                <textarea id="asgn-desc" class="form-control" placeholder="Describe the assignment task in detail..." required></textarea>
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+                <div class="form-group">
+                  <label for="asgn-course">Course (Optional)</label>
+                  <select id="asgn-course" class="form-control">
+                    <option value="all">All Students</option>
+                    <!-- Filled dynamically -->
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="asgn-due">Due Date (Optional)</label>
+                  <input type="date" id="asgn-due" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label for="asgn-marks">Max Marks</label>
+                  <input type="number" id="asgn-marks" class="form-control" value="100" min="1" max="1000">
+                </div>
+              </div>
+              <button type="submit" class="btn-primary">Create Assignment <i class="fas fa-plus"></i></button>
+            </form>
+          </div>
+
+          <!-- Assignments List -->
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Active Assignments</h3>
+          <div class="assignments-grid" id="admin-assignments-grid">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- SUB-TAB 2: Student Submissions -->
+        <div id="admin-submissions-tab" style="display: none;">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Assignment</th>
+                  <th>Submitted At</th>
+                  <th>Notes</th>
+                  <th>File</th>
+                  <th>Status</th>
+                  <th>Marks / Max</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="submissions-tbody">
+                <!-- Rendered dynamically -->
               </tbody>
             </table>
           </div>

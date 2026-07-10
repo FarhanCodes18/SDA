@@ -137,6 +137,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveAttBtn) {
     saveAttBtn.addEventListener('click', handleSaveAttendanceSheet);
   }
+
+  // Assignment form listener
+  const addAssignForm = document.getElementById('add-assignment-form');
+  if (addAssignForm) addAssignForm.addEventListener('submit', handleAddAssignment);
 });
 
 let adminData = {};
@@ -198,6 +202,10 @@ async function loadAdminData() {
     renderAdminQuizzes();
     renderQuizResultsLogs();
     populateQuizCourseDropdown(data.courses);
+
+    // O. Populate Assignments Manager
+    renderAdminAssignments(data.assignments || [], data.courses || []);
+    renderAdminSubmissions(data.submissions || [], data.assignments || []);
 
   } catch (error) {
     console.error('Error fetching admin data:', error);
@@ -328,6 +336,7 @@ function renderCourses(courses) {
 function populateCourseDropdowns(courses) {
   const select = document.getElementById('rec-course');
   const attSelect = document.getElementById('att-course-select');
+  const asgnSelect = document.getElementById('asgn-course');
 
   if (select) {
     select.innerHTML = `<option value="all">Accessible to All Students</option>`;
@@ -348,6 +357,16 @@ function populateCourseDropdowns(courses) {
       attSelect.appendChild(opt);
     });
   }
+
+  if (asgnSelect) {
+    asgnSelect.innerHTML = `<option value="all">All Students</option>`;
+    courses.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.innerText = c.title;
+      asgnSelect.appendChild(opt);
+    });
+  }
 }
 
 // Render Enrollments
@@ -356,7 +375,7 @@ function renderEnrollments(enrollments, courses) {
   if (!tbody) return;
 
   if (enrollments.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No course enrollment requests found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No course enrollment requests found.</td></tr>`;
     return;
   }
 
@@ -373,12 +392,19 @@ function renderEnrollments(enrollments, courses) {
     
     const screenshot = e.screenshot || matchingPayment?.screenshot;
     const paymentId = matchingPayment?.id;
+    const progress = e.progress !== undefined ? e.progress : 0;
+    const progressInputId = `progress-${e.id}`;
+
+    // Streak info for this student
+    const studentData = adminData.students?.find(s => s.id === e.studentId);
+    const streak = studentData?.streak || 0;
 
     return `
       <tr>
         <td>
           <div style="font-weight: 600; color: var(--text-primary);">${e.studentName}</div>
           <div style="font-size:12px; color:var(--text-muted);">${e.studentEmail} &bull; ${e.studentMobile}</div>
+          ${streak > 0 ? `<span class="streak-admin-badge" style="margin-top:4px;"><i class="fas fa-fire"></i> ${streak} Day Streak</span>` : ''}
         </td>
         <td>${e.address || 'N/A'}</td>
         <td style="font-weight: 600;">${courseTitle}</td>
@@ -391,6 +417,22 @@ function renderEnrollments(enrollments, courses) {
         </td>
         <td><span class="badge ${e.status === 'approved' ? 'approved' : 'pending'}">${e.status}</span></td>
         <td>
+          ${e.status === 'approved' ? `
+            <div style="min-width:160px;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <div class="course-progress-bar-track" style="flex:1; height:6px;">
+                  <div class="course-progress-bar-fill" style="width:${progress}%;"></div>
+                </div>
+                <span style="font-size:12px; font-weight:800; color:var(--accent-color); min-width:30px;">${progress}%</span>
+              </div>
+              <div class="progress-update-row">
+                <input type="number" id="${progressInputId}" value="${progress}" min="0" max="100" placeholder="0-100">
+                <button onclick="updateEnrollmentProgress('${e.id}', '${progressInputId}')" class="btn-primary" style="font-size:11px; padding:5px 10px;">Set</button>
+              </div>
+            </div>
+          ` : '<span style="color:var(--text-muted); font-size:12px;">Pending approval</span>'}
+        </td>
+        <td>
           ${e.status === 'pending' && paymentId
             ? `<button onclick="approvePaymentDirectly('${paymentId}')" class="btn-primary" style="padding: 6px 12px; font-size: 11px; background: var(--success); border-color: var(--success); box-shadow: none;">
                  <i class="fas fa-check"></i> Approve
@@ -402,6 +444,7 @@ function renderEnrollments(enrollments, courses) {
     `;
   }).join('');
 }
+
 
 // Render Payments Logs
 function renderPayments(payments) {
@@ -556,7 +599,7 @@ function renderAnnouncements(announcements) {
   if (!container) return;
 
   if (announcements.length === 0) {
-    container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">No announcements releases.</p>`;
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center;">No announcements released yet.</p>`;
     return;
   }
 
@@ -564,7 +607,14 @@ function renderAnnouncements(announcements) {
     <div class="glass-card announcement-item" style="margin-bottom: 12px; padding: 16px;">
       <div class="notice-item-header" style="margin-bottom: 4px;">
         <span class="notice-title" style="font-size: 14px; font-weight: 600;"><i class="fas fa-comment-dots" style="color: #3b82f6;"></i> Announcement</span>
-        <span class="announcement-date">${a.date}</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="announcement-date">${a.date}</span>
+          <button onclick="handleDeleteAnnouncement('${a.id}')" title="Delete Announcement"
+            style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--danger); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; transition: all 0.2s;"
+            onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       </div>
       <div class="announcement-body" style="font-size: 13px;">${a.message}</div>
     </div>
@@ -700,7 +750,7 @@ async function handleAddNotice(e) {
   }
 }
 
-// --- ANNOUNCEMENT BOARD BROADCST HANDLER ---
+// --- ANNOUNCEMENT BOARD BROADCAST HANDLER ---
 async function handleAddAnnouncement(e) {
   e.preventDefault();
 
@@ -713,6 +763,17 @@ async function handleAddAnnouncement(e) {
     await loadAdminData();
   } catch (error) {
     showToast(error.message || 'Failed to post announcement.', 'error');
+  }
+}
+
+async function handleDeleteAnnouncement(id) {
+  if (!confirm('Are you sure you want to delete this announcement?')) return;
+  try {
+    const res = await apiCall(`/announcements/${id}`, 'DELETE', null, true);
+    showToast(res.message || 'Announcement deleted!', 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete announcement.', 'error');
   }
 }
 
@@ -1312,3 +1373,245 @@ window.closeQuizModal = closeQuizModal;
 window.openEditQuizModal = openEditQuizModal;
 window.addQuizQuestionField = addQuizQuestionField;
 window.handleDeleteQuiz = handleDeleteQuiz;
+
+// ==========================================
+// ASSIGNMENTS MANAGER (Admin)
+// ==========================================
+
+function switchAdminAssignTab(tab) {
+  const manageTab = document.getElementById('admin-assign-manage-tab');
+  const submissionsTab = document.getElementById('admin-submissions-tab');
+  const createBtn = document.getElementById('tab-create-assign-btn');
+  const submissionsBtn = document.getElementById('tab-submissions-btn');
+
+  if (tab === 'create') {
+    if (manageTab) manageTab.style.display = 'block';
+    if (submissionsTab) submissionsTab.style.display = 'none';
+    if (createBtn) createBtn.classList.add('active');
+    if (submissionsBtn) submissionsBtn.classList.remove('active');
+  } else {
+    if (manageTab) manageTab.style.display = 'none';
+    if (submissionsTab) submissionsTab.style.display = 'block';
+    if (createBtn) createBtn.classList.remove('active');
+    if (submissionsBtn) submissionsBtn.classList.add('active');
+  }
+}
+
+function renderAdminAssignments(assignments, courses) {
+  const grid = document.getElementById('admin-assignments-grid');
+  if (!grid) return;
+
+  if (assignments.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; color:var(--text-muted); padding:40px;">
+      <i class="fas fa-file-alt" style="font-size:40px; margin-bottom:12px; display:block;"></i>
+      <p>No assignments created yet. Use the form above to create one.</p>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = assignments.map(a => {
+    const courseName = a.courseId === 'all' 
+      ? 'All Students' 
+      : (courses.find(c => c.id === a.courseId)?.title || a.courseId);
+    const dueText = a.dueDate 
+      ? new Date(a.dueDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) 
+      : 'No due date';
+    return `
+      <div class="assignment-card">
+        <div class="assignment-card-header">
+          <span class="assignment-title">${a.title}</span>
+          <span class="badge-submitted" style="white-space:nowrap;"><i class="fas fa-users"></i> ${courseName}</span>
+        </div>
+        <div class="assignment-meta">
+          <span><i class="fas fa-star" style="color:var(--warning);"></i> Max: ${a.maxMarks} marks</span>
+          <span><i class="fas fa-calendar-alt"></i> ${dueText}</span>
+        </div>
+        <p class="assignment-desc">${a.description}</p>
+        <div class="assignment-footer">
+          <span style="font-size:11px; color:var(--text-muted);"><i class="fas fa-clock"></i> Created: ${new Date(a.createdAt).toLocaleDateString('en-IN')}</span>
+          <button onclick="handleDeleteAssignment('${a.id}')" class="btn-primary" style="background:var(--danger); box-shadow:none; font-size:12px; padding:7px 14px;">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleAddAssignment(e) {
+  e.preventDefault();
+  const title = document.getElementById('asgn-title').value.trim();
+  const description = document.getElementById('asgn-desc').value.trim();
+  const courseId = document.getElementById('asgn-course').value;
+  const dueDate = document.getElementById('asgn-due').value || null;
+  const maxMarks = document.getElementById('asgn-marks').value;
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const origHTML = submitBtn.innerHTML;
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Creating... <i class="fas fa-spinner fa-spin"></i>';
+    const res = await apiCall('/assignments', 'POST', { title, description, courseId, dueDate, maxMarks }, true);
+    showToast(res.message, 'success');
+    e.target.reset();
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to create assignment.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = origHTML;
+  }
+}
+
+async function handleDeleteAssignment(id) {
+  if (!confirm('Are you sure you want to delete this assignment?')) return;
+  try {
+    const res = await apiCall(`/assignments/${id}`, 'DELETE', null, true);
+    showToast(res.message, 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete assignment.', 'error');
+  }
+}
+
+function renderAdminSubmissions(submissions, assignments) {
+  const tbody = document.getElementById('submissions-tbody');
+  if (!tbody) return;
+
+  if (submissions.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:32px;">No student submissions yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = submissions.map(s => {
+    const asgn = assignments.find(a => a.id === s.assignmentId);
+    const maxMarks = asgn ? asgn.maxMarks : '—';
+    const statusBadge = s.status === 'graded'
+      ? `<span class="badge-graded"><i class="fas fa-check-double"></i> Graded</span>`
+      : `<span class="badge-pending-sub"><i class="fas fa-clock"></i> Pending Review</span>`;
+    return `
+      <tr>
+        <td>
+          <div style="font-weight:600; color:var(--text-primary);">${s.studentName}</div>
+          <div style="font-size:11px; color:var(--text-muted);">${s.studentEmail}</div>
+        </td>
+        <td style="font-weight:600;">${s.assignmentTitle}</td>
+        <td>${new Date(s.submittedAt).toLocaleDateString('en-IN')}</td>
+        <td style="max-width:180px; font-size:12px; color:var(--text-secondary);">${s.notes || '—'}</td>
+        <td>
+          ${s.fileUrl
+            ? `<a href="${s.fileUrl}" target="_blank" class="btn-secondary" style="font-size:11px; padding:4px 8px;">
+                <i class="fas fa-download"></i> Download
+              </a>`
+            : '<span style="color:var(--text-muted);">No file</span>'
+          }
+        </td>
+        <td>${statusBadge}</td>
+        <td>${s.marks !== null ? `<strong style="color:var(--success);">${s.marks}</strong> / ${maxMarks}` : `— / ${maxMarks}`}</td>
+        <td>
+          ${s.status !== 'graded'
+            ? `<button onclick="openGradeModal('${s.id}', ${maxMarks})" class="btn-primary" style="font-size:11px; padding:6px 12px;">
+                <i class="fas fa-star"></i> Grade
+              </button>`
+            : `<button onclick="openGradeModal('${s.id}', ${maxMarks})" class="btn-secondary" style="font-size:11px; padding:6px 12px;">
+                <i class="fas fa-edit"></i> Update
+              </button>`
+          }
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Grade modal (inline dynamic creation)
+let activeGradeSubmissionId = null;
+let activeGradeMaxMarks = 100;
+
+function openGradeModal(submissionId, maxMarks) {
+  activeGradeSubmissionId = submissionId;
+  activeGradeMaxMarks = maxMarks || 100;
+
+  let modal = document.getElementById('grade-submission-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'grade-submission-modal';
+    modal.className = 'modal-overlay';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Grade Submission</h3>
+        <button class="modal-close" onclick="closeGradeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Marks Awarded (out of ${maxMarks})</label>
+          <input type="number" id="grade-marks-input" class="form-control" min="0" max="${maxMarks}" placeholder="e.g. 85">
+        </div>
+        <div class="form-group">
+          <label>Feedback / Comments</label>
+          <textarea id="grade-feedback-input" class="form-control" placeholder="Add instructor feedback here..."></textarea>
+        </div>
+        <button onclick="gradeSubmission()" class="btn-primary" style="width:100%; justify-content:center;">
+          Save Grade <i class="fas fa-check"></i>
+        </button>
+      </div>
+    </div>
+  `;
+  modal.classList.add('active');
+}
+
+function closeGradeModal() {
+  const modal = document.getElementById('grade-submission-modal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function gradeSubmission() {
+  const marks = document.getElementById('grade-marks-input').value;
+  const feedback = document.getElementById('grade-feedback-input').value.trim();
+
+  if (marks === '' || Number(marks) < 0 || Number(marks) > activeGradeMaxMarks) {
+    showToast(`Please enter valid marks between 0 and ${activeGradeMaxMarks}.`, 'error');
+    return;
+  }
+
+  try {
+    const res = await apiCall(`/submissions/${activeGradeSubmissionId}/grade`, 'PUT', { marks, feedback }, true);
+    showToast(res.message, 'success');
+    closeGradeModal();
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to grade submission.', 'error');
+  }
+}
+
+// ==========================================
+// ENROLLMENT PROGRESS UPDATE (Admin)
+// ==========================================
+async function updateEnrollmentProgress(enrollId, inputId) {
+  const progress = document.getElementById(inputId).value;
+  if (progress === '' || progress < 0 || progress > 100) {
+    showToast('Please enter a valid progress value (0-100).', 'error');
+    return;
+  }
+  try {
+    const res = await apiCall(`/enrollments/${enrollId}/progress`, 'PUT', { progress: Number(progress) }, true);
+    showToast(`Progress updated to ${progress}%!`, 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to update progress.', 'error');
+  }
+}
+
+// Attach new functions to global window
+window.switchAdminAssignTab = switchAdminAssignTab;
+window.handleDeleteAssignment = handleDeleteAssignment;
+window.openGradeModal = openGradeModal;
+window.closeGradeModal = closeGradeModal;
+window.gradeSubmission = gradeSubmission;
+window.updateEnrollmentProgress = updateEnrollmentProgress;
+window.handleDeleteAnnouncement = handleDeleteAnnouncement;
+

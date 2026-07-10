@@ -713,6 +713,8 @@ async function handleFirebaseRequest(url, init) {
       const recordedClasses = await getCollectionDocs(db, 'recordedClasses');
       const quizzes = await getCollectionDocs(db, 'quizzes');
       const quizResults = await getCollectionDocs(db, 'quizResults');
+      const assignments = await getCollectionDocs(db, 'assignments');
+      const submissions = await getCollectionDocs(db, 'submissions');
       
       const students = users.filter(u => u.role === 'student');
       const totalCourses = courses.length;
@@ -723,7 +725,7 @@ async function handleFirebaseRequest(url, init) {
       
       return makeMockResponse({
         stats: { totalCourses, totalStudents, totalContacts, totalPayments, totalRevenue },
-        students: students.map(s => { delete s.password; return s; }),
+        students: students.map(s => { const sc = {...s}; delete sc.password; return sc; }),
         courses,
         enrollments,
         payments,
@@ -734,9 +736,12 @@ async function handleFirebaseRequest(url, init) {
         recordedClasses,
         achievers: await getCollectionDocs(db, 'achievers'),
         quizzes,
-        quizResults
+        quizResults,
+        assignments,
+        submissions
       });
     }
+
     
     if (pathParts[0] === 'payments' && pathParts[2] === 'status' && method === 'PUT') {
       const payId = pathParts[1];
@@ -850,6 +855,10 @@ async function handleFirebaseRequest(url, init) {
         };
         await db.collection('announcements').doc(newAnn.id).set(newAnn);
         return makeMockResponse({ message: 'Announcement added successfully!', announcement: newAnn }, 201);
+      }
+      if (method === 'DELETE' && pathParts[1]) {
+        await db.collection('announcements').doc(pathParts[1]).delete();
+        return makeMockResponse({ message: 'Announcement deleted successfully!' });
       }
     }
     
@@ -1011,7 +1020,126 @@ async function handleFirebaseRequest(url, init) {
       }
     }
     
+    // --- 12. ASSIGNMENTS ---
+    if (pathParts[0] === 'assignments') {
+
+      // POST /api/assignments/:id/submit — Student submits assignment
+      if (pathParts[2] === 'submit' && method === 'POST') {
+        const assignmentId = pathParts[1];
+        const studentId = getStudentIdFromHeaders(init);
+
+        const asgnDoc = await db.collection('assignments').doc(assignmentId).get();
+        if (!asgnDoc.exists) return makeMockResponse({ message: 'Assignment not found.' }, 404, false);
+        const asgn = asgnDoc.data();
+
+        // Check duplicate
+        const existingSub = await db.collection('submissions')
+          .where('assignmentId', '==', assignmentId)
+          .where('studentId', '==', studentId)
+          .get();
+        if (!existingSub.empty) {
+          return makeMockResponse({ message: 'You have already submitted this assignment.' }, 400, false);
+        }
+
+        const userDoc = await db.collection('users').doc(studentId).get();
+        const student = userDoc.data();
+
+        const subId = 'sub_' + Date.now();
+        const newSub = {
+          id: subId,
+          assignmentId,
+          assignmentTitle: asgn.title,
+          studentId,
+          studentName: student?.name || 'Student',
+          studentEmail: student?.email || '',
+          fileUrl: payload.fileUrl || null,
+          notes: payload.notes || '',
+          status: 'submitted',
+          marks: null,
+          feedback: '',
+          submittedAt: new Date().toISOString()
+        };
+        await db.collection('submissions').doc(subId).set(newSub);
+        return makeMockResponse({ message: 'Assignment submitted successfully!', submission: newSub }, 201);
+      }
+
+      // GET /api/assignments — Get all (admin) or filtered (student)
+      if (method === 'GET' && !pathParts[1]) {
+        const assignments = await getCollectionDocs(db, 'assignments');
+        assignments.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+        return makeMockResponse(assignments);
+      }
+
+      // POST /api/assignments — Admin creates assignment
+      if (method === 'POST' && !pathParts[1]) {
+        const asgnId = 'asgn_' + Date.now();
+        const user = Auth.getUser();
+        const newAsgn = {
+          id: asgnId,
+          title: payload.title,
+          description: payload.description,
+          dueDate: payload.dueDate || null,
+          courseId: payload.courseId || 'all',
+          maxMarks: Number(payload.maxMarks) || 100,
+          createdAt: new Date().toISOString(),
+          createdBy: user?.name || 'Admin'
+        };
+        await db.collection('assignments').doc(asgnId).set(newAsgn);
+        return makeMockResponse({ message: 'Assignment created successfully!', assignment: newAsgn }, 201);
+      }
+
+      // DELETE /api/assignments/:id — Admin deletes assignment
+      if (pathParts[1] && method === 'DELETE') {
+        await db.collection('assignments').doc(pathParts[1]).delete();
+        return makeMockResponse({ message: 'Assignment deleted successfully!' });
+      }
+    }
+
+    // --- 13. SUBMISSIONS ---
+    if (pathParts[0] === 'submissions') {
+
+      // GET /api/submissions — Admin gets all
+      if (method === 'GET' && !pathParts[1]) {
+        const submissions = await getCollectionDocs(db, 'submissions');
+        submissions.sort((a, b) => (b.submittedAt || '').localeCompare(a.submittedAt || ''));
+        return makeMockResponse(submissions);
+      }
+
+      // PUT /api/submissions/:id/grade — Admin grades submission
+      if (pathParts[2] === 'grade' && method === 'PUT') {
+        const subId = pathParts[1];
+        const subRef = db.collection('submissions').doc(subId);
+        const subDoc = await subRef.get();
+        if (!subDoc.exists) return makeMockResponse({ message: 'Submission not found.' }, 404, false);
+
+        await subRef.update({
+          marks: Number(payload.marks),
+          feedback: payload.feedback || '',
+          status: 'graded',
+          gradedAt: new Date().toISOString()
+        });
+        const updated = (await subRef.get()).data();
+        return makeMockResponse({ message: 'Submission graded successfully!', submission: updated });
+      }
+    }
+
+    // --- 14. ENROLLMENT PROGRESS UPDATE ---
+    if (pathParts[0] === 'enrollments' && pathParts[2] === 'progress' && method === 'PUT') {
+      const enrollId = pathParts[1];
+      const progress = Number(payload.progress);
+      if (isNaN(progress) || progress < 0 || progress > 100) {
+        return makeMockResponse({ message: 'Progress must be between 0 and 100.' }, 400, false);
+      }
+      const enrollRef = db.collection('enrollments').doc(enrollId);
+      const enrollDoc = await enrollRef.get();
+      if (!enrollDoc.exists) return makeMockResponse({ message: 'Enrollment not found.' }, 404, false);
+      await enrollRef.update({ progress, progressUpdatedAt: new Date().toISOString() });
+      const updated = (await enrollRef.get()).data();
+      return makeMockResponse({ message: 'Course progress updated!', enrollment: updated });
+    }
+
     return makeMockResponse({ message: `Mock API: Path '${pathname}' not found.` }, 404, false);
+
     
   } catch (error) {
     console.error(`[Firebase API Intercept Error]`, error);
