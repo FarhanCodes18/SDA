@@ -26,6 +26,20 @@
   --card-gap: 24px;
 }
 
+body.light-theme {
+  --bg-primary: #f5f6fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #edf0f5;
+  --text-primary: #111116;
+  --text-secondary: #525262;
+  --text-muted: #888896;
+  --border-color: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(255, 75, 43, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
+
 /* Global Reset */
 * {
   box-sizing: border-box;
@@ -607,30 +621,157 @@ a {
 }
 
 /* Authentication Page Forms */
+/* Authentication Page Forms — Premium Split-Screen Layout */
 .auth-page {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
   align-items: center;
-  background: radial-gradient(circle at 10% 10%, rgba(255, 75, 43, 0.05) 0%, transparent 50%),
-              radial-gradient(circle at 90% 90%, rgba(255, 75, 43, 0.05) 0%, transparent 50%);
-  padding: 40px 16px;
+  justify-content: center;
+  background: radial-gradient(circle at 0% 0%, rgba(255, 75, 43, 0.06) 0%, transparent 50%),
+              radial-gradient(circle at 100% 100%, rgba(255, 75, 43, 0.04) 0%, transparent 50%),
+              #08080c;
+  font-family: var(--font-main);
+  padding: clamp(10px, 4vw, 30px);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Floating animated background blobs */
+.auth-bg-blob {
+  position: absolute;
+  width: min(350px, 80vw);
+  height: min(350px, 80vw);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 75, 43, 0.08) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+  animation: authBlobFloat 8s infinite alternate ease-in-out;
+}
+
+.auth-bg-blob-1 {
+  top: 10%;
+  left: 5%;
+}
+
+.auth-bg-blob-2 {
+  bottom: 10%;
+  right: 5%;
+  animation-delay: -4s;
+}
+
+@keyframes authBlobFloat {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(30px) scale(1.08); }
+}
+
+.auth-wrapper {
+  display: flex;
+  width: 100%;
+  max-width: 1000px;
+  background: rgba(18, 18, 24, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.auth-brand-panel {
+  flex: 1.1;
+  background: linear-gradient(135deg, rgba(255, 75, 43, 0.05) 0%, rgba(255, 65, 108, 0.01) 100%);
+  padding: 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  position: relative;
+}
+
+.auth-brand-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at 10% 20%, rgba(255, 75, 43, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.brand-panel-header {
+  z-index: 1;
+}
+
+.brand-features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin: 40px 0;
+  z-index: 1;
+}
+
+.brand-feature-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.brand-feature-icon {
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 75, 43, 0.1);
+  color: var(--accent-color);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 75, 43, 0.15);
+}
+
+.brand-feature-text h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  font-family: var(--font-header);
+}
+
+.brand-feature-text p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.auth-form-panel {
+  flex: 0.9;
+  padding: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .auth-card {
   width: 100%;
-  max-width: 460px;
-  padding: 40px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .auth-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 30px;
 }
 
 .auth-header h2 {
   font-size: 28px;
   margin-bottom: 8px;
+  font-family: var(--font-header);
+  color: var(--text-primary);
 }
 
 .auth-header p {
@@ -689,6 +830,35 @@ a {
   font-size: 15px;
 }
 
+/* Password Show/Hide Eye Toggle */
+.auth-input-eye {
+  padding-right: 46px; /* room for the eye button */
+}
+
+.eye-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 0;
+  min-height: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  z-index: 5;
+}
+
+.eye-toggle:hover {
+  color: var(--accent-color);
+}
+
+
 .auth-redirect {
   text-align: center;
   margin-top: 24px;
@@ -699,6 +869,19 @@ a {
 .auth-redirect a {
   color: var(--accent-color);
   font-weight: 600;
+}
+
+/* Collapsing layout for mobile and tablet views */
+@media (max-width: 900px) {
+  .auth-brand-panel {
+    display: none;
+  }
+  .auth-wrapper {
+    max-width: 480px;
+  }
+  .auth-form-panel {
+    padding: 36px 24px;
+  }
 }
 
 /* Dashboard Sidebar Layout */
@@ -762,6 +945,26 @@ a {
   gap: 4px;
   padding: 0 12px;
   flex-grow: 1;
+  overflow-y: auto;
+  min-height: 0;
+  margin-bottom: 16px;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 .sidebar-item a {
@@ -1366,6 +1569,7 @@ select.form-control option {
   .sidebar-menu {
     flex-direction: column !important;
     overflow-x: visible !important;
+    overflow-y: auto !important;
     padding: 0 12px !important;
   }
   .sidebar-item a {
@@ -1908,15 +2112,21 @@ html {
   max-width: 560px;
 }
 
+/* =========================================================
+   CONTACT INFO LIST & CARDS — FULLY RESPONSIVE
+   ========================================================= */
+
+/* Default: 2 columns on desktop */
 .contact-info-list {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
+  gap: 20px;
+  align-items: stretch; /* Equal heights across all cards in a row */
 }
 
 .contact-info-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Icon aligns with top of text block */
   gap: 16px;
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
@@ -1924,13 +2134,18 @@ html {
   padding: 18px;
   box-shadow: var(--shadow-glow);
   transition: var(--transition);
-  min-height: 96px; /* Ensures all cards have equal consistent heights across different rows */
+  /* No fixed min-height — let grid stretch control equal heights */
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.contact-info-card:hover {
-  border-color: rgba(255, 75, 43, 0.25);
-  box-shadow: 0 8px 24px rgba(255, 75, 43, 0.15);
-  transform: translateY(-3px);
+/* Hover effects only on devices with a real pointer/mouse (not touch) */
+@media (hover: hover) and (pointer: fine) {
+  .contact-info-card:hover {
+    border-color: rgba(255, 75, 43, 0.25);
+    box-shadow: 0 8px 24px rgba(255, 75, 43, 0.15);
+    transform: translateY(-3px);
+  }
 }
 
 .info-icon {
@@ -1943,7 +2158,12 @@ html {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  flex-shrink: 0;
+  flex-shrink: 0; /* Icon never shrinks, text wraps instead */
+}
+
+.info-content {
+  flex: 1;
+  min-width: 0; /* Allow flex child to shrink below its content size */
 }
 
 .info-content h4 {
@@ -1961,6 +2181,28 @@ html {
   overflow-wrap: break-word;
 }
 
+/* Phone: never break the number across lines */
+.contact-phone {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Email: wrap naturally at the @ sign or any character to avoid overflow */
+.contact-email {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+
+/* Address, hours, timings: word-level wrapping */
+.contact-address,
+.contact-hours,
+.contact-timings {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 .contact-form-panel .glass-card {
   padding: 30px;
   border-color: rgba(255, 255, 255, 0.08);
@@ -1973,7 +2215,7 @@ html {
   color: var(--text-primary);
 }
 
-/* WhatsApp Floating Button */
+/* WhatsApp Floating Button — desktop default */
 .whatsapp-float {
   position: fixed;
   width: 60px;
@@ -1993,11 +2235,13 @@ html {
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.whatsapp-float:hover {
-  transform: scale(1.1) rotate(10deg);
-  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.6);
-  background-color: #20ba5a;
-  color: #fff;
+@media (hover: hover) and (pointer: fine) {
+  .whatsapp-float:hover {
+    transform: scale(1.1) rotate(10deg);
+    box-shadow: 0 8px 24px rgba(37, 211, 102, 0.6);
+    background-color: #20ba5a;
+    color: #fff;
+  }
 }
 
 /* Scroll Reveal Helper Classes */
@@ -2012,12 +2256,190 @@ html {
   transform: translateY(0);
 }
 
-/* Responsive adjust contact */
+/* =========================================================
+   RESPONSIVE CONTACT SECTION — TABLET & MOBILE
+   ========================================================= */
+
+/* ---- Tablet Large: 1025px and below — collapse 2-col page grid to 1-col ---- */
 @media (max-width: 1023px) {
   .contact-section-grid,
   .contact-page-grid {
     grid-template-columns: 1fr;
     gap: 40px;
+  }
+}
+
+/* ---- Tablet: 768px – 1024px — 2 contact cards per row, reduced spacing ---- */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .contact-info-list {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .contact-info-card {
+    padding: 14px;
+    gap: 14px;
+    border-radius: 10px;
+  }
+
+  .info-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    border-radius: 8px;
+  }
+
+  .info-content h4 {
+    font-size: 13px;
+  }
+
+  .info-content p {
+    font-size: 14px;
+  }
+}
+
+/* ---- Mobile: below 768px — 1 card per row, full width ---- */
+@media (max-width: 767px) {
+  .contact-info-list {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .contact-info-card {
+    padding: 14px 16px;
+    gap: 14px;
+    border-radius: 10px;
+    align-items: center; /* Icon vertically centered on single-line rows */
+  }
+
+  .info-icon {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
+    border-radius: 8px;
+  }
+
+  .info-content h4 {
+    font-size: 13px;
+  }
+
+  .info-content p {
+    font-size: 14px;
+  }
+
+  /* Align cards with multi-line text (e.g. Batch Timings) back to top */
+  .contact-info-card:has(.contact-timings) {
+    align-items: flex-start;
+  }
+
+  /* Contact section layout on mobile */
+  .contact-section-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  /* WhatsApp button: safe from footer overlap on mobile */
+  .whatsapp-float {
+    width: 52px;
+    height: 52px;
+    bottom: 24px;
+    right: 20px;
+    font-size: 28px;
+  }
+}
+
+/* ---- Small Mobile: below 480px (360px, 375px, 390px, 414px) ---- */
+@media (max-width: 480px) {
+  .contact-info-list {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .contact-info-card {
+    padding: 12px 14px;
+    gap: 12px;
+    border-radius: 10px;
+  }
+
+  .info-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .info-content h4 {
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+
+  .info-content p {
+    font-size: 13px;
+  }
+
+  /* Email must wrap safely on very narrow screens */
+  .contact-email {
+    font-size: 12px;
+  }
+
+  /* Keep phone readable and on one line */
+  .contact-phone {
+    font-size: 13px;
+  }
+
+  /* WhatsApp button on small mobile */
+  .whatsapp-float {
+    width: 48px;
+    height: 48px;
+    bottom: 20px;
+    right: 16px;
+    font-size: 25px;
+  }
+}
+
+/* ---- Very Small Mobile: below 375px (320px) ---- */
+@media (max-width: 374px) {
+  .contact-info-card {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .info-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+    border-radius: 7px;
+  }
+
+  .info-content h4 {
+    font-size: 11px;
+  }
+
+  .info-content p,
+  .contact-phone,
+  .contact-hours,
+  .contact-timings {
+    font-size: 12px;
+  }
+
+  /* Email wraps at character level to prevent ANY overflow at 320px */
+  .contact-email {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  /* Section padding reduction */
+  #contact {
+    padding: 64px 0;
+  }
+
+  /* WhatsApp button: smallest safe size */
+  .whatsapp-float {
+    width: 44px;
+    height: 44px;
+    bottom: 16px;
+    right: 14px;
+    font-size: 22px;
   }
 }
 
@@ -3196,3 +3618,1136 @@ iframe {
   }
 }
 
+/* Print Resume Styling */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #resume-cv-paper, #resume-cv-paper * {
+    visibility: visible;
+  }
+  #resume-cv-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+}
+
+
+
+/* ================================================================
+   COMPLETE RESPONSIVE SYSTEM — ALL PAGES, ALL BREAKPOINTS
+   Covers: 320px, 360px, 375px, 390px, 412px, 430px, 480px,
+           576px, 768px, 820px, 992px, 1024px, 1200px, 1366px,
+           1440px, 1600px, 1920px
+   Rules: Mobile-first, no horizontal scroll, no overflow,
+          preserve all desktop design/colors/animations exactly.
+   ================================================================ */
+
+/* ─── GLOBAL BASELINE ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Prevent iOS font-size auto-zoom on input focus */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  /* Prevent any horizontal overflow across all pages */
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* All images are responsive by default */
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+iframe {
+  max-width: 100%;
+}
+
+/* Touch-friendly tap targets — minimum 44×44px */
+button,
+.btn-primary,
+.btn-secondary,
+.filter-btn,
+.sidebar-item a,
+.hamburger {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+/* Prevent long email / URLs from overflowing any container */
+p, span, li, td, th {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+
+/* ─── NAVBAR ─────────────────────────────────────────────────── */
+
+/* Ensure nav-container never overflows */
+.nav-container {
+  padding: 0 clamp(16px, 4vw, 40px);
+  box-sizing: border-box;
+  max-width: 1400px;
+}
+
+/* Notification dropdown: clamp width so it never overflows viewport */
+#notif-dropdown-pane {
+  max-width: min(320px, calc(100vw - 32px)) !important;
+  right: 0 !important;
+  left: auto !important;
+}
+
+
+/* ─── HERO SECTION ─────────────────────────────────────────── */
+
+/* The "online only" notice badge wraps on small screens */
+.online-only-notice {
+  flex-wrap: wrap;
+  text-align: center;
+  justify-content: center;
+}
+
+
+/* ─── STATS SECTION ─────────────────────────────────────────── */
+
+.stats-grid {
+  text-align: center;
+}
+
+.stat-item {
+  padding: clamp(12px, 3vw, 24px);
+}
+
+
+/* ─── SECTION SPACING (clamp-based, fluid) ──────────────────── */
+
+.section {
+  padding: clamp(50px, 7vw, 100px) 0;
+}
+
+.section-container {
+  padding-left: clamp(16px, 4vw, 0px);
+  padding-right: clamp(16px, 4vw, 0px);
+}
+
+.section-header {
+  margin-bottom: clamp(32px, 5vw, 60px);
+}
+
+
+/* ─── COURSE CARDS ─────────────────────────────────────────── */
+
+/* Desktop: 4 col → Laptop: 3 col → Tablet: 2 col → Mobile: 1 col */
+.courses-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+/* Make all course card images the same height */
+.course-card img,
+.project-img-wrapper img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+
+/* ─── FOOTER ─────────────────────────────────────────────────── */
+
+.footer-contact-item {
+  /* Icon stays on same line; long email text wraps cleanly */
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  word-break: break-word;
+}
+
+.footer-contact-item i {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Footer bottom row wraps gracefully */
+.footer-bottom {
+  text-align: center;
+}
+
+
+/* ─── DASHBOARD SIDEBAR ─────────────────────────────────────── */
+
+/* Sidebar menu items: icon always visible, text truncated if needed */
+.sidebar-item a {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* ─── TABLES ─────────────────────────────────────────────────── */
+
+/* Student dashboard payment / attendance tables */
+.table-responsive {
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+}
+
+/* Student dashboard: smaller min-widths than admin tables */
+#dashboard-payments .data-table,
+#dashboard-attendance .data-table {
+  min-width: 600px;
+}
+
+
+/* ─── MODALS ─────────────────────────────────────────────────── */
+
+.modal-overlay {
+  /* Prevent modal from causing body scroll on mobile */
+  -webkit-overflow-scrolling: touch;
+  padding: 16px;
+}
+
+.modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+
+/* ─── FORMS ─────────────────────────────────────────────────── */
+
+/* All form controls 100% wide inside any container */
+.form-control,
+.auth-input,
+select.form-control {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Prevent iOS auto-zoom on small inputs (font-size ≥ 16px) */
+@media (max-width: 767px) {
+  .form-control,
+  .auth-input,
+  select.form-control,
+  textarea.form-control {
+    font-size: 16px !important;
+  }
+}
+
+
+/* ─── WHATSAPP FLOAT BUTTON ──────────────────────────────────── */
+
+/* Ensure WhatsApp button never overlaps footer or cards */
+.whatsapp-float {
+  /* z-index already 999, keep above footer */
+  bottom: clamp(16px, 4vw, 40px);
+  right: clamp(14px, 4vw, 40px);
+}
+
+
+/* ================================================================
+   BREAKPOINT: 1440px and below (Large laptop)
+   ================================================================ */
+@media (max-width: 1440px) {
+  .section-container {
+    width: 92%;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 1200px and below (Standard laptop)
+   ================================================================ */
+@media (max-width: 1200px) {
+  .hero-container {
+    gap: 40px;
+  }
+  .courses-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 1024px and below (Tablet landscape / small laptop)
+   ================================================================ */
+@media (max-width: 1024px) {
+  /* Hero */
+  .hero-container {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .hero-actions {
+    justify-content: center;
+  }
+  .hero p {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* 3-column course grid on tablet landscape */
+  .courses-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
+  }
+
+  /* Contact/page grids collapse to 1 col */
+  .contact-section-grid,
+  .contact-page-grid,
+  .founder-section-grid,
+  .certificate-section-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  /* Center-align founder section on tablet */
+  .founder-section-grid {
+    text-align: center;
+  }
+  .founder-section-grid > div:first-child {
+    display: flex;
+    justify-content: center;
+  }
+
+  /* Reduce founder image on tablet */
+  .founder-section-grid .glass-card {
+    display: inline-block;
+  }
+
+  /* Admin/student tabs nav: allow horizontal scroll on smaller screens */
+  .admin-tabs-nav {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .admin-tab-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Dashboard panel padding */
+  .dashboard-content {
+    padding: 28px !important;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 992px and below (iPad Pro / Tablet)
+   ================================================================ */
+@media (max-width: 992px) {
+  /* Placement / carousel */
+  #placement {
+    padding: 70px 0;
+  }
+
+  /* Stats: 2 columns */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  /* Streak stats always 3-col so numbers stay readable */
+  .streak-stats-row {
+    gap: 12px;
+  }
+
+  /* Course-finder wizard: single column options on tablet */
+  .responsive-grid-two-col {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* Profile settings: single column */
+  .profile-settings-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Playground: stack editor & console vertically */
+  .responsive-grid-profile {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+  #playground-code {
+    height: 260px !important;
+  }
+
+  /* Certificate section */
+  .certificate-section-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: center;
+  }
+  .certificate-section-grid button {
+    margin: 0 auto;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 820px and below (iPad Mini portrait)
+   ================================================================ */
+@media (max-width: 820px) {
+  /* 2-column course grid */
+  .courses-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  /* Founder image: shrink slightly */
+  .founder-section-grid .glass-card div {
+    width: 240px !important;
+    height: 300px !important;
+  }
+
+  /* Responsive 1-1 layout grid */
+  .responsive-grid-1-1,
+  .responsive-grid-1-3-0-7 {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 768px and below (Mobile landscape / large phones)
+   ================================================================ */
+@media (max-width: 768px) {
+  /* Show hamburger */
+  .hamburger {
+    display: inline-flex;
+  }
+
+  /* Navbar: hide desktop nav-auth on mobile (hamburger menu handles login) */
+  .nav-auth {
+    display: none;
+  }
+
+  /* Hero heading size */
+  .hero h1 {
+    font-size: clamp(22px, 6vw, 36px);
+  }
+
+  /* Hero visual: smaller circle */
+  .hero-image-wrapper {
+    max-width: 260px;
+    margin: 0 auto;
+  }
+
+  /* Stacked buttons stay touch-friendly */
+  .hero-actions {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Stats: 2 column on mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* Courses: 1 column on mobile portrait */
+  .courses-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Contact section */
+  .contact-section-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  /* Contact info cards: 1 per row */
+  .contact-info-list {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Founder section */
+  .founder-section-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    text-align: center;
+  }
+  .founder-section-grid > div:first-child {
+    justify-content: center;
+  }
+  .founder-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  /* Course finder wizard: 1-col options on mobile */
+  .responsive-grid-two-col {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* Footer */
+  .footer-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+
+  /* Dashboard sidebar: slide-out on mobile */
+  .dashboard-content {
+    margin-left: 0 !important;
+    padding: 20px !important;
+    width: 100% !important;
+  }
+
+  /* Panel header: wrap on mobile */
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  /* Quiz navigation buttons: wrap */
+  #quiz-active-view > div:last-child {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Assignment footer wrap */
+  .assignment-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  /* Leaderboard: stack */
+  .responsive-grid-1-3-0-7 {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  /* Forum filter: wrap on mobile */
+  #forum-filter-buttons {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Attendance control grid */
+  .attendance-control-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .attendance-control-grid button {
+    width: 100%;
+  }
+
+  /* Stats cards grid: 1 col on mobile */
+  .stats-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
+  }
+
+  /* Streak stats row on mobile */
+  .streak-stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .streak-count {
+    font-size: clamp(40px, 10vw, 72px);
+  }
+  .streak-fire-icon {
+    font-size: clamp(40px, 10vw, 64px);
+  }
+
+  /* Badges: 2 per row */
+  .streak-badges-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* WhatsApp button */
+  .whatsapp-float {
+    width: 52px;
+    height: 52px;
+    bottom: 24px;
+    right: 18px;
+    font-size: 26px;
+  }
+
+  /* Modals */
+  .modal-content {
+    width: 95%;
+  }
+  .modal-body {
+    padding: 16px;
+  }
+  .modal-header,
+  .modal-footer {
+    padding: 14px 16px;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 576px and below (Small tablet / large phone)
+   ================================================================ */
+@media (max-width: 576px) {
+  /* Course filter: wrap */
+  .courses-filter {
+    gap: 8px;
+  }
+  .filter-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* Course finder wizard: 1-col on small screens */
+  .responsive-grid-two-col {
+    grid-template-columns: 1fr !important;
+    gap: 10px;
+  }
+
+  /* Founder image: smaller on phone */
+  .founder-section-grid .glass-card div {
+    width: 200px !important;
+    height: 250px !important;
+  }
+
+  /* Stats: 1-col on very small tablet */
+  .stats-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px;
+  }
+
+  /* Section header margin */
+  .section-header {
+    margin-bottom: 28px;
+  }
+
+  /* Modal footer: stack buttons */
+  .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .modal-footer button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Hero: hide floating boxes */
+  .hero-box {
+    display: none;
+  }
+  .hero-image-wrapper {
+    max-width: 220px;
+  }
+
+  /* Streak stats: compact */
+  .streak-stat-card h3 {
+    font-size: 22px;
+  }
+  .streak-stat-card p {
+    font-size: 11px;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 480px and below (Most phones)
+   ================================================================ */
+@media (max-width: 480px) {
+  /* Section spacing */
+  .section {
+    padding: clamp(40px, 8vw, 70px) 0;
+  }
+
+  /* Hero */
+  .hero {
+    padding: clamp(90px, 15vw, 120px) 0 clamp(40px, 8vw, 70px) 0;
+  }
+  .hero h1 {
+    font-size: clamp(20px, 6.5vw, 32px);
+  }
+  .hero p {
+    font-size: clamp(13px, 3.5vw, 16px);
+  }
+  .hero-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+  .hero-actions a,
+  .hero-actions button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Stats: 1 col on very small phone */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    text-align: center;
+    gap: 16px;
+  }
+
+  /* Auth card */
+  .auth-card {
+    padding: 28px 18px;
+  }
+
+  /* Dashboard padding */
+  .dashboard-content {
+    padding: 14px !important;
+  }
+
+  /* Panel header */
+  .panel-header h2 {
+    font-size: clamp(20px, 5vw, 28px);
+  }
+
+  /* Contact section */
+  #contact {
+    padding: 60px 0;
+  }
+  .contact-heading {
+    font-size: clamp(22px, 6vw, 34px);
+  }
+
+  /* Contact info cards */
+  .contact-info-card {
+    padding: 12px 14px;
+    gap: 12px;
+  }
+  .info-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
+  }
+  .info-content h4 {
+    font-size: 12px;
+  }
+  .info-content p {
+    font-size: 13px;
+  }
+  .contact-email {
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  /* Course card footer: stack */
+  .course-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  /* Footer bottom */
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+
+  /* WhatsApp button: smaller on phone */
+  .whatsapp-float {
+    width: 48px;
+    height: 48px;
+    bottom: 20px;
+    right: 14px;
+    font-size: 24px;
+  }
+
+  /* Modal */
+  .modal-content {
+    width: 97%;
+  }
+  .modal-body {
+    padding: 14px;
+  }
+  .modal-header,
+  .modal-footer {
+    padding: 12px 14px;
+  }
+
+  /* Admin tab buttons: smaller font */
+  .admin-tab-btn {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  /* Code playground textarea: smaller on phone */
+  #playground-code {
+    height: 200px !important;
+    font-size: 12px !important;
+  }
+
+  /* Streak hero */
+  .streak-hero-card {
+    padding: 24px 16px;
+  }
+  .streak-count {
+    font-size: clamp(36px, 12vw, 60px);
+  }
+  .streak-fire-icon {
+    font-size: clamp(36px, 10vw, 56px);
+  }
+
+  /* Streak badges: 2 per row */
+  .streak-badges-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .streak-badge-card {
+    padding: 14px 10px;
+  }
+  .streak-badge-card .badge-icon {
+    font-size: 26px;
+  }
+
+  /* Section header typography */
+  .section-header h2 {
+    font-size: clamp(22px, 6vw, 36px);
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 430px and below (iPhone Plus / large Android)
+   ================================================================ */
+@media (max-width: 430px) {
+  .section-container {
+    width: 92%;
+  }
+
+  /* Courses filter: smaller chips */
+  .filter-btn {
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary {
+    font-size: 14px;
+    padding: 11px 20px;
+  }
+
+  /* Dashboard stat cards: 1 col */
+  .stats-cards-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  /* Streak stats: compact */
+  .streak-stats-row {
+    gap: 8px;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 390px and below (iPhone 14 / common Android)
+   ================================================================ */
+@media (max-width: 390px) {
+  .nav-container {
+    padding: 0 14px;
+  }
+
+  /* Hero badge */
+  .hero-badge {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+
+  /* Auth card */
+  .auth-card {
+    padding: 24px 16px;
+  }
+
+  /* Contact info: tighter */
+  .contact-info-card {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .info-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+  .info-content h4 {
+    font-size: 11px;
+  }
+  .info-content p,
+  .contact-phone,
+  .contact-hours,
+  .contact-timings {
+    font-size: 12px;
+  }
+  .contact-email {
+    font-size: 11px;
+    word-break: break-all;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 375px and below (iPhone SE / mid-range Android)
+   ================================================================ */
+@media (max-width: 375px) {
+  .section-container {
+    width: 94%;
+  }
+
+  /* Logo: compact */
+  .logo {
+    font-size: 15px !important;
+    gap: 5px !important;
+  }
+  .logo img {
+    width: 28px !important;
+    height: 28px !important;
+  }
+
+  /* Hero */
+  .hero h1 {
+    font-size: clamp(18px, 6vw, 28px);
+  }
+
+  /* Buttons */
+  .btn-primary,
+  .btn-secondary {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+
+  /* Course footer: vertical */
+  .course-footer {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  /* WhatsApp button: minimum size */
+  .whatsapp-float {
+    width: 44px;
+    height: 44px;
+    bottom: 16px;
+    right: 12px;
+    font-size: 22px;
+  }
+
+  /* Modal */
+  .modal-content {
+    width: 98%;
+    border-radius: 12px;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 360px and below (Common small Android)
+   ================================================================ */
+@media (max-width: 360px) {
+  /* Section padding */
+  .section {
+    padding: 36px 0;
+  }
+
+  /* Dashboard content */
+  .dashboard-content {
+    padding: 12px !important;
+  }
+
+  /* Contact */
+  .contact-info-card {
+    padding: 9px 11px;
+    gap: 9px;
+    border-radius: 9px;
+  }
+  .info-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  .info-content h4 {
+    font-size: 10.5px;
+  }
+  .info-content p {
+    font-size: 11.5px;
+  }
+
+  /* Streak */
+  .streak-count {
+    font-size: clamp(32px, 12vw, 52px);
+  }
+  .streak-hero-card {
+    padding: 20px 12px;
+  }
+}
+
+/* ================================================================
+   BREAKPOINT: 320px (Minimum supported — older iPhones / small Android)
+   ================================================================ */
+@media (max-width: 320px) {
+  /* Ensure nothing ever overflows on 320px width */
+  .section-container {
+    width: 96%;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .hero h1 {
+    font-size: 18px;
+  }
+
+  .auth-card {
+    padding: 20px 12px;
+  }
+
+  .contact-info-list {
+    gap: 10px;
+  }
+  .contact-info-card {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .info-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+  .info-content h4 {
+    font-size: 10px;
+  }
+  .info-content p,
+  .contact-phone,
+  .contact-hours,
+  .contact-timings {
+    font-size: 11px;
+  }
+  .contact-email {
+    font-size: 10px;
+    word-break: break-all;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    font-size: 12px;
+    padding: 9px 14px;
+    min-height: 40px;
+  }
+
+  .logo {
+    font-size: 13px !important;
+  }
+
+  .streak-count {
+    font-size: 30px;
+  }
+  .streak-fire-icon {
+    font-size: 32px;
+  }
+
+  .whatsapp-float {
+    width: 40px;
+    height: 40px;
+    bottom: 14px;
+    right: 10px;
+    font-size: 20px;
+  }
+}
+
+/* ================================================================
+   LARGE SCREENS: 1600px and above
+   ================================================================ */
+@media (min-width: 1600px) {
+  .section-container {
+    max-width: 1400px;
+  }
+  .hero-container {
+    max-width: 1400px;
+    gap: 80px;
+  }
+  /* 4-column course grid on wide screens */
+  .courses-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ================================================================
+   WIDE SCREENS: 1920px and above (4K / UHD)
+   ================================================================ */
+@media (min-width: 1920px) {
+  .section-container {
+    max-width: 1600px;
+  }
+  .hero-container {
+    max-width: 1600px;
+  }
+  .hero h1 {
+    font-size: 60px;
+  }
+  .section-header h2 {
+    font-size: 44px;
+  }
+}
+
+/* ================================================================
+   PRINT MEDIA — already exists, preserved unchanged
+   ================================================================ */
+
+/* ================================================================
+   ACCESSIBILITY & PERFORMANCE
+   ================================================================ */
+
+/* Skip-to-content focus ring for keyboard navigation */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .scroll-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Lazy-load shimmer placeholder */
+img[loading="lazy"] {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.03) 25%,
+    rgba(255, 255, 255, 0.06) 50%,
+    rgba(255, 255, 255, 0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: lazyShimmer 1.5s infinite;
+}
+
+@keyframes lazyShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

@@ -152,6 +152,16 @@ async function loadAdminData() {
     const data = await apiCall('/admin/data', 'GET', null, true);
     adminData = data;
 
+    // Sync Firestore data back to local backend JSON storage if running on localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      apiCall('/admin/sync?bypass=true', 'POST', {
+        students: data.students,
+        payments: data.payments,
+        enrollments: data.enrollments,
+        certificates: data.certificates
+      }, true).catch(err => console.warn('Local background database sync failed:', err));
+    }
+
     // A. Update Overview metrics
     document.getElementById('stat-revenue').innerText = '₹' + data.stats.totalRevenue;
     document.getElementById('stat-students').innerText = data.stats.totalStudents;
@@ -164,7 +174,7 @@ async function loadAdminData() {
     renderOverviewLogs(data.payments, data.certificates);
 
     // C. Populate Students table
-    renderStudents(data.students);
+    renderStudents(data.students, data.archivedStudents || []);
 
     // D. Populate Course grid
     renderCourses(data.courses);
@@ -268,35 +278,128 @@ function renderOverviewLogs(payments, certificates) {
 }
 
 // Render Students
-function renderStudents(students) {
+function renderStudents(students, archivedStudents) {
   const tbody = document.getElementById('students-tbody');
   if (!tbody) return;
 
   if (students.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No students registered yet.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = students.map(s => `
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">No active students registered yet.</td></tr>`;
+  } else {
+    tbody.innerHTML = students.map(s => `
     <tr>
       <td style="font-family: monospace; font-size:12px;">${s.id}</td>
       <td style="font-weight: 600; color: var(--text-primary);">${s.name}</td>
       <td>${s.email}</td>
+      <td style="font-family: monospace; font-size: 13px; color: var(--accent-color);">${s.plainPassword || s.password || '<span style="color:var(--text-muted)">N/A</span>'}</td>
       <td>${s.mobile || '<span style="color:var(--text-muted)">N/A</span>'}</td>
       <td>${new Date(s.createdAt).toLocaleDateString('en-IN')}</td>
       <td>
         <div style="display: flex; gap: 8px;">
           <button onclick="openStudentDetailsModal('${s.id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
-            <i class="fas fa-eye"></i> View Profile
+            <i class="fas fa-eye"></i> View
           </button>
-          <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
-            <i class="fas fa-trash"></i> Delete
+          <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: #b45309; border-color: #b45309; box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+            <i class="fas fa-archive"></i> Archive
           </button>
         </div>
       </td>
     </tr>
   `).join('');
+  }
+
+  // — Archived Students Section —
+  const archiveContainer = document.getElementById('archived-students-section');
+  if (!archiveContainer) return;
+
+  if (!archivedStudents || archivedStudents.length === 0) {
+    archiveContainer.style.display = 'none';
+    return;
+  }
+
+  archiveContainer.style.display = 'block';
+  const archiveTbody = document.getElementById('archived-students-tbody');
+  if (!archiveTbody) return;
+
+  archiveTbody.innerHTML = archivedStudents.map(s => `
+    <tr style="opacity: 0.7;">
+      <td style="font-family: monospace; font-size:12px;">${s.id}</td>
+      <td style="font-weight: 600; color: var(--text-primary);">${s.name}</td>
+      <td>${s.email}</td>
+      <td>${s.mobile || '<span style="color:var(--text-muted)">N/A</span>'}</td>
+      <td style="color: var(--danger); font-size:11px;">${s.archivedAt ? new Date(s.archivedAt).toLocaleDateString('en-IN') : 'N/A'}</td>
+      <td>
+        <button onclick="handleRestoreStudent('${s.id}')" class="btn-secondary" style="padding: 6px 14px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; border-color: #16a34a; color: #16a34a;">
+          <i class="fas fa-undo"></i> Restore
+        </button>
+      </td>
+    </tr>
+  `).join('');
 }
+
+// ── Archive All Active Students (Soft Delete) ────────────────────────────────
+async function handleClearAllStudents() {
+  const confirmed = confirm(
+    '⚠️ ARCHIVE ALL STUDENTS\n\nYeh students ko archive karega (permanently delete NAHI karega).\n\nArchive section mein dekh sakte hain aur restore bhi kar sakte hain.\n\nAre you sure?'
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById('clear-all-students-btn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Archiving...';
+  }
+
+  try {
+    const db = await getFirestoreDB();
+
+    // Get all non-admin, currently active users from Firebase
+    const usersSnap = await db.collection('users').get({ source: 'server' });
+    const archivePromises = [];
+
+    usersSnap.forEach(doc => {
+      const data = doc.data();
+      if (data.role !== 'admin' && data.isActive !== false) {
+        // SOFT DELETE — mark as archived, never erase from Firebase
+        archivePromises.push(doc.ref.update({
+          isActive: false,
+          archivedAt: new Date().toISOString(),
+          archivedByAdmin: true
+        }));
+      }
+    });
+
+    await Promise.all(archivePromises);
+
+    showToast(`✅ ${archivePromises.length} student(s) archived. Data preserved in Firebase.`, 'success');
+    await loadAdminData();
+
+  } catch (err) {
+    console.error('Archive all students error:', err);
+    showToast('Failed to archive students: ' + err.message, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-archive"></i> Archive All Students';
+    }
+  }
+}
+
+// ── Restore a single archived student ────────────────────────────────────────
+async function handleRestoreStudent(studentId) {
+  try {
+    const db = await getFirestoreDB();
+    await db.collection('users').doc(studentId).update({
+      isActive: true,
+      restoredAt: new Date().toISOString()
+    });
+    showToast('✅ Student restored successfully!', 'success');
+    await loadAdminData();
+  } catch (err) {
+    showToast('Failed to restore student: ' + err.message, 'error');
+  }
+}
+
+
 
 // Render Courses Grid
 function renderCourses(courses) {
@@ -967,6 +1070,11 @@ function openStudentDetailsModal(studentId) {
   document.getElementById('detail-regid').innerText = 'ID: ' + student.id;
   document.getElementById('detail-email').innerText = student.email;
   document.getElementById('detail-mobile').innerText = student.mobile || 'N/A';
+
+  const passwordEl = document.getElementById('detail-password');
+  if (passwordEl) {
+    passwordEl.innerText = student.plainPassword || student.password || 'N/A';
+  }
 
   // Set avatar or profile image
   const displayEl = document.getElementById('detail-avatar-display');

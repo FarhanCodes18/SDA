@@ -13,6 +13,8 @@
   <title>Student Dashboard - Sukla Digital Academy</title>
   <!-- Font Awesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="style.css">
   <link rel="icon" type="image/png" href="assets/logo.png">
@@ -36,7 +38,26 @@
         <!-- Certificate section in Navbar as requested -->
         <li><a href="#" id="nav-certificate-link">Certificate</a></li>
       </ul>
-      <div class="nav-auth" id="auth-nav">
+      <div class="nav-auth" id="auth-nav" style="display: flex; align-items: center;">
+        <!-- Notification Bell Wrapper -->
+        <div class="notification-bell-wrapper" style="position: relative; margin-right: 15px; display: inline-block;">
+          <button id="notif-bell-btn" style="background: none; border: none; color: var(--text-primary); font-size: 20px; cursor: pointer; position: relative; padding: 6px; display: flex; align-items: center; justify-content: center; min-height: 40px; min-width: 40px; border-radius: 50%; transition: var(--transition);">
+            <i class="far fa-bell"></i>
+            <span id="notif-badge-count" style="display: none; position: absolute; top: 0px; right: 0px; background: var(--accent-color); color: white; font-size: 9px; font-weight: 800; border-radius: 50%; width: 16px; height: 16px; align-items: center; justify-content: center; box-shadow: 0 0 10px var(--accent-glow);">0</span>
+          </button>
+          
+          <!-- Dropdown Pane -->
+          <div id="notif-dropdown-pane" class="glass-card" style="display: none; position: absolute; top: 50px; right: 0; width: 320px; max-height: 400px; overflow-y: auto; z-index: 1050; padding: 16px; border: 1.5px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: left;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+              <h4 style="font-size: 14px; margin: 0; color: var(--text-primary);">Notifications</h4>
+              <button id="notif-clear-all-btn" style="background: none; border: none; color: var(--accent-color); font-size: 11px; cursor: pointer; font-weight: 600; padding: 4px;">Mark all as read</button>
+            </div>
+            <div id="notif-list-container" style="display: flex; flex-direction: column; gap: 10px;">
+              <p style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px;">No new notifications</p>
+            </div>
+          </div>
+        </div>
+
         <button onclick="Auth.logout()" class="btn-primary" style="background: var(--danger); box-shadow: none;">
           <i class="fas fa-sign-out-alt"></i> Logout
         </button>
@@ -97,6 +118,18 @@
         </li>
         <li class="sidebar-item" data-target="dashboard-streak">
           <a href="#"><i class="fas fa-fire"></i> My Streak</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-leaderboard" id="sidebar-leaderboard-item">
+          <a href="#"><i class="fas fa-trophy"></i> Leaderboard</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-playground" id="sidebar-playground-item">
+          <a href="#"><i class="fas fa-laptop-code"></i> Code Playground</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-analytics" id="sidebar-analytics-item">
+          <a href="#"><i class="fas fa-chart-pie"></i> Study Analytics</a>
+        </li>
+        <li class="sidebar-item" data-target="dashboard-forum" id="sidebar-forum-item">
+          <a href="#"><i class="fas fa-comments"></i> Discussion Forum</a>
         </li>
       </ul>
 
@@ -540,6 +573,181 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 14: LEADERBOARD ==================== -->
+      <section id="dashboard-leaderboard" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Global Leaderboard</h2>
+          <p style="color: var(--text-secondary);">Compete with other students and climb the ranks by earning XP!</p>
+        </div>
+
+        <div class="responsive-grid-1-3-0-7">
+          <!-- Left: Top Leaderboard Table -->
+          <div class="glass-card" style="padding: 24px;">
+            <h3 style="font-size: 18px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;"><i class="fas fa-trophy" style="color: var(--warning); margin-right: 8px;"></i> Student Rankings</h3>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 60px; text-align: center;">Rank</th>
+                    <th>Student</th>
+                    <th style="text-align: center;">Level</th>
+                    <th style="text-align: right;">XP Points</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderboard-tbody">
+                  <!-- Loaded dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Right: User Level Stats & Badges -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- XP Summary -->
+            <div class="glass-card" style="padding: 20px; text-align: center;">
+              <h4 style="font-size: 14px; color: var(--text-secondary); margin-bottom: 12px;">My XP Status</h4>
+              <div style="font-size: 40px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;" id="my-xp-score">0</div>
+              <p style="font-size: 13px; color: var(--accent-color); font-weight: 700; margin-bottom: 16px;">Level <span id="my-xp-level">1</span></p>
+              
+              <!-- Level progress bar -->
+              <div class="course-progress-bar-track" style="height: 10px; border-radius: 5px; margin-bottom: 8px;">
+                <div id="my-level-bar-fill" class="course-progress-bar-fill" style="width: 0%; background: var(--accent-gradient); height: 100%; border-radius: 5px; transition: var(--transition);"></div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                <span id="level-min-xp">0 XP</span>
+                <span id="level-next-xp">500 XP to Level 2</span>
+              </div>
+            </div>
+
+            <!-- Profile Badges Unlocked -->
+            <div class="glass-card" style="padding: 20px;">
+              <h4 style="font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"><i class="fas fa-medal" style="color: var(--warning); margin-right: 6px;"></i> My Achievements</h4>
+              <div id="leaderboard-my-badges" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- Unlocked badges list -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 15: PLAYGROUND ==================== -->
+      <section id="dashboard-playground" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Code Playground</h2>
+          <p style="color: var(--text-secondary);">Write and run Python, C, C++, and Java in real-time inside your browser.</p>
+        </div>
+
+        <div class="glass-card" style="padding: 24px;">
+          <div class="responsive-grid-profile" style="gap: 24px;">
+            <!-- Left Side: Code Editor -->
+            <div style="display: flex; flex-direction: column; gap: 14px; flex: 1;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                <h4 style="font-size: 15px;"><i class="fas fa-code" style="color: var(--accent-color); margin-right: 6px;"></i> Editor</h4>
+                <select id="playground-lang-select" class="form-control" style="width: auto; padding: 4px 10px; font-size: 12px; height: 32px; min-height: auto; background: var(--bg-tertiary);">
+                  <option value="python">Python 3</option>
+                  <option value="c">C (GCC)</option>
+                  <option value="cpp">C++ (G++)</option>
+                  <option value="java">Java (OpenJDK)</option>
+                </select>
+              </div>
+              
+              <div>
+                <textarea id="playground-code" class="form-control" style="font-family: monospace; font-size: 13px; height: 320px; resize: vertical; background: rgba(0,0,0,0.3); border-color: var(--border-color); color: var(--text-primary); line-height: 1.5;" spellcheck="false"></textarea>
+              </div>
+
+              <button id="playground-run-btn" class="btn-primary" style="width: 100%; justify-content: center; padding: 10px; margin-top: 10px;">
+                Run Program <i class="fas fa-play" style="margin-left: 6px;"></i>
+              </button>
+            </div>
+
+            <!-- Right Side: Terminal Output -->
+            <div style="display: flex; flex-direction: column; flex: 1; height: 100%;">
+              <h4 style="font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; text-align: left;"><i class="fas fa-terminal" style="color: var(--success); margin-right: 6px;"></i> Terminal Console</h4>
+              <div style="flex-grow: 1; border: 1.5px solid var(--border-color); border-radius: 8px; background: #0c0c0f; overflow: hidden; height: 380px; display: flex; flex-direction: column;">
+                <div style="background: #18181f; padding: 8px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 11px; color: var(--text-secondary); font-family: monospace; font-weight: 700;">Console Output</span>
+                  <button id="playground-clear-console" style="background: none; border: none; color: var(--text-muted); font-size: 10px; cursor: pointer;"><i class="fas fa-trash"></i> Clear</button>
+                </div>
+                <pre id="playground-console-log" style="flex-grow: 1; padding: 16px; margin: 0; overflow-y: auto; font-family: monospace; font-size: 12px; color: #10b981; text-align: left; white-space: pre-wrap; line-height: 1.5;">Console ready. Write code and click Run Program...</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 16: ANALYTICS ==================== -->
+      <section id="dashboard-analytics" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Study Progress & Analytics</h2>
+          <p style="color: var(--text-secondary);">Visualize your learning speed, attendance consistency, and quiz performance.</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+          <div class="responsive-grid-profile" style="gap: 24px;">
+            <!-- Chart 1: Attendance Consistency -->
+            <div class="glass-card" style="padding: 20px; flex: 1; text-align: center;">
+              <h4 style="font-size: 15px; margin-bottom: 16px; color: var(--text-primary); border-bottom:1px solid var(--border-color); padding-bottom:8px;"><i class="fas fa-user-check" style="color: var(--success); margin-right: 6px;"></i> Attendance Breakup</h4>
+              <div style="height: 240px; position: relative; display: flex; justify-content: center; align-items: center;">
+                <canvas id="chart-attendance" style="max-height: 100%; max-width: 100%;"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart 2: Quiz Score Trends -->
+            <div class="glass-card" style="padding: 20px; flex: 1; text-align: center;">
+              <h4 style="font-size: 15px; margin-bottom: 16px; color: var(--text-primary); border-bottom:1px solid var(--border-color); padding-bottom:8px;"><i class="fas fa-question-circle" style="color: var(--warning); margin-right: 6px;"></i> Quiz Performance</h4>
+              <div style="height: 240px; position: relative; display: flex; justify-content: center; align-items: center;">
+                <canvas id="chart-quizzes" style="max-height: 100%; max-width: 100%;"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chart 3: Assignment Submissions Status -->
+          <div class="glass-card" style="padding: 20px; text-align: center;">
+            <h4 style="font-size: 15px; margin-bottom: 16px; color: var(--text-primary); border-bottom:1px solid var(--border-color); padding-bottom:8px;"><i class="fas fa-file-alt" style="color: var(--accent-color); margin-right: 6px;"></i> Assignment Completion Metrics</h4>
+            <div style="height: 280px; position: relative; display: flex; justify-content: center; align-items: center;">
+              <canvas id="chart-assignments" style="max-height: 100%; max-width: 100%;"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 17: FORUM ==================== -->
+      <section id="dashboard-forum" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Discussion Forum</h2>
+          <p style="color: var(--text-secondary);">Ask questions, clear doubts, and reply to classmate's posts to earn XP points!</p>
+        </div>
+
+        <div class="responsive-grid-1-3-0-7">
+          <!-- Left: Doubts List & Filters -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <!-- Filter Bar -->
+            <div class="glass-card" style="padding: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; gap: 8px;" id="forum-filter-buttons">
+                <button class="btn-primary" style="padding: 6px 12px; font-size: 12px; background: var(--accent-gradient);" data-category="all">All categories</button>
+                <button class="btn-primary" style="padding: 6px 12px; font-size: 12px; background: var(--bg-tertiary); color: var(--text-primary); box-shadow: none;" data-category="general">General</button>
+              </div>
+              <button id="forum-open-modal-btn" class="btn-primary" style="padding: 8px 16px; font-size: 12px;"><i class="fas fa-plus" style="margin-right: 6px;"></i> Ask a Doubt</button>
+            </div>
+
+            <!-- Doubt Cards Container -->
+            <div id="forum-posts-container" style="display: flex; flex-direction: column; gap: 16px;">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+
+          <!-- Right: Forum Stats & Leaderboard Integration -->
+          <div style="display: flex; flex-direction: column; gap: 20px;">
+            <div class="glass-card" style="padding: 20px;">
+              <h4 style="font-size: 15px; margin-bottom: 12px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;"><i class="fas fa-info-circle" style="color: var(--accent-color); margin-right: 6px;"></i> Forum Guideline</h4>
+              <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px;">• Keep your posts clean and strictly related to web development.</p>
+              <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px;">• Provide code blocks or error descriptions where necessary.</p>
+              <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0;">• You earn <strong>20 XP</strong> for asking questions and <strong>15 XP</strong> for replying to others.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -708,6 +916,77 @@
           </div>
           <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;">
             Submit Assignment <i class="fas fa-paper-plane" style="margin-left: 6px;"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== FLOATING AI CHAT WIDGET ==================== -->
+  <div id="ai-chat-widget" style="position: fixed; bottom: 30px; right: 30px; z-index: 2000; font-family: var(--font-main);">
+    <!-- Chat Toggle Button -->
+    <button id="ai-chat-toggle" style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent-gradient); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(255, 75, 43, 0.45); transition: var(--transition);">
+      <i class="fas fa-robot"></i>
+    </button>
+
+    <!-- Chat Box -->
+    <div id="ai-chat-box" class="glass-card" style="display: none; position: absolute; bottom: 70px; right: 0; width: 360px; height: 480px; flex-direction: column; padding: 0; overflow: hidden; border: 1.5px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.6);">
+      <!-- Chat Header -->
+      <div style="background: var(--bg-secondary); padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div>
+            <h4 style="font-size: 14px; margin: 0; color: var(--text-primary); text-align: left;">SDA AI Tutor</h4>
+            <span style="font-size: 10px; color: var(--success); display: block; text-align: left;"><i class="fas fa-circle" style="font-size: 8px;"></i> Online 24/7</span>
+          </div>
+        </div>
+        <button id="ai-chat-close" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px; padding: 4px;"><i class="fas fa-times"></i></button>
+      </div>
+
+      <!-- Chat Messages Body -->
+      <div id="ai-chat-messages" style="flex-grow: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: rgba(10, 10, 12, 0.4); text-align: left;">
+        <!-- Welcome Message -->
+        <div style="align-self: flex-start; background: var(--bg-tertiary); color: var(--text-primary); padding: 10px 14px; border-radius: 12px 12px 12px 0; max-width: 85%; font-size: 13px; line-height: 1.4; border: 1px solid var(--border-color);">
+          👋 Hello! I am your **SDA AI Doubt Solver**. How can I help you with your coding journey today?
+        </div>
+      </div>
+
+      <!-- Chat Input Footer -->
+      <form id="ai-chat-form" style="padding: 12px; background: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; gap: 8px; align-items: center; margin: 0;">
+        <input type="text" id="ai-chat-input" placeholder="Ask a doubt..." style="flex-grow: 1; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 14px; border-radius: 8px; font-size: 13px; outline: none; transition: var(--transition);" required>
+        <button type="submit" style="background: var(--accent-gradient); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px var(--accent-glow); flex-shrink: 0;"><i class="fas fa-paper-plane" style="font-size: 13px;"></i></button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== DISCUSSION FORUM ASK DOUBT MODAL ==================== -->
+  <div class="modal-overlay" id="forum-doubt-modal">
+    <div class="modal-content" style="max-width: 550px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Ask a Doubt</h3>
+        <button class="modal-close" id="forum-close-modal-btn"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="forum-doubt-form">
+          <div class="form-group">
+            <label for="doubt-title">Doubt Title</label>
+            <input type="text" id="doubt-title" class="form-control" placeholder="e.g. CSS Flexbox centering issue" required>
+          </div>
+          <div class="form-group">
+            <label for="doubt-category">Category / Program</label>
+            <select id="doubt-category" class="form-control" required>
+              <option value="general">General doubt</option>
+              <!-- Filled with student courses dynamically -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="doubt-description">Detailed Description</label>
+            <textarea id="doubt-description" class="form-control" style="height: 120px; resize: vertical;" placeholder="Describe your doubt in detail. Paste error logs or code snippet here..." required></textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 8px;">
+            Post Doubt <i class="fas fa-paper-plane" style="margin-left: 6px;"></i>
           </button>
         </form>
       </div>

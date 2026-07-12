@@ -210,6 +210,10 @@
       <section id="admin-students" class="dashboard-panel">
         <div class="panel-header">
           <h2>Registered Students</h2>
+          <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+            <button class="btn-secondary" onclick="loadAdminData()" style="padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-sync-alt"></i> Refresh</button>
+            <button class="btn-primary" onclick="handleClearAllStudents()" id="clear-all-students-btn" style="background: #b45309; border-color: #b45309; box-shadow: none; padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-archive"></i> Archive All Students</button>
+          </div>
         </div>
         <div class="table-responsive">
           <table class="data-table">
@@ -218,6 +222,7 @@
                 <th>Registration ID</th>
                 <th>Full Name</th>
                 <th>Email Address</th>
+                <th>Password</th>
                 <th>Mobile Number</th>
                 <th>Joined Date</th>
                 <th>Action</th>
@@ -227,6 +232,30 @@
               <!-- Loaded dynamically -->
             </tbody>
           </table>
+        </div>
+
+        <!-- Archived Students Section (Hidden by default, shown if any archived exist) -->
+        <div id="archived-students-section" style="display:none; margin-top: 32px;">
+          <div class="panel-header" style="margin-bottom: 12px;">
+            <h3 style="color: var(--text-muted); font-size: 16px;"><i class="fas fa-archive" style="margin-right:8px;"></i>Archived Students <span style="font-size:12px; font-weight:400;">(Data preserved — can be restored)</span></h3>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" style="opacity: 0.85;">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Mobile</th>
+                  <th>Archived On</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="archived-students-tbody">
+                <!-- Loaded dynamically -->
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
@@ -654,6 +683,10 @@
           <div style="margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
             <span style="color: var(--text-secondary); font-weight:500;">Email:</span>
             <span id="detail-email" style="color: var(--text-primary); font-weight:600;">student@email.com</span>
+          </div>
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
+            <span style="color: var(--text-secondary); font-weight:500;">Password:</span>
+            <span id="detail-password" style="color: var(--accent-color); font-weight:600; font-family: monospace;">••••••••</span>
           </div>
           <div style="margin-bottom: 12px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.04); padding-bottom: 8px;">
             <span style="color: var(--text-secondary); font-weight:500;">WhatsApp:</span>

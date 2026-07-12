@@ -90,14 +90,29 @@ if (fs.existsSync(firebaseKeyPath)) {
     });
     db = admin.firestore();
     useFirebase = true;
-    console.log('Firebase initialized successfully! Connecting to Firestore database...');
+    console.log('Firebase initialized successfully from firebase-key.json! Connecting to Firestore...');
   } catch (err) {
-    console.error('Failed to initialize Firebase Admin SDK:', err);
+    console.error('Failed to initialize Firebase Admin SDK from file:', err);
+  }
+} else if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      })
+    });
+    db = admin.firestore();
+    useFirebase = true;
+    console.log('Firebase initialized successfully from environment variables! Connecting to Firestore...');
+  } catch (err) {
+    console.error('Failed to initialize Firebase Admin SDK from environment variables:', err);
   }
 } else {
   console.log('--------------------------------------------------');
-  console.log('NOTICE: firebase-key.json not found in backend folder.');
-  console.log('Please place your Firebase service account JSON key file as "firebase-key.json" to enable Firestore.');
+  console.log('NOTICE: firebase-key.json not found and environment variables not set.');
+  console.log('Please provide Firebase credentials to enable cloud persistence.');
   console.log('Falling back to local JSON file database for now.');
   console.log('--------------------------------------------------');
 }
@@ -142,7 +157,7 @@ const initDatabase = async () => {
     'certificates.json', 'notices.json', 'announcements.json',
     'recordedClasses.json', 'achievers.json', 'contacts.json', 'liveclass.json',
     'attendance.json', 'quizzes.json', 'quizResults.json',
-    'assignments.json', 'submissions.json'
+    'assignments.json', 'submissions.json', 'forum.json', 'notifications.json'
   ];
 
   // We perform initial reads from local JSON files to avoid uninitialized state
@@ -240,6 +255,61 @@ const writeJSONFile = (filename, data) => {
   return true;
 };
 
+const createNotification = (userId, message, type = 'general') => {
+  try {
+    const notifications = readJSONFile('notifications.json');
+    const newNotif = {
+      id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      userId, // "all" or student id
+      message,
+      type,
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    notifications.unshift(newNotif);
+    writeJSONFile('notifications.json', notifications);
+    return newNotif;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+  }
+};
+
+const awardXP = (userId, amount) => {
+  try {
+    const users = readJSONFile('users.json');
+    const idx = users.findIndex(u => u.id === userId);
+    if (idx === -1) return;
+    
+    const user = users[idx];
+    user.xp = (user.xp || 0) + amount;
+    
+    // Level is defined as math.floor(xp/500)+1
+    const newLevel = Math.floor(user.xp / 500) + 1;
+    const oldLevel = user.level || 1;
+    user.level = newLevel;
+    
+    if (!user.badges) user.badges = [];
+    
+    if (newLevel > oldLevel) {
+      createNotification(userId, `🎉 Level Up! You reached Level ${newLevel}!`, 'general');
+    }
+    
+    // Unlocked badges based on XP milestones
+    if (user.xp >= 1000 && !user.badges.includes('xp_1000')) {
+      user.badges.push('xp_1000');
+      createNotification(userId, `🏆 Unlocked Badge: Gold Scholar (Earned 1000+ XP)`, 'general');
+    }
+    if (user.xp >= 500 && !user.badges.includes('xp_500')) {
+      user.badges.push('xp_500');
+      createNotification(userId, `⭐ Unlocked Badge: Rising Star (Earned 500+ XP)`, 'general');
+    }
+    
+    writeJSONFile('users.json', users);
+  } catch (err) {
+    console.error('Error awarding XP:', err);
+  }
+};
+
 // Middleware for JWT Authentication
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -271,20 +341,28 @@ const isAdmin = (req, res, next) => {
 const seedDatabase = async () => {
   try {
     const users = readJSONFile('users.json');
+    const ADMIN_PASSWORD = 'Sukla@2008';
     
-    // Seed Admin if not exists
-    const adminExists = users.some(u => u.email === 'admin@sukla.com');
-    if (!adminExists) {
-      const hashedAdminPassword = await bcrypt.hash('admin123', 10);
+    // Seed Admin if not exists, or update password if changed
+    const adminIndex = users.findIndex(u => u.email === 'admin@sukla.com');
+    if (adminIndex === -1) {
+      const hashedAdminPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
       users.push({
         id: 'user_admin_01',
         name: 'Ajay Shukla',
         email: 'admin@sukla.com',
         password: hashedAdminPassword,
+        plainPassword: ADMIN_PASSWORD,
         role: 'admin',
         createdAt: new Date().toISOString()
       });
-      console.log('Seeded Admin account (admin@sukla.com)');
+      console.log('Seeded Admin account (admin@sukla.com) with new password.');
+    } else if (users[adminIndex].plainPassword !== ADMIN_PASSWORD) {
+      // Force update password to new one
+      const hashedAdminPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
+      users[adminIndex].password = hashedAdminPassword;
+      users[adminIndex].plainPassword = ADMIN_PASSWORD;
+      console.log('Updated Admin password to Sukla@2008.');
     }
 
     // Student seeding and default placement achiever seeding disabled by request.
@@ -305,15 +383,29 @@ app.post('/api/register', async (req, res) => {
   try {
     const { name, email, password, mobile, courseId } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ message: 'Please provide name, email, and password.' });
+    if (!name || !email || !password || !mobile) {
+      return res.status(400).json({ message: 'Please provide all details (name, email, password, mobile).' });
     }
 
-    const users = readJSONFile('users.json');
-    const userExists = users.some(u => u.email.toLowerCase() === email.toLowerCase());
+    const cleanedEmail = email.trim().toLowerCase();
+    const cleanedMobile = mobile.trim().replace(/[\s\-\(\)\+]+/g, '');
 
-    if (userExists) {
+    const users = readJSONFile('users.json');
+    
+    // Check duplicate email
+    const emailExists = users.some(u => u.email && u.email.trim().toLowerCase() === cleanedEmail);
+    if (emailExists) {
       return res.status(400).json({ message: 'User with this email already exists.' });
+    }
+
+    // Check duplicate mobile
+    const mobileExists = users.some(u => {
+      if (!u.mobile) return false;
+      const normU = u.mobile.trim().replace(/[\s\-\(\)\+]+/g, '');
+      return normU === cleanedMobile || normU.endsWith(cleanedMobile) || cleanedMobile.endsWith(normU);
+    });
+    if (mobileExists) {
+      return res.status(400).json({ message: 'User with this mobile number already exists.' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -325,6 +417,7 @@ app.post('/api/register', async (req, res) => {
       email: email.toLowerCase(),
       mobile: mobile || '',
       password: hashedPassword,
+      plainPassword: password,
       role: assignedRole,
       createdAt: new Date().toISOString()
     };
@@ -394,7 +487,7 @@ app.post('/api/login', async (req, res) => {
     }
 
     const user = users[userIndex];
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password) || (user.plainPassword && user.plainPassword === password) || (user.password === password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
     }
@@ -433,8 +526,16 @@ app.post('/api/login', async (req, res) => {
     users[userIndex].longestStreak = longestStreak;
     writeJSONFile('users.json', users);
 
+    if (lastLogin !== today) {
+      awardXP(user.id, 50);
+    }
+
+    // Refresh user object after potentially awarding XP
+    const updatedUsers = readJSONFile('users.json');
+    const freshUser = updatedUsers.find(u => u.id === user.id);
+
     const token = jwt.sign(
-      { id: user.id, name: user.name, email: user.email, role: user.role },
+      { id: freshUser.id, name: freshUser.name, email: freshUser.email, role: freshUser.role },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -443,13 +544,16 @@ app.post('/api/login', async (req, res) => {
       message: 'Login successful!',
       token,
       user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        streak,
-        longestStreak,
-        lastLoginDate: today
+        id: freshUser.id,
+        name: freshUser.name,
+        email: freshUser.email,
+        role: freshUser.role,
+        streak: freshUser.streak,
+        longestStreak: freshUser.longestStreak,
+        lastLoginDate: today,
+        xp: freshUser.xp || 0,
+        level: freshUser.level || 1,
+        badges: freshUser.badges || []
       }
     });
 
@@ -1145,6 +1249,7 @@ app.post('/api/notices', authenticateToken, isAdmin, (req, res) => {
     };
     notices.unshift(newNotice); // Latest first
     writeJSONFile('notices.json', notices);
+    createNotification('all', `New Notice: ${title}`, 'notice');
 
     res.status(201).json({ message: 'Notice added successfully!', notice: newNotice });
   } catch (error) {
@@ -1177,6 +1282,7 @@ app.post('/api/announcements', authenticateToken, isAdmin, (req, res) => {
     };
     announcements.unshift(newAnnouncement);
     writeJSONFile('announcements.json', announcements);
+    createNotification('all', `New Announcement: ${message.slice(0, 60)}${message.length > 60 ? '...' : ''}`, 'announcement');
 
     res.status(201).json({ message: 'Announcement added successfully!', announcement: newAnnouncement });
   } catch (error) {
@@ -1314,7 +1420,7 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
       },
       students: students.map(s => {
         const studentProfile = { ...s };
-        delete studentProfile.password;
+        // Retain password and plainPassword for admin visibility
         return studentProfile;
       }),
       courses,
@@ -1334,6 +1440,45 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: 'Error fetching admin summary data.', error: error.message });
+  }
+});
+
+// POST /api/admin/sync - Synchronizes live data from client back to local server JSON storage
+app.post('/api/admin/sync', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { students, payments, enrollments, certificates } = req.body;
+    
+    if (students) {
+      const currentUsers = readLocalJSONFile('users.json');
+      const admins = currentUsers.filter(u => u.role === 'admin');
+      const mergedUsers = [...admins];
+      students.forEach(student => {
+        if (!mergedUsers.some(u => u.id === student.id)) {
+          mergedUsers.push(student);
+        }
+      });
+      writeLocalJSONFile('users.json', mergedUsers);
+      dbCache['users.json'] = mergedUsers;
+    }
+    
+    if (payments) {
+      writeLocalJSONFile('payments.json', payments);
+      dbCache['payments.json'] = payments;
+    }
+    
+    if (enrollments) {
+      writeLocalJSONFile('enrollments.json', enrollments);
+      dbCache['enrollments.json'] = enrollments;
+    }
+    
+    if (certificates) {
+      writeLocalJSONFile('certificates.json', certificates);
+      dbCache['certificates.json'] = certificates;
+    }
+    
+    res.json({ message: 'Local storage database synchronized successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Sync failed', error: error.message });
   }
 });
 
@@ -1487,6 +1632,14 @@ app.put('/api/submissions/:id/grade', authenticateToken, isAdmin, (req, res) => 
     submissions[index].status = 'graded';
     submissions[index].gradedAt = new Date().toISOString();
     writeJSONFile('submissions.json', submissions);
+
+    // Create notification for student
+    createNotification(
+      submissions[index].studentId,
+      `Your submission for assignment "${submissions[index].assignmentTitle}" has been graded. Marks: ${marks}.`,
+      'assignment'
+    );
+
     res.json({ message: 'Submission graded successfully!', submission: submissions[index] });
   } catch (error) {
     res.status(500).json({ message: 'Error grading submission.', error: error.message });
@@ -1948,6 +2101,15 @@ app.post('/api/quizzes/:id/submit', authenticateToken, (req, res) => {
     quizResults.push(newResult);
     writeJSONFile('quizResults.json', quizResults);
 
+    // Award XP
+    const xpAwarded = percentage >= 50 ? 100 : 50;
+    awardXP(req.user.id, xpAwarded);
+    createNotification(
+      req.user.id,
+      `You completed quiz "${quiz.title}" with a score of ${score}/${total} (${percentage}%). Earned ${xpAwarded} XP!`,
+      'quiz'
+    );
+
     res.status(201).json({
       message: 'Quiz submitted successfully!',
       result: {
@@ -2068,6 +2230,217 @@ app.post('/api/admin/attendance', authenticateToken, isAdmin, (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: 'Error saving attendance sheet.', error: error.message });
+  }
+});
+
+// GET /api/student/leaderboard - Get global student leaderboard
+app.get('/api/student/leaderboard', authenticateToken, (req, res) => {
+  try {
+    const users = readJSONFile('users.json');
+    const leaderboard = users
+      .filter(u => u.role === 'student')
+      .map(s => ({
+        id: s.id,
+        name: s.name,
+        xp: s.xp || 0,
+        level: s.level || 1,
+        profilePic: s.profilePic || null
+      }))
+      .sort((a, b) => b.xp - a.xp)
+      .slice(0, 20);
+    res.json(leaderboard);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching leaderboard.', error: error.message });
+  }
+});
+
+// GET /api/notifications - Retrieve notifications for authenticated student
+app.get('/api/notifications', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const notifications = readJSONFile('notifications.json');
+    const userNotifs = notifications
+      .filter(n => n.userId === 'all' || n.userId === userId)
+      .map(n => {
+        const isRead = n.userId === 'all'
+          ? (n.readBy && n.readBy.includes(userId))
+          : n.read;
+        return { ...n, read: !!isRead };
+      });
+    res.json(userNotifs);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching notifications.', error: error.message });
+  }
+});
+
+// POST /api/notifications/read-all - Mark all notifications as read
+app.post('/api/notifications/read-all', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const notifications = readJSONFile('notifications.json');
+    let updated = false;
+    notifications.forEach(n => {
+      if (n.userId === 'all') {
+        if (!n.readBy) n.readBy = [];
+        if (!n.readBy.includes(userId)) {
+          n.readBy.push(userId);
+          updated = true;
+        }
+      } else if (n.userId === userId && !n.read) {
+        n.read = true;
+        updated = true;
+      }
+    });
+    if (updated) {
+      writeJSONFile('notifications.json', notifications);
+    }
+    res.json({ message: 'All notifications marked as read.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error marking notifications read.', error: error.message });
+  }
+});
+
+// ==========================================
+// DISCUSSION FORUM ROUTES
+// ==========================================
+
+// 1. Get all forum posts
+app.get('/api/forum/posts', authenticateToken, (req, res) => {
+  try {
+    const posts = readJSONFile('forum.json');
+    posts.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching forum posts.', error: error.message });
+  }
+});
+
+// 2. Create new forum post
+app.post('/api/forum/posts', authenticateToken, (req, res) => {
+  try {
+    const { title, description, category } = req.body;
+    if (!title || !description || !category) {
+      return res.status(400).json({ message: 'Missing title, description, or category.' });
+    }
+
+    const posts = readJSONFile('forum.json');
+    const newPost = {
+      id: 'post_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      authorId: req.user.id,
+      authorName: req.user.name,
+      title,
+      description,
+      category,
+      replies: [],
+      createdAt: new Date().toISOString()
+    };
+
+    posts.unshift(newPost);
+    writeJSONFile('forum.json', posts);
+
+    awardXP(req.user.id, 20);
+    createNotification(
+      req.user.id,
+      `You posted a new doubt: "${title}". Earned 20 XP!`,
+      'general'
+    );
+
+    res.status(201).json({ message: 'Forum post created successfully!', post: newPost });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating forum post.', error: error.message });
+  }
+});
+
+// 3. Post reply to a forum post
+app.post('/api/forum/posts/:id/replies', authenticateToken, (req, res) => {
+  try {
+    const postId = req.params.id;
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ message: 'Reply message is required.' });
+    }
+
+    const posts = readJSONFile('forum.json');
+    const postIndex = posts.findIndex(p => p.id === postId);
+
+    if (postIndex === -1) {
+      return res.status(404).json({ message: 'Post not found.' });
+    }
+
+    const post = posts[postIndex];
+    const newReply = {
+      id: 'reply_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      authorId: req.user.id,
+      authorName: req.user.name,
+      authorRole: req.user.role,
+      message,
+      createdAt: new Date().toISOString()
+    };
+
+    post.replies.push(newReply);
+    writeJSONFile('forum.json', posts);
+
+    if (post.authorId !== req.user.id) {
+      createNotification(
+        post.authorId,
+        `💬 ${req.user.name} replied to your doubt: "${post.title.slice(0, 30)}..."`,
+        'general'
+      );
+    }
+
+    awardXP(req.user.id, 15);
+
+    res.status(201).json({ message: 'Reply added successfully!', reply: newReply });
+  } catch (error) {
+    res.status(500).json({ message: 'Error adding reply.', error: error.message });
+  }
+});
+
+// POST /api/ai/chat - AI Doubt Solver (Gemini Integration)
+app.post('/api/ai/chat', authenticateToken, async (req, res) => {
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ message: 'Message is required.' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.json({
+        reply: `👋 Hello! I am your **SDA AI Doubt Solver**.\n\nI can help you debug code, understand algorithms, and solve doubts.\n\n⚠️ *System Note: Please configure your \`GEMINI_API_KEY\` in the backend \`.env\` file to enable real AI responses.*\n\n**Here is a sample code structure for a MERN Stack API endpoint:**\n\`\`\`javascript\napp.get('/api/example', (req, res) => {\n  res.json({ success: true, data: "Hello World" });\n});\n\`\`\``
+      });
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `You are an expert programming tutor for Sukla Digital Academy (SDA). Answer the student's question clearly, concisely, and provide code snippets where helpful.\n\nStudent's query: ${message}`
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: Status ${response.status}`);
+    }
+
+    const result = await response.json();
+    const reply = result.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't generate a response. Please try again.";
+    
+    res.json({ reply });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error communicating with AI tutor.', error: error.message });
   }
 });
 

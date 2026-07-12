@@ -35,6 +35,19 @@ document.addEventListener('DOMContentLoaded', () => {
           p.classList.add('active');
         }
       });
+
+      if (target === 'dashboard-analytics') {
+        renderAllAnalyticsCharts();
+      }
+
+      if (target === 'dashboard-forum') {
+        loadForumPosts();
+        populateDoubtCategories();
+      }
+
+      if (target === 'dashboard-resume') {
+        loadResumeData();
+      }
     });
   });
 
@@ -110,6 +123,21 @@ document.addEventListener('DOMContentLoaded', () => {
   if (assignSubmitForm) {
     assignSubmitForm.addEventListener('submit', handleAssignmentSubmit);
   }
+
+  // Initialize notifications bell
+  initNotifications();
+
+  // Initialize floating AI chatbot
+  initAIChatbot();
+
+  // Initialize Code Playground
+  initPlayground();
+
+  // Initialize Discussion Forum
+  initForum();
+
+  // Initialize Resume Builder
+  initResume();
 });
 
 let dashboardData = {};
@@ -192,6 +220,12 @@ async function loadDashboardData() {
       renderStreakTracker(data.streak);
     }
 
+    // M. Render Gamification & Leaderboard Status
+    if (data.user) {
+      renderMyGamificationStatus(data.user);
+    }
+    loadLeaderboard();
+
   } catch (error) {
     console.error('Error fetching dashboard details:', error);
     showToast('Failed to load dashboard information.', 'error');
@@ -214,11 +248,9 @@ function renderAvailableCourses(courses, purchasedCourses, enrolledCourses) {
   grid.innerHTML = courses.map(c => {
     const isPurchased = purchasedIds.includes(c.id);
     const isPending = !isPurchased && enrolledIds.includes(c.id);
-    const discount = (c.id === 'course_1' || c.id === 'course_3' || c.id === 'course_5' || c.id === 'course_7' || c.id === 'course_9') ? '10% OFF' : '5% OFF';
     return `
       <div class="glass-card course-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
         <div>
-          <span class="course-card-badge" style="top: 12px; left: 12px; right: auto; font-size:10px; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success);"><i class="fas fa-tags"></i> ${discount}</span>
           <span class="course-card-badge" style="top: 12px; right: 12px; font-size:10px;">${c.category.toUpperCase()}</span>
           <h4 style="font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: var(--text-primary);">${c.title}</h4>
           <div class="course-meta" style="font-size: 11px; margin-bottom: 12px; gap: 10px;">
@@ -230,7 +262,7 @@ function renderAvailableCourses(courses, purchasedCourses, enrolledCourses) {
         <div class="course-footer" style="padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; flex-direction: column;">
             <span style="font-size: 18px; font-weight: 800; color: var(--text-primary);">₹${c.price}</span>
-            <span style="font-size: 10px; color: var(--warning); font-weight: 700; margin-top: 2px; white-space: nowrap;"><i class="fas fa-fire"></i> First 10 Seats Special Discount</span>
+            ${c.originalPrice ? `<span style="font-size: 12px; color: var(--text-muted); text-decoration: line-through;">₹${c.originalPrice}</span>` : ''}
           </div>
           ${isPurchased 
             ? `<button class="btn-secondary" style="padding: 6px 12px; font-size: 12px; border-color: var(--success); color: var(--success); cursor: default;" disabled>
@@ -1534,5 +1566,892 @@ function renderStreakTracker(streak) {
       </div>
     `;
   }).join('');
+}
+
+async function initNotifications() {
+  const bellBtn = document.getElementById('notif-bell-btn');
+  const dropdownPane = document.getElementById('notif-dropdown-pane');
+  const clearAllBtn = document.getElementById('notif-clear-all-btn');
+  const listContainer = document.getElementById('notif-list-container');
+  const badgeCount = document.getElementById('notif-badge-count');
+
+  if (!bellBtn || !dropdownPane) return;
+
+  bellBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = dropdownPane.style.display === 'block';
+    dropdownPane.style.display = isVisible ? 'none' : 'block';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.notification-bell-wrapper')) {
+      dropdownPane.style.display = 'none';
+    }
+  });
+
+  await fetchNotifications();
+  setInterval(fetchNotifications, 10000);
+
+  if (clearAllBtn) {
+    clearAllBtn.addEventListener('click', async () => {
+      try {
+        await apiCall('/notifications/read-all', 'POST', null, true);
+        await fetchNotifications();
+        showToast('All notifications marked as read.', 'success');
+      } catch (err) {
+        console.error('Failed to clear notifications:', err);
+      }
+    });
+  }
+
+  async function fetchNotifications() {
+    try {
+      const notifs = await apiCall('/notifications', 'GET', null, true);
+      renderNotifs(notifs);
+    } catch (err) {
+      console.error('Error fetching notifications:', err);
+    }
+  }
+
+  function renderNotifs(notifs) {
+    if (!listContainer || !badgeCount) return;
+
+    const unreadCount = notifs.filter(n => !n.read).length;
+    if (unreadCount > 0) {
+      badgeCount.innerText = unreadCount;
+      badgeCount.style.display = 'flex';
+    } else {
+      badgeCount.style.display = 'none';
+    }
+
+    if (notifs.length === 0) {
+      listContainer.innerHTML = `<p style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 12px;">No new notifications</p>`;
+      return;
+    }
+
+    listContainer.innerHTML = notifs.map(n => {
+      let icon = '<i class="fas fa-info-circle"></i>';
+      if (n.type === 'assignment') icon = '<i class="fas fa-file-signature" style="color: var(--accent-color);"></i>';
+      if (n.type === 'notice') icon = '<i class="fas fa-bullhorn" style="color: var(--warning);"></i>';
+      if (n.type === 'announcement') icon = '<i class="fas fa-envelope-open-text" style="color: #3b82f6;"></i>';
+      if (n.type === 'quiz') icon = '<i class="fas fa-question-circle" style="color: var(--success);"></i>';
+      
+      const timeStr = new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return `
+        <div style="display: flex; gap: 10px; padding: 10px; border-radius: 8px; background: ${n.read ? 'transparent' : 'rgba(255, 75, 43, 0.05)'}; border: 1px solid ${n.read ? 'transparent' : 'rgba(255, 75, 43, 0.1)'}; transition: var(--transition);">
+          <div style="font-size: 16px; margin-top: 2px;">${icon}</div>
+          <div style="flex-grow: 1;">
+            <p style="font-size: 12px; color: var(--text-primary); margin: 0; line-height: 1.4; font-weight: ${n.read ? '400' : '600'};">${n.message}</p>
+            <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">${timeStr}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+async function loadLeaderboard() {
+  try {
+    const leaderboard = await apiCall('/student/leaderboard', 'GET', null, true);
+    renderLeaderboard(leaderboard);
+  } catch (err) {
+    console.error('Failed to load leaderboard:', err);
+  }
+}
+
+function renderLeaderboard(leaderboard) {
+  const tbody = document.getElementById('leaderboard-tbody');
+  if (!tbody) return;
+
+  if (leaderboard.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No student records found.</td></tr>`;
+    return;
+  }
+
+  const currentUser = Auth.getUser();
+
+  tbody.innerHTML = leaderboard.map((s, idx) => {
+    const isCurrentUser = s.id === currentUser.id;
+    const rank = idx + 1;
+    let rankBadge = rank;
+    if (rank === 1) rankBadge = '🥇';
+    else if (rank === 2) rankBadge = '🥈';
+    else if (rank === 3) rankBadge = '🥉';
+
+    const avatarUrl = s.profilePic || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=ff4b2b&color=fff&size=40`;
+    
+    return `
+      <tr style="${isCurrentUser ? 'background: rgba(255, 75, 43, 0.05); font-weight: 600;' : ''}">
+        <td style="text-align: center; font-size: 16px;">${rankBadge}</td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="${avatarUrl}" alt="${s.name}" style="width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-color); object-fit: cover;">
+            <span>${s.name} ${isCurrentUser ? ' <span class="badge approved" style="font-size: 9px; padding: 2px 6px;">You</span>' : ''}</span>
+          </div>
+        </td>
+        <td style="text-align: center;"><span class="badge pending" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.2);">Lvl ${s.level}</span></td>
+        <td style="text-align: right; font-family: monospace; color: var(--accent-color); font-weight: 700;">${s.xp} XP</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderMyGamificationStatus(user) {
+  const xpScore = document.getElementById('my-xp-score');
+  const xpLevel = document.getElementById('my-xp-level');
+  const barFill = document.getElementById('my-level-bar-fill');
+  const levelMin = document.getElementById('level-min-xp');
+  const levelNext = document.getElementById('level-next-xp');
+  const badgesBox = document.getElementById('leaderboard-my-badges');
+
+  if (!xpScore || !xpLevel) return;
+
+  const xp = user.xp || 0;
+  const level = user.level || 1;
+
+  xpScore.innerText = xp;
+  xpLevel.innerText = level;
+
+  const minXp = (level - 1) * 500;
+  const nextXp = level * 500;
+  const progressInLevel = xp - minXp;
+  const percentage = Math.min(100, Math.max(0, Math.round((progressInLevel / 500) * 100)));
+
+  if (barFill) {
+    barFill.style.width = percentage + '%';
+  }
+  if (levelMin) {
+    levelMin.innerText = `${minXp} XP`;
+  }
+  if (levelNext) {
+    levelNext.innerText = `${nextXp - xp} XP to Level ${level + 1}`;
+  }
+
+  const BADGES_MAP = {
+    'xp_500': { name: 'Rising Star', desc: 'Reached 500+ XP', icon: '⭐', color: 'var(--success)' },
+    'xp_1000': { name: 'Gold Scholar', desc: 'Reached 1000+ XP', icon: '🏆', color: 'var(--warning)' }
+  };
+
+  if (badgesBox) {
+    const userBadges = user.badges || [];
+    if (userBadges.length === 0) {
+      badgesBox.innerHTML = `<p style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 10px;">Complete quizzes & assignments to unlock achievements!</p>`;
+      return;
+    }
+
+    badgesBox.innerHTML = userBadges.map(bKey => {
+      const bInfo = BADGES_MAP[bKey] || { name: 'Achievement Unlocked', desc: 'Milestone complete', icon: '🏅', color: 'var(--accent-color)' };
+      return `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.01);">
+          <span style="font-size: 24px;">${bInfo.icon}</span>
+          <div>
+            <h5 style="font-size: 13px; margin: 0; color: var(--text-primary);">${bInfo.name}</h5>
+            <p style="font-size: 11px; margin: 0; color: var(--text-muted);">${bInfo.desc}</p>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+function initAIChatbot() {
+  const toggleBtn = document.getElementById('ai-chat-toggle');
+  const closeBtn = document.getElementById('ai-chat-close');
+  const chatBox = document.getElementById('ai-chat-box');
+  const chatForm = document.getElementById('ai-chat-form');
+  const chatInput = document.getElementById('ai-chat-input');
+  const messagesContainer = document.getElementById('ai-chat-messages');
+
+  if (!toggleBtn || !chatBox || !chatForm) return;
+
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = chatBox.style.display === 'none';
+    chatBox.style.display = isHidden ? 'flex' : 'none';
+    if (isHidden) {
+      chatInput.focus();
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  });
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      chatBox.style.display = 'none';
+    });
+  }
+
+  chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const messageText = chatInput.value.trim();
+    if (!messageText) return;
+
+    appendChatMessage('user', messageText);
+    chatInput.value = '';
+
+    const typingIndicator = appendChatTypingIndicator();
+
+    try {
+      const response = await apiCall('/ai/chat', 'POST', { message: messageText }, true);
+      typingIndicator.remove();
+      appendChatMessage('ai', response.reply);
+    } catch (err) {
+      console.error('Error in AI Chat response:', err);
+      typingIndicator.remove();
+      appendChatMessage('ai', '⚠️ Error contacting the AI Doubt Solver. Please make sure the backend server is running.');
+    }
+  });
+
+  function appendChatMessage(sender, text) {
+    const msgDiv = document.createElement('div');
+    if (sender === 'user') {
+      msgDiv.style.alignSelf = 'flex-end';
+      msgDiv.style.background = 'var(--accent-gradient)';
+      msgDiv.style.color = 'white';
+      msgDiv.style.padding = '10px 14px';
+      msgDiv.style.borderRadius = '12px 12px 0 12px';
+      msgDiv.style.maxWidth = '85%';
+      msgDiv.style.fontSize = '13px';
+      msgDiv.style.lineHeight = '1.4';
+      msgDiv.style.wordBreak = 'break-word';
+      msgDiv.innerText = text;
+    } else {
+      msgDiv.style.alignSelf = 'flex-start';
+      msgDiv.style.background = 'var(--bg-tertiary)';
+      msgDiv.style.color = 'var(--text-primary)';
+      msgDiv.style.padding = '10px 14px';
+      msgDiv.style.borderRadius = '12px 12px 12px 0';
+      msgDiv.style.maxWidth = '85%';
+      msgDiv.style.fontSize = '13px';
+      msgDiv.style.lineHeight = '1.4';
+      msgDiv.style.border = '1px solid var(--border-color)';
+      msgDiv.style.wordBreak = 'break-word';
+      msgDiv.innerHTML = formatMarkdown(text);
+    }
+    messagesContainer.appendChild(msgDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
+
+  function appendChatTypingIndicator() {
+    const indicatorDiv = document.createElement('div');
+    indicatorDiv.style.alignSelf = 'flex-start';
+    indicatorDiv.style.background = 'var(--bg-tertiary)';
+    indicatorDiv.style.padding = '10px 14px';
+    indicatorDiv.style.borderRadius = '12px 12px 12px 0';
+    indicatorDiv.style.fontSize = '13px';
+    indicatorDiv.style.border = '1px solid var(--border-color)';
+    indicatorDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i> SDA AI is typing...';
+    
+    messagesContainer.appendChild(indicatorDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    return indicatorDiv;
+  }
+
+  function formatMarkdown(input) {
+    if (!input) return '';
+    let html = input
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>');
+      
+    html = html.replace(/```([a-z]*)\n([\s\S]*?)\n```/g, '<pre style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 6px; overflow-x: auto; margin-top: 8px; font-family: monospace; font-size:11px; border:1px solid rgba(255,255,255,0.05);">$2</pre>');
+    html = html.replace(/`(.*?)`/g, '<code style="background: rgba(255,75,43,0.1); color: var(--accent-color); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 11px;">$1</code>');
+    html = html.replace(/\n/g, '<br>');
+    return html;
+  }
+}
+
+function initPlayground() {
+  const codeInput = document.getElementById('playground-code');
+  const runBtn = document.getElementById('playground-run-btn');
+  const langSelect = document.getElementById('playground-lang-select');
+  const consoleLog = document.getElementById('playground-console-log');
+  const clearConsoleBtn = document.getElementById('playground-clear-console');
+
+  if (!codeInput || !runBtn || !langSelect || !consoleLog) return;
+
+  const TEMPLATES = {
+    python: `# Python 3 program to check if a number is prime
+def is_prime(n):
+    if n <= 1:
+        return False
+    for i in range(2, int(n**0.5) + 1):
+        if n % i == 0:
+            return False
+    return True
+
+num = 29
+print(f"Is {num} prime? {is_prime(num)}")
+`,
+    c: `#include <stdio.h>
+
+int main() {
+    printf("Hello, Sukla Digital Academy student!\\n");
+    int a = 10, b = 20;
+    printf("Sum of %d and %d is %d\\n", a, b, a + b);
+    return 0;
+}
+`,
+    cpp: `#include <iostream>
+using namespace std;
+
+int main() {
+    cout << "Hello from C++ Playground!" << endl;
+    for(int i = 1; i <= 5; i++) {
+        cout << "Iteration " << i << endl;
+    }
+    return 0;
+}
+`,
+    java: `class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello from Java!");
+        String[] fruits = {"Apple", "Banana", "Orange"};
+        for(String fruit : fruits) {
+            System.out.println("Fruit: " + fruit);
+        }
+    }
+}
+`
+  };
+
+  // Load default python template
+  loadTemplate('python');
+
+  // Load templates on select change
+  langSelect.addEventListener('change', () => {
+    loadTemplate(langSelect.value);
+  });
+
+  // Run button handler
+  runBtn.addEventListener('click', () => {
+    compileAndRun();
+  });
+
+  // Clear console handler
+  if (clearConsoleBtn) {
+    clearConsoleBtn.addEventListener('click', () => {
+      consoleLog.innerText = '';
+    });
+  }
+
+  function loadTemplate(lang) {
+    if (TEMPLATES[lang]) {
+      codeInput.value = TEMPLATES[lang];
+      consoleLog.innerText = 'Console ready. Click Run Program...';
+      consoleLog.style.color = '#10b981';
+    }
+  }
+
+  async function compileAndRun() {
+    const code = codeInput.value;
+    const language = langSelect.value;
+
+    if (!code.trim()) {
+      consoleLog.innerText = 'Error: Code editor is empty.';
+      consoleLog.style.color = '#ef4444';
+      return;
+    }
+
+    consoleLog.innerText = 'Compiling and executing code... Please wait...\n';
+    consoleLog.style.color = '#f59e0b';
+
+    const COMPILERS = {
+      python: 'cpython-3.12.7',
+      c: 'gcc-13.2.0-c',
+      cpp: 'gcc-head-pp',
+      java: 'openjdk-jdk-21+35'
+    };
+
+    try {
+      const response = await fetch('https://wandbox.org/api/compile.json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          compiler: COMPILERS[language],
+          code: code
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned status ${response.status}`);
+      }
+
+      const result = await response.json();
+      let outputText = '';
+      let isError = false;
+
+      if (result.compiler_error || result.compiler_output) {
+        outputText += `[Compilation Message]\n${result.compiler_error || result.compiler_output}\n`;
+        if (result.status !== '0') {
+          isError = true;
+        }
+      }
+
+      if (result.program_error || result.program_output || result.program_message) {
+        outputText += result.program_output || result.program_message || result.program_error;
+        if (result.program_error && result.status !== '0') {
+          isError = true;
+        }
+      }
+
+      if (result.status !== '0') {
+        isError = true;
+        if (!outputText) {
+          outputText = `Execution failed with status code ${result.status}`;
+        }
+      }
+
+      if (!outputText) {
+        outputText = 'Program executed successfully with no output.';
+      }
+
+      consoleLog.innerText = outputText;
+      consoleLog.style.color = isError ? '#ef4444' : '#10b981';
+
+    } catch (err) {
+      console.error('Playground Execution Error:', err);
+      consoleLog.innerText = `Error contacting code runner service: ${err.message}\nEnsure you have an active internet connection.`;
+      consoleLog.style.color = '#ef4444';
+    }
+  }
+}
+
+let attendanceChartInstance = null;
+let quizzesChartInstance = null;
+let assignmentsChartInstance = null;
+
+function renderAllAnalyticsCharts() {
+  const isLight = document.body.classList.contains('light-theme');
+  const textColor = isLight ? '#525262' : '#a0a0ab';
+  const gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+
+  const attCanvas = document.getElementById('chart-attendance');
+  if (attCanvas) {
+    if (attendanceChartInstance) attendanceChartInstance.destroy();
+    
+    const att = (dashboardData.attendance && dashboardData.attendance.summary) 
+      ? dashboardData.attendance.summary 
+      : { present: 0, absent: 0, late: 0 };
+    
+    attendanceChartInstance = new Chart(attCanvas, {
+      type: 'doughnut',
+      data: {
+        labels: ['Present', 'Absent', 'Late'],
+        datasets: [{
+          data: [att.present, att.absent, att.late],
+          backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+          borderColor: isLight ? '#ffffff' : '#121218',
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: textColor, font: { family: 'Plus Jakarta Sans', size: 11 } }
+          }
+        }
+      }
+    });
+  }
+
+  const quizCanvas = document.getElementById('chart-quizzes');
+  if (quizCanvas) {
+    if (quizzesChartInstance) quizzesChartInstance.destroy();
+
+    const results = dashboardData.quizResults || [];
+    const labels = results.map((r, i) => r.quizTitle || `Test \${i+1}`);
+    const scores = results.map(r => r.percentage);
+
+    quizzesChartInstance = new Chart(quizCanvas, {
+      type: 'line',
+      data: {
+        labels: labels.length > 0 ? labels : ['No Quizzes Taken'],
+        datasets: [{
+          label: 'Percentage Score',
+          data: scores.length > 0 ? scores : [0],
+          backgroundColor: 'rgba(245, 158, 11, 0.1)',
+          borderColor: '#f59e0b',
+          borderWidth: 2,
+          tension: 0.3,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            min: 0,
+            max: 100,
+            grid: { color: gridColor },
+            ticks: { color: textColor }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: textColor }
+          }
+        }
+      }
+    });
+  }
+
+  const assignCanvas = document.getElementById('chart-assignments');
+  if (assignCanvas) {
+    if (assignmentsChartInstance) assignmentsChartInstance.destroy();
+
+    const assignments = dashboardData.assignments || [];
+    const submissions = dashboardData.submissions || [];
+
+    const total = assignments.length;
+    const submitted = submissions.length;
+    const graded = submissions.filter(s => s.status === 'graded').length;
+    const pending = total - submitted;
+
+    assignmentsChartInstance = new Chart(assignCanvas, {
+      type: 'bar',
+      data: {
+        labels: ['Total Released', 'Submitted', 'Graded By Tutor', 'Pending Action'],
+        datasets: [{
+          label: 'Assignments count',
+          data: [total, submitted, graded, pending],
+          backgroundColor: ['rgba(255, 75, 43, 0.65)', 'rgba(59, 130, 246, 0.65)', 'rgba(16, 185, 129, 0.65)', 'rgba(245, 158, 11, 0.65)'],
+          borderColor: ['#ff4b2b', '#3b82f6', '#10b981', '#f59e0b'],
+          borderWidth: 1.5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: gridColor },
+            ticks: { color: textColor, stepSize: 1 }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: textColor }
+          }
+        }
+      }
+    });
+  }
+}
+
+let allForumPosts = [];
+let activeForumCategory = 'all';
+
+function initForum() {
+  const openModalBtn = document.getElementById('forum-open-modal-btn');
+  const closeModalBtn = document.getElementById('forum-close-modal-btn');
+  const doubtModal = document.getElementById('forum-doubt-modal');
+  const doubtForm = document.getElementById('forum-doubt-form');
+  const filterBox = document.getElementById('forum-filter-buttons');
+
+  if (openModalBtn && doubtModal) {
+    openModalBtn.addEventListener('click', () => {
+      doubtModal.classList.add('active');
+    });
+  }
+
+  if (closeModalBtn && doubtModal) {
+    closeModalBtn.addEventListener('click', () => {
+      doubtModal.classList.remove('active');
+    });
+  }
+
+  if (doubtForm) {
+    doubtForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('doubt-title').value.trim();
+      const category = document.getElementById('doubt-category').value;
+      const description = document.getElementById('doubt-description').value.trim();
+
+      if (!title || !description) return;
+
+      try {
+        await apiCall('/forum/posts', 'POST', { title, category, description }, true);
+        showToast('Doubt posted successfully!', 'success');
+        doubtForm.reset();
+        doubtModal.classList.remove('active');
+        
+        await loadDashboardData();
+        await loadForumPosts();
+      } catch (err) {
+        console.error('Error posting doubt:', err);
+        showToast('Failed to post doubt.', 'error');
+      }
+    });
+  }
+
+  if (filterBox) {
+    filterBox.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      
+      const filterBtns = filterBox.querySelectorAll('button');
+      filterBtns.forEach(b => {
+        b.style.background = 'var(--bg-tertiary)';
+        b.style.color = 'var(--text-primary)';
+        b.style.boxShadow = 'none';
+      });
+
+      btn.style.background = 'var(--accent-gradient)';
+      btn.style.color = 'white';
+
+      activeForumCategory = btn.getAttribute('data-category');
+      filterAndRenderForumPosts();
+    });
+  }
+}
+
+async function loadForumPosts() {
+  try {
+    allForumPosts = await apiCall('/forum/posts', 'GET', null, true);
+    filterAndRenderForumPosts();
+  } catch (err) {
+    console.error('Failed to load forum posts:', err);
+  }
+}
+
+function filterAndRenderForumPosts() {
+  let filtered = allForumPosts;
+  if (activeForumCategory !== 'all') {
+    filtered = allForumPosts.filter(p => p.category === activeForumCategory);
+  }
+  renderForumPosts(filtered);
+}
+
+function populateDoubtCategories() {
+  const catSelect = document.getElementById('doubt-category');
+  const filterBox = document.getElementById('forum-filter-buttons');
+  if (!catSelect) return;
+
+  const purchased = dashboardData.purchasedCourses || [];
+  
+  catSelect.innerHTML = `<option value="general">General doubt</option>`;
+  
+  filterBox.innerHTML = `
+    <button class="btn-primary" style="padding: 6px 12px; font-size: 12px; background: ${activeForumCategory === 'all' ? 'var(--accent-gradient)' : 'var(--bg-tertiary)'}; color: ${activeForumCategory === 'all' ? 'white' : 'var(--text-primary)'}; box-shadow: none;" data-category="all">All categories</button>
+    <button class="btn-primary" style="padding: 6px 12px; font-size: 12px; background: ${activeForumCategory === 'general' ? 'var(--accent-gradient)' : 'var(--bg-tertiary)'}; color: ${activeForumCategory === 'general' ? 'white' : 'var(--text-primary)'}; box-shadow: none;" data-category="general">General</button>
+  `;
+
+  purchased.forEach(c => {
+    const option = document.createElement('option');
+    option.value = c.title;
+    option.innerText = c.title;
+    catSelect.appendChild(option);
+
+    const btn = document.createElement('button');
+    btn.className = 'btn-primary';
+    btn.setAttribute('data-category', c.title);
+    btn.style.padding = '6px 12px';
+    btn.style.fontSize = '12px';
+    btn.style.boxShadow = 'none';
+    const active = activeForumCategory === c.title;
+    btn.style.background = active ? 'var(--accent-gradient)' : 'var(--bg-tertiary)';
+    btn.style.color = active ? 'white' : 'var(--text-primary)';
+    btn.innerText = c.title;
+    filterBox.appendChild(btn);
+  });
+}
+
+function renderForumPosts(posts) {
+  const container = document.getElementById('forum-posts-container');
+  if (!container) return;
+
+  if (posts.length === 0) {
+    container.innerHTML = `
+      <div class="glass-card" style="padding: 40px; text-align: center;">
+        <p style="color: var(--text-secondary); margin: 0;">No doubts posted in this category yet. Be the first to ask!</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = posts.map(p => {
+    const repliesCount = p.replies ? p.replies.length : 0;
+    const dateStr = new Date(p.createdAt).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    
+    let repliesHTML = '';
+    if (repliesCount > 0) {
+      repliesHTML = p.replies.map(r => {
+        const isInstructor = r.authorRole === 'admin' || r.authorRole === 'instructor';
+        return `
+          <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-top: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <span style="font-size: 11px; font-weight: 700; color: ${isInstructor ? 'var(--accent-color)' : 'var(--text-primary)'};">
+                ${r.authorName} ${isInstructor ? '<span class="badge approved" style="font-size: 8px; padding: 1px 4px; margin-left: 4px;">Instructor</span>' : ''}
+              </span>
+              <span style="font-size: 10px; color: var(--text-muted);">${new Date(r.createdAt).toLocaleDateString([], {day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'})}</span>
+            </div>
+            <p style="font-size: 12px; color: var(--text-primary); margin: 0; line-height: 1.4; white-space: pre-wrap;">${r.message}</p>
+          </div>
+        `;
+      }).join('');
+    } else {
+      repliesHTML = `<p style="font-size: 11px; color: var(--text-muted); text-align: center; padding: 10px; margin: 0;">No replies yet. Help your classmate by answering!</p>`;
+    }
+
+    return `
+      <div class="glass-card" style="padding: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <span class="badge pending" style="font-size: 10px; padding: 2px 8px; background: rgba(255, 75, 43, 0.05); color: var(--accent-color); border-color: rgba(255, 75, 43, 0.1);">${p.category}</span>
+          <span style="font-size: 11px; color: var(--text-muted);">${dateStr}</span>
+        </div>
+        <h4 style="font-size: 16px; margin: 0 0 6px 0; color: var(--text-primary);">${p.title}</h4>
+        <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 14px 0;">Posted by <strong>${p.authorName}</strong></p>
+        <p style="font-size: 13px; color: var(--text-primary); line-height: 1.5; margin-bottom: 20px; white-space: pre-wrap; background: rgba(0,0,0,0.15); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">${p.description}</p>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 12px; margin-bottom: 12px;">
+          <button onclick="toggleRepliesBox('${p.id}')" style="background: none; border: none; color: var(--accent-color); font-size: 12px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; padding: 6px;">
+            <i class="far fa-comments"></i> ${repliesCount} Replies <i class="fas fa-chevron-down" id="chevron-${p.id}" style="font-size: 10px; transition: var(--transition);"></i>
+          </button>
+        </div>
+
+        <div id="replies-box-${p.id}" style="display: none; background: rgba(0, 0, 0, 0.1); border-radius: 8px; padding: 12px; border: 1px solid var(--border-color);">
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px;" id="replies-list-${p.id}">
+            ${repliesHTML}
+          </div>
+
+          <div style="display: flex; gap: 8px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 12px;">
+            <input type="text" id="reply-input-${p.id}" class="form-control" style="height: 36px; min-height: auto; font-size: 12px; padding: 8px 12px;" placeholder="Add a reply...">
+            <button onclick="submitReply('${p.id}')" class="btn-primary" style="padding: 8px 16px; font-size: 12px; height: 36px;"><i class="fas fa-reply"></i></button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+window.toggleRepliesBox = function(postId) {
+  const box = document.getElementById(`replies-box-${postId}`);
+  const chev = document.getElementById(`chevron-${postId}`);
+  if (!box) return;
+
+  const isHidden = box.style.display === 'none';
+  box.style.display = isHidden ? 'block' : 'none';
+  if (chev) {
+    chev.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+  }
+};
+
+window.submitReply = async function(postId) {
+  const input = document.getElementById(`reply-input-${postId}`);
+  if (!input) return;
+
+  const message = input.value.trim();
+  if (!message) return;
+
+  try {
+    await apiCall(`/forum/posts/${postId}/replies`, 'POST', { message }, true);
+    showToast('Reply posted successfully!', 'success');
+    input.value = '';
+    
+    await loadDashboardData();
+    await loadForumPosts();
+    
+    window.toggleRepliesBox(postId);
+  } catch (err) {
+    console.error('Failed to submit reply:', err);
+    showToast('Failed to post reply.', 'error');
+  }
+};
+
+function initResume() {
+  const printBtn = document.getElementById('resume-print-btn');
+  if (printBtn) {
+    printBtn.addEventListener('click', () => {
+      window.print();
+    });
+  }
+}
+
+function loadResumeData() {
+  const user = Auth.getUser();
+  if (!user) return;
+
+  const nameEl = document.getElementById('resume-name');
+  const emailEl = document.getElementById('resume-email');
+  const mobileEl = document.getElementById('resume-mobile');
+  const portEl = document.getElementById('resume-portfolio');
+  const gitEl = document.getElementById('resume-github');
+  const linkEl = document.getElementById('resume-linkedin');
+  const certsList = document.getElementById('resume-certifications-list');
+
+  const freshUser = (dashboardData.user) ? dashboardData.user : user;
+
+  if (nameEl) nameEl.innerText = freshUser.name;
+  if (emailEl) emailEl.innerHTML = `<i class="fas fa-envelope" style="color: #ff4b2b;"></i> ${freshUser.email}`;
+  
+  if (mobileEl) {
+    const mobile = freshUser.mobile || freshUser.studentMobile || '';
+    if (mobile) {
+      mobileEl.innerHTML = `<i class="fas fa-phone" style="color: #ff4b2b;"></i> ${mobile}`;
+      mobileEl.style.display = 'inline-block';
+    } else {
+      mobileEl.style.display = 'none';
+    }
+  }
+
+  if (portEl) {
+    if (freshUser.portfolio) {
+      portEl.innerHTML = `<i class="fas fa-globe" style="color: #ff4b2b;"></i> ${freshUser.portfolio}`;
+      portEl.style.display = 'inline-block';
+    } else {
+      portEl.style.display = 'none';
+    }
+  }
+
+  if (gitEl) {
+    if (freshUser.github) {
+      gitEl.innerHTML = `<i class="fab fa-github" style="color: #ff4b2b;"></i> ${freshUser.github}`;
+      gitEl.style.display = 'inline-block';
+    } else {
+      gitEl.style.display = 'none';
+    }
+  }
+
+  if (linkEl) {
+    if (freshUser.linkedin) {
+      linkEl.innerHTML = `<i class="fab fa-linkedin" style="color: #ff4b2b;"></i> ${freshUser.linkedin}`;
+      linkEl.style.display = 'inline-block';
+    } else {
+      linkEl.style.display = 'none';
+    }
+  }
+
+  if (certsList) {
+    const certs = dashboardData.certificates || [];
+    const approvedCerts = certs.filter(c => c.status === 'captured' || c.status === 'approved');
+
+    if (approvedCerts.length === 0) {
+      certsList.innerHTML = `
+        <li>Full Stack Web Development Program Graduate - Sukla Digital Academy (Rewa, MP)</li>
+        <li style="color: #6b7280; font-style: italic; list-style-type: none; margin-left: -20px; margin-top: 10px;">
+          (Unlock additional verify-to-print credentials on your CV by completing assignments, requesting certificates, and getting instructor approval).
+        </li>
+      `;
+      return;
+    }
+
+    certsList.innerHTML = approvedCerts.map(c => {
+      const type = c.paymentType === 'Certificate Payment' ? 'Internship Certificate' : 'Course Completion Certificate';
+      return `
+        <li>
+          <strong>${type}</strong> for course <em>${c.courseName}</em> (Credential ID: ${c.id.slice(-8).toUpperCase()})
+        </li>
+      `;
+    }).join('') + `\n<li>Full Stack Web Development Program Graduate - Sukla Digital Academy (Rewa, MP)</li>`;
+  }
 }
 

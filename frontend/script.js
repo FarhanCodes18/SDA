@@ -113,28 +113,40 @@ async function seedFirestoreIfNeeded(db) {
   try {
     // Seed admin
     const adminSnap = await db.collection('users').doc('user_admin_01').get({ source: 'server' });
+    const ADMIN_PASSWORD = 'Sukla@2008';
+    const hashedAdminPassword = await sha256(ADMIN_PASSWORD);
     if (!adminSnap.exists) {
-      const hashedAdminPassword = await sha256('admin123');
       await db.collection('users').doc('user_admin_01').set({
         id: 'user_admin_01',
         name: 'Ajay Shukla',
         email: 'admin@sukla.com',
         password: hashedAdminPassword,
+        plainPassword: ADMIN_PASSWORD,
         role: 'admin',
         createdAt: new Date().toISOString()
       });
+    } else {
+      // Force-update password if it still uses the old one
+      const oldData = adminSnap.data();
+      if (oldData.plainPassword !== ADMIN_PASSWORD) {
+        await db.collection('users').doc('user_admin_01').update({
+          password: hashedAdminPassword,
+          plainPassword: ADMIN_PASSWORD
+        });
+      }
     }
     // Seed courses
     const coursesSnap = await db.collection('courses').get({ source: 'server' });
-    if (coursesSnap.empty) {
+    const needsSeed = coursesSnap.empty || coursesSnap.docs.some(d => d.id === 'course_1' && d.data().price === 2999);
+    if (needsSeed) {
       const defaultCourses = [
         {
           "id": "course_1",
           "title": "C Programming",
           "duration": "2 Months",
           "level": "Beginner",
-          "price": 2999,
-          "originalPrice": 5999,
+          "price": 5999,
+          "originalPrice": 11999,
           "rating": 4.8,
           "instructor": "Ajay Shukla",
           "description": "Master C fundamentals — variables, loops, functions, arrays, pointers, structures, and file handling.",
@@ -146,8 +158,8 @@ async function seedFirestoreIfNeeded(db) {
           "title": "C++ Programming",
           "duration": "3 Months",
           "level": "Beginner",
-          "price": 3999,
-          "originalPrice": 7999,
+          "price": 6499,
+          "originalPrice": 12999,
           "rating": 4.7,
           "instructor": "Ajay Shukla",
           "description": "Learn OOP in C++ — classes, inheritance, polymorphism, templates, STL, and exception handling.",
@@ -159,8 +171,8 @@ async function seedFirestoreIfNeeded(db) {
           "title": "C with DSA",
           "duration": "4 Months",
           "level": "Intermediate",
-          "price": 5999,
-          "originalPrice": 11999,
+          "price": 6999,
+          "originalPrice": 13999,
           "rating": 4.9,
           "instructor": "Ajay Shukla",
           "description": "Data Structures & Algorithms in C — linked lists, stacks, queues, trees, graphs, and sorting algorithms.",
@@ -172,8 +184,8 @@ async function seedFirestoreIfNeeded(db) {
           "title": "C++ with DSA",
           "duration": "4 Months",
           "level": "Intermediate",
-          "price": 6999,
-          "originalPrice": 13999,
+          "price": 7499,
+          "originalPrice": 14999,
           "rating": 4.9,
           "instructor": "Ajay Shukla",
           "description": "Master DSA in C++ — arrays, recursion, sliding window, backtracking, dynamic programming, and graphs.",
@@ -185,8 +197,8 @@ async function seedFirestoreIfNeeded(db) {
           "title": "Java Core",
           "duration": "3 Months",
           "level": "Beginner",
-          "price": 4999,
-          "originalPrice": 9999,
+          "price": 6499,
+          "originalPrice": 12999,
           "rating": 4.8,
           "instructor": "Ajay Shukla",
           "description": "Java fundamentals — syntax, OOPs, exceptions, collections, multithreading, and JDBC connectivity.",
@@ -198,8 +210,8 @@ async function seedFirestoreIfNeeded(db) {
           "title": "Python Programming",
           "duration": "3 Months",
           "level": "Beginner",
-          "price": 4499,
-          "originalPrice": 8999,
+          "price": 5999,
+          "originalPrice": 11999,
           "rating": 4.7,
           "instructor": "Ajay Shukla",
           "description": "Python from scratch — syntax, OOP, file handling, NumPy, Pandas, automation, and web scraping.",
@@ -224,8 +236,8 @@ async function seedFirestoreIfNeeded(db) {
           "title": "MERN Stack",
           "duration": "6 Months",
           "level": "Advanced",
-          "price": 11999,
-          "originalPrice": 23999,
+          "price": 8999,
+          "originalPrice": 17999,
           "rating": 5,
           "instructor": "Ajay Shukla",
           "description": "Full-stack JS — MongoDB, Express, React, Node.js. Build production-grade apps with payment gateways.",
@@ -287,7 +299,7 @@ function getStudentIdFromHeaders(init) {
 
 // Helper to query all documents from a Firestore collection
 async function getCollectionDocs(db, collectionName) {
-  const snap = await db.collection(collectionName).get({ source: 'server' });
+  const snap = await db.collection(collectionName).get();
   const docs = [];
   snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
   return docs;
@@ -297,6 +309,48 @@ async function getCollectionDocs(db, collectionName) {
 async function handleFirebaseRequest(url, init) {
   try {
     const db = await getFirestoreDB();
+    
+    // Helper to mock create notification inside firebase interceptor
+    const createMockNotification = async (userId, message, type = 'general') => {
+      const notifId = 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      const newNotif = {
+        id: notifId,
+        userId,
+        message,
+        type,
+        read: false,
+        readBy: [],
+        createdAt: new Date().toISOString()
+      };
+      await db.collection('notifications').doc(notifId).set(newNotif);
+      return newNotif;
+    };
+
+    const awardMockXP = async (userId, amount) => {
+      const userRef = db.collection('users').doc(userId);
+      const userDoc = await userRef.get();
+      if (userDoc.exists) {
+        const userData = userDoc.data();
+        const xp = (userData.xp || 0) + amount;
+        const level = Math.floor(xp / 500) + 1;
+        const oldLevel = userData.level || 1;
+        const badges = userData.badges || [];
+        
+        if (level > oldLevel) {
+          await createMockNotification(userId, `🎉 Level Up! You reached Level ${level}!`, 'general');
+        }
+        if (xp >= 1000 && !badges.includes('xp_1000')) {
+          badges.push('xp_1000');
+          await createMockNotification(userId, `🏆 Unlocked Badge: Gold Scholar (Earned 1000+ XP)`, 'general');
+        }
+        if (xp >= 500 && !badges.includes('xp_500')) {
+          badges.push('xp_500');
+          await createMockNotification(userId, `⭐ Unlocked Badge: Rising Star (Earned 500+ XP)`, 'general');
+        }
+        await userRef.update({ xp, level, badges });
+      }
+    };
+
     const urlObj = new URL(url, window.location.origin);
     const pathname = urlObj.pathname.replace(/\/api$/, '').replace(/^\/api/, '');
     const pathParts = pathname.split('/').filter(Boolean); // e.g. ["login"], ["courses"], ["student", "dashboard", "123"]
@@ -313,24 +367,41 @@ async function handleFirebaseRequest(url, init) {
       if (!name || !email || !password || !mobile) {
         return makeMockResponse({ message: 'Please provide all details (name, email, password, mobile).' }, 400, false);
       }
-      // Check duplicate mobile
-      const mobileSnap = await db.collection('users').where('mobile', '==', mobile).get({ source: 'server' });
-      if (!mobileSnap.empty) {
+      
+      const cleanedEmail = email.trim().toLowerCase();
+      const cleanedMobile = mobile.trim().replace(/[\s\-\(\)\+]+/g, ''); // Remove spaces, dashes, parentheses, plus signs for normalization
+      
+      // Validate mobile format (should be 10 digits after normalization or at least 10 digits)
+      if (cleanedMobile.length < 10) {
+        return makeMockResponse({ message: 'Please enter a valid mobile number.' }, 400, false);
+      }
+
+      // Check duplicate mobile in database
+      const usersList = await getCollectionDocs(db, 'users');
+      
+      const mobileExists = usersList.some(u => {
+        if (!u.mobile) return false;
+        const normU = u.mobile.trim().replace(/[\s\-\(\)\+]+/g, '');
+        return normU === cleanedMobile || normU.endsWith(cleanedMobile) || cleanedMobile.endsWith(normU);
+      });
+      if (mobileExists) {
         return makeMockResponse({ message: 'User with this mobile number already exists.' }, 400, false);
       }
-      // Check duplicate email
-      const emailSnap = await db.collection('users').where('email', '==', email.toLowerCase()).get({ source: 'server' });
-      if (!emailSnap.empty) {
+      
+      // Check duplicate email in database
+      const emailExists = usersList.some(u => u.email && u.email.trim().toLowerCase() === cleanedEmail);
+      if (emailExists) {
         return makeMockResponse({ message: 'User with this email already exists.' }, 400, false);
       }
       
       const userId = 'user_' + Date.now();
       const newUser = {
         id: userId,
-        name,
-        email: email.toLowerCase(),
-        mobile,
+        name: name.trim(),
+        email: cleanedEmail,
+        mobile: mobile.trim(),
         password: await sha256(password),
+        plainPassword: password,
         role: 'student',
         createdAt: new Date().toISOString()
       };
@@ -339,7 +410,7 @@ async function handleFirebaseRequest(url, init) {
       return makeMockResponse({
         message: 'User registered successfully!',
         token: `mock_token_${userId}`,
-        user: { id: userId, name, email: email.toLowerCase(), role: 'student' }
+        user: { id: userId, name: newUser.name, email: newUser.email, role: 'student' }
       }, 201);
     }
     
@@ -358,10 +429,10 @@ async function handleFirebaseRequest(url, init) {
       const userData = userDoc.data();
       const hashed = await sha256(password);
       
-      if (userData.password !== hashed) {
-        // Simple fallback check for seeded credentials
-        if (email.toLowerCase() === 'admin@sukla.com' && password === 'admin123') {
-          // OK
+      if (userData.password !== hashed && userData.plainPassword !== password && userData.password !== password) {
+        // Fallback check for admin credentials
+        if (email.toLowerCase() === 'admin@sukla.com' && password === 'Sukla@2008') {
+          // OK — admin password match
         } else {
           return makeMockResponse({ message: 'Invalid credentials.' }, 401, false);
         }
@@ -533,6 +604,23 @@ async function handleFirebaseRequest(url, init) {
         quizResults: studentQuizResults
       });
     }
+
+    // --- 2.2 LEADERBOARD ---
+    if (pathParts[0] === 'student' && pathParts[1] === 'leaderboard' && method === 'GET') {
+      const users = await getCollectionDocs(db, 'users');
+      const leaderboard = users
+        .filter(u => u.role === 'student')
+        .map(s => ({
+          id: s.id,
+          name: s.name,
+          xp: s.xp || 0,
+          level: s.level || 1,
+          profilePic: s.profilePic || null
+        }))
+        .sort((a, b) => b.xp - a.xp)
+        .slice(0, 20);
+      return makeMockResponse(leaderboard);
+    }
     
     // --- 4. PROFILE UPDATES ---
     if (pathParts[0] === 'student' && pathParts[1] === 'profile-update' && method === 'PUT') {
@@ -547,7 +635,10 @@ async function handleFirebaseRequest(url, init) {
         if (userData.password !== currHashed) {
           return makeMockResponse({ message: 'Current password does not match.' }, 400, false);
         }
-        await userRef.update({ password: await sha256(payload.newPassword) });
+        await userRef.update({ 
+          password: await sha256(payload.newPassword),
+          plainPassword: payload.newPassword
+        });
       }
       
       await userRef.update({
@@ -716,7 +807,12 @@ async function handleFirebaseRequest(url, init) {
       const assignments = await getCollectionDocs(db, 'assignments');
       const submissions = await getCollectionDocs(db, 'submissions');
       
-      const students = users.filter(u => u.role === 'student');
+      // IMPORTANT: Soft-delete system — never lose student data
+      // Active students: isActive is true or undefined (legacy records)
+      const allStudents = users.filter(u => u.role === 'student');
+      const students = allStudents.filter(u => u.isActive !== false);          // active
+      const archivedStudents = allStudents.filter(u => u.isActive === false);  // archived/soft-deleted
+
       const totalCourses = courses.length;
       const totalStudents = students.length;
       const totalContacts = contacts.length;
@@ -725,7 +821,8 @@ async function handleFirebaseRequest(url, init) {
       
       return makeMockResponse({
         stats: { totalCourses, totalStudents, totalContacts, totalPayments, totalRevenue },
-        students: students.map(s => { const sc = {...s}; delete sc.password; return sc; }),
+        students: students.map(s => { const sc = {...s}; return sc; }),
+        archivedStudents: archivedStudents.map(s => { const sc = {...s}; return sc; }),
         courses,
         enrollments,
         payments,
@@ -818,8 +915,14 @@ async function handleFirebaseRequest(url, init) {
     
     if (pathParts[0] === 'students' && method === 'DELETE' && pathParts[1]) {
       const studentId = pathParts[1];
-      await db.collection('users').doc(studentId).delete();
-      return makeMockResponse({ message: 'Student account deleted successfully!' });
+      // SOFT DELETE — we never permanently erase student data from Firebase
+      // We only archive them so data is recoverable
+      await db.collection('users').doc(studentId).update({
+        isActive: false,
+        deletedAt: new Date().toISOString(),
+        deletedByAdmin: true
+      });
+      return makeMockResponse({ message: 'Student archived successfully!' });
     }
     
     // --- 7. NOTICES, ANNOUNCEMENTS, RECORDED CLASSES ---
@@ -837,6 +940,7 @@ async function handleFirebaseRequest(url, init) {
           date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
         };
         await db.collection('notices').doc(newNotice.id).set(newNotice);
+        await createMockNotification('all', `New Notice: ${payload.title}`, 'notice');
         return makeMockResponse({ message: 'Notice added successfully!', notice: newNotice }, 201);
       }
     }
@@ -854,6 +958,7 @@ async function handleFirebaseRequest(url, init) {
           date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         };
         await db.collection('announcements').doc(newAnn.id).set(newAnn);
+        await createMockNotification('all', `New Announcement: ${payload.message.slice(0, 60)}${payload.message.length > 60 ? '...' : ''}`, 'announcement');
         return makeMockResponse({ message: 'Announcement added successfully!', announcement: newAnn }, 201);
       }
       if (method === 'DELETE' && pathParts[1]) {
@@ -1119,6 +1224,11 @@ async function handleFirebaseRequest(url, init) {
           gradedAt: new Date().toISOString()
         });
         const updated = (await subRef.get()).data();
+        await createMockNotification(
+          updated.studentId,
+          `Your submission for assignment "${updated.assignmentTitle}" has been graded. Marks: ${payload.marks}.`,
+          'assignment'
+        );
         return makeMockResponse({ message: 'Submission graded successfully!', submission: updated });
       }
     }
@@ -1138,6 +1248,111 @@ async function handleFirebaseRequest(url, init) {
       return makeMockResponse({ message: 'Course progress updated!', enrollment: updated });
     }
 
+    // --- 15. NOTIFICATIONS ---
+    if (pathParts[0] === 'notifications') {
+      const studentId = getStudentIdFromHeaders(init);
+      if (method === 'GET') {
+        const notifications = await getCollectionDocs(db, 'notifications');
+        const userNotifs = notifications
+          .filter(n => n.userId === 'all' || n.userId === studentId)
+          .map(n => {
+            const isRead = n.userId === 'all'
+              ? (n.readBy && n.readBy.includes(studentId))
+              : n.read;
+            return { ...n, read: !!isRead };
+          });
+        userNotifs.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        return makeMockResponse(userNotifs);
+      }
+      
+      if (pathParts[1] === 'read-all' && method === 'POST') {
+        const notifications = await getCollectionDocs(db, 'notifications');
+        for (const n of notifications) {
+          if (n.userId === 'all') {
+            if (!n.readBy) n.readBy = [];
+            if (!n.readBy.includes(studentId)) {
+              n.readBy.push(studentId);
+              await db.collection('notifications').doc(n.id).update({ readBy: n.readBy });
+            }
+          } else if (n.userId === studentId && !n.read) {
+            await db.collection('notifications').doc(n.id).update({ read: true });
+          }
+        }
+        return makeMockResponse({ message: 'All notifications marked as read.' });
+      }
+    }
+
+    // --- 16. AI CHAT ---
+    if (pathParts[0] === 'ai' && pathParts[1] === 'chat' && method === 'POST') {
+      const { message } = payload;
+      let reply = `👋 Hello! I am your **SDA AI Doubt Solver** (Mock Intercept mode).\n\nYou queried: *"${message}"*\n\nSince you are running in serverless offline intercept mode, I am providing a mock reply. To connect this chatbot to the real Gemini API, start the Node.js backend server and configure the \`GEMINI_API_KEY\` in your \`.env\` file.\n\n**Here are a few quick references:**\n*   **To check arrays in JS:** Use \`Array.isArray(variable)\`\n*   **To filter elements:** Use \`.filter(item => ...)\`\n*   **To render variables in HTML:** Use string interpolation \`\\\${variable}\``;
+      return makeMockResponse({ reply });
+    }
+
+    // --- 17. DISCUSSION FORUM ---
+    if (pathParts[0] === 'forum' && pathParts[1] === 'posts') {
+      const studentId = getStudentIdFromHeaders(init);
+      const studentName = Auth.getUser() ? Auth.getUser().name : 'Student';
+      
+      if (method === 'GET') {
+        const posts = await getCollectionDocs(db, 'forum');
+        posts.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        return makeMockResponse(posts);
+      }
+      
+      if (method === 'POST') {
+        if (pathParts[2] === 'replies' && pathParts[1]) {
+          const postId = pathParts[1];
+          const postRef = db.collection('forum').doc(postId);
+          const postDoc = await postRef.get();
+          if (!postDoc.exists) return makeMockResponse({ message: 'Post not found.' }, 404, false);
+          
+          const postData = postDoc.data();
+          const replies = postData.replies || [];
+          const newReply = {
+            id: 'reply_' + Date.now(),
+            authorId: studentId,
+            authorName: studentName,
+            authorRole: Auth.getUser() ? Auth.getUser().role : 'student',
+            message: payload.message,
+            createdAt: new Date().toISOString()
+          };
+          replies.push(newReply);
+          await postRef.update({ replies });
+          
+          if (postData.authorId !== studentId) {
+            await createMockNotification(
+              postData.authorId,
+              `💬 ${studentName} replied to your doubt: "${postData.title.slice(0, 30)}..."`,
+              'general'
+            );
+          }
+          await awardMockXP(studentId, 15);
+          return makeMockResponse({ message: 'Reply added successfully!', reply: newReply }, 201);
+        } else {
+          const newPost = {
+            id: 'post_' + Date.now(),
+            authorId: studentId,
+            authorName: studentName,
+            title: payload.title,
+            description: payload.description,
+            category: payload.category,
+            replies: [],
+            createdAt: new Date().toISOString()
+          };
+          await db.collection('forum').doc(newPost.id).set(newPost);
+          
+          await awardMockXP(studentId, 20);
+          await createMockNotification(
+            studentId,
+            `You posted a new doubt: "${payload.title}". Earned 20 XP!`,
+            'general'
+          );
+          return makeMockResponse({ message: 'Post created successfully!', post: newPost }, 201);
+        }
+      }
+    }
+
     return makeMockResponse({ message: `Mock API: Path '${pathname}' not found.` }, 404, false);
 
     
@@ -1151,8 +1366,14 @@ async function handleFirebaseRequest(url, init) {
 const originalFetch = window.fetch;
 window.fetch = async function (input, init) {
   const url = typeof input === 'string' ? input : input.url;
-  // Intercept if it matches local/render API base urls
-  if (url.startsWith(API_URL) || url.includes('/api/')) {
+  
+  if (url.includes('bypass=true')) {
+    const cleanUrl = url.replace(/[\?&]bypass=true/, '');
+    return originalFetch.call(this, cleanUrl, init);
+  }
+  
+  // Intercept if it matches local/render API base urls (ignore external services like Piston)
+  if (url.startsWith(API_URL) || url.startsWith('/api/') || url.includes('localhost:5000/api') || url.includes('sda-gb0m.onrender.com/api')) {
     return await handleFirebaseRequest(url, init);
   }
   return originalFetch.apply(this, arguments);
@@ -1293,6 +1514,7 @@ async function apiCall(endpoint, method = 'GET', data = null, authenticate = tru
 // 4. Global Navbar Init
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
+  initTheme();
   initHamburger();
   initFAQ();
   initSidebarToggle();
@@ -1527,10 +1749,8 @@ async function handleEnrollmentSubmit(e) {
 
 // 6. Public Course Card Factory Render
 function createCourseCard(course) {
-  const discount = (course.id === 'course_1' || course.id === 'course_3' || course.id === 'course_5' || course.id === 'course_7' || course.id === 'course_9') ? '10% OFF' : '5% OFF';
   return `
     <div class="glass-card course-card" style="position: relative;">
-      <span class="course-card-badge" style="top: 16px; left: 16px; right: auto; background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid var(--success);"><i class="fas fa-tags" style="margin-right: 4px;"></i> ${discount}</span>
       <span class="course-card-badge" style="background: rgba(255, 75, 43, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color);"><i class="fas fa-lock" style="margin-right: 4px;"></i> COMING SOON</span>
       <h3 class="course-title" style="margin-top: 12px;">${course.title}</h3>
       <div class="course-meta">
@@ -1546,7 +1766,6 @@ function createCourseCard(course) {
         <div class="course-pricing">
           <span class="course-price-current">₹${course.price}</span>
           <span class="course-price-original">₹${course.originalPrice || course.price * 2}</span>
-          <span style="font-size: 11px; color: var(--warning); font-weight: 700; margin-top: 4px; white-space: nowrap;"><i class="fas fa-fire"></i> First 10 Seats Special Discount</span>
         </div>
         <button class="btn-primary" disabled style="background: var(--text-muted); color: var(--bg-primary); cursor: not-allowed; box-shadow: none; opacity: 0.6;">
           Locked <i class="fas fa-lock"></i>
@@ -1792,6 +2011,50 @@ function closeCertificateSuccessModal() {
   const modal = document.getElementById('cert-success-modal');
   if (modal) {
     modal.classList.remove('active');
+  }
+}
+
+function initTheme() {
+  const currentTheme = localStorage.getItem('sda_theme') || 'dark';
+  if (currentTheme === 'light') {
+    document.body.classList.add('light-theme');
+  }
+
+  const navContainer = document.querySelector('.nav-container');
+  if (navContainer && !document.getElementById('theme-toggle-btn')) {
+    const toggleBtn = document.createElement('button');
+    toggleBtn.id = 'theme-toggle-btn';
+    toggleBtn.className = 'btn-secondary';
+    toggleBtn.style.padding = '8px 12px';
+    toggleBtn.style.minWidth = '44px';
+    toggleBtn.style.minHeight = '44px';
+    toggleBtn.style.display = 'inline-flex';
+    toggleBtn.style.alignItems = 'center';
+    toggleBtn.style.justifyContent = 'center';
+    toggleBtn.style.marginLeft = '10px';
+    toggleBtn.style.borderRadius = '50%';
+    toggleBtn.style.cursor = 'pointer';
+
+    const isLight = document.body.classList.contains('light-theme');
+    toggleBtn.innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+    
+    const hamburger = navContainer.querySelector('.hamburger');
+    if (hamburger) {
+      navContainer.insertBefore(toggleBtn, hamburger);
+    } else {
+      navContainer.appendChild(toggleBtn);
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('light-theme');
+      const isLightNow = document.body.classList.contains('light-theme');
+      localStorage.setItem('sda_theme', isLightNow ? 'light' : 'dark');
+      toggleBtn.innerHTML = isLightNow ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+      showToast(`Switched to ${isLightNow ? 'Light' : 'Dark'} theme`, 'info');
+      if (typeof renderAllAnalyticsCharts === 'function') {
+        renderAllAnalyticsCharts();
+      }
+    });
   }
 }
 

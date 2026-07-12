@@ -23,61 +23,111 @@
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
-  <!-- Register Card Container -->
-  <div class="glass-card auth-card">
-    <div class="auth-header">
-      <a href="index.html" class="logo" style="display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 20px;">
-        <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
-        Sukla Digital Academy
-      </a>
-      <h2>Create Account</h2>
-      <p>Register to unlock practical courses & certifications</p>
+  <!-- Ambient Background Blobs -->
+  <div class="auth-bg-blob auth-bg-blob-1"></div>
+  <div class="auth-bg-blob auth-bg-blob-2"></div>
+
+  <!-- Premium Split-Screen Wrapper -->
+  <div class="auth-wrapper">
+    
+    <!-- Left: Branding & Pitch Panel -->
+    <div class="auth-brand-panel">
+      <div class="brand-panel-header">
+        <a href="index.html" class="logo" style="display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+          <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
+          <span style="font-weight: 800; font-family: var(--font-header);">Sukla Digital Academy</span>
+        </a>
+        <h3 style="font-size: 22px; color: var(--text-primary); margin-top: 20px; font-family: var(--font-header);">Start Your Coding Journey</h3>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">Create a student account to enroll in live courses, take online tests, and track assignments.</p>
+      </div>
+
+      <!-- Feature Badges -->
+      <div class="brand-features-list">
+        <div class="brand-feature-item">
+          <div class="brand-feature-icon"><i class="fas fa-user-graduate"></i></div>
+          <div class="brand-feature-text">
+            <h4>Personalized Dashboard</h4>
+            <p>Monitor your performance, level up with XP points, and maintain your streak.</p>
+          </div>
+        </div>
+        <div class="brand-feature-item">
+          <div class="brand-feature-icon"><i class="fas fa-clipboard-check"></i></div>
+          <div class="brand-feature-text">
+            <h4>Interactive Quizzes & Tests</h4>
+            <p>Test your knowledge with chapter-wise coding assignments and online quizzes.</p>
+          </div>
+        </div>
+        <div class="brand-feature-item">
+          <div class="brand-feature-icon"><i class="fas fa-trophy"></i></div>
+          <div class="brand-feature-text">
+            <h4>Global Leaderboard Rankings</h4>
+            <p>Compete with other students, earn rewards, and secure direct job referrals.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="brand-panel-footer" style="display: flex; gap: 20px; font-size: 13px; color: var(--text-muted);">
+        <span><i class="fas fa-shield-alt"></i> Secure SSL Portal</span>
+        <span><i class="fas fa-user-shield"></i> Verified Admin Access</span>
+      </div>
     </div>
 
-    <!-- Registration Form -->
-    <form id="register-form">
-      <div class="auth-form-group">
-        <label for="name">Full Name</label>
-        <div class="auth-input-wrapper">
-          <i class="fas fa-user"></i>
-          <input type="text" id="name" class="auth-input" placeholder="Ajay Shukla" required>
+    <!-- Right: Authentication Form Panel -->
+    <div class="auth-form-panel">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h2 style="font-size: 26px; font-weight: 800;">Create Account</h2>
+          <p>Register to unlock practical courses & certifications</p>
+        </div>
+
+        <!-- Registration Form -->
+        <form id="register-form">
+          <div class="auth-form-group">
+            <label for="name">Full Name</label>
+            <div class="auth-input-wrapper">
+              <i class="fas fa-user"></i>
+              <input type="text" id="name" class="auth-input" placeholder="Ajay Shukla" required>
+            </div>
+          </div>
+
+          <div class="auth-form-group">
+            <label for="mobile">Mobile Number</label>
+            <div class="auth-input-wrapper">
+              <i class="fas fa-phone"></i>
+              <input type="tel" id="mobile" class="auth-input" placeholder="Enter 10-digit mobile number" required>
+            </div>
+          </div>
+
+          <div class="auth-form-group">
+            <label for="email">Email Address</label>
+            <div class="auth-input-wrapper">
+              <i class="fas fa-envelope"></i>
+              <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
+            </div>
+          </div>
+
+          <div class="auth-form-group">
+            <label for="password">Password</label>
+            <div class="auth-input-wrapper">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="password" class="auth-input auth-input-eye" placeholder="••••••••" required>
+              <button type="button" class="eye-toggle" id="toggle-reg-pw" aria-label="Toggle password visibility" onclick="togglePw('password','toggle-reg-pw')">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary auth-btn">
+            Create Student Account <i class="fas fa-user-plus"></i>
+          </button>
+        </form>
+
+        <div class="auth-redirect">
+          Already have an account? <a href="login.html">Login here</a>
         </div>
       </div>
-
-      <div class="auth-form-group">
-        <label for="mobile">Mobile Number</label>
-        <div class="auth-input-wrapper">
-          <i class="fas fa-phone"></i>
-          <input type="tel" id="mobile" class="auth-input" placeholder="Enter 10-digit mobile number" required>
-        </div>
-      </div>
-
-      <div class="auth-form-group">
-        <label for="email">Email Address</label>
-        <div class="auth-input-wrapper">
-          <i class="fas fa-envelope"></i>
-          <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
-        </div>
-      </div>
-
-
-
-      <div class="auth-form-group">
-        <label for="password">Password</label>
-        <div class="auth-input-wrapper">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="password" class="auth-input" placeholder="••••••••" required>
-        </div>
-      </div>
-
-      <button type="submit" class="btn-primary auth-btn">
-        Create Student Account <i class="fas fa-user-plus"></i>
-      </button>
-    </form>
-
-    <div class="auth-redirect">
-      Already have an account? <a href="login.html">Login here</a>
     </div>
+
   </div>
 
   <script src="script.js"></script>
@@ -137,6 +187,19 @@
           showToast(error.message || 'Registration failed. Try a different email.', 'error');
         }
       });
+
+      // Password show/hide toggle
+      window.togglePw = function(inputId, btnId) {
+        const input = document.getElementById(inputId);
+        const icon  = document.querySelector('#' + btnId + ' i');
+        if (input.type === 'password') {
+          input.type = 'text';
+          icon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+          input.type = 'password';
+          icon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+      };
     });
   </script>
 </body>

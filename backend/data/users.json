@@ -4,6 +4,7 @@
     "name": "Ajay Shukla",
     "email": "admin@sukla.com",
     "password": "$2a$10$kr.IqNMY58REHj8XBKYmo.2aTv7UaA5jXxSuWl2QnAnRLrY6UDOfG",
+    "plainPassword": "Sukla@2008",
     "role": "admin",
     "createdAt": "2026-06-07T07:23:31.058Z"
   }

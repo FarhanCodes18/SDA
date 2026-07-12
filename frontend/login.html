@@ -23,43 +23,95 @@
   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   <!-- End Google Tag Manager (noscript) -->
 
-  <!-- Login Card Container -->
-  <div class="glass-card auth-card">
-    <div class="auth-header">
-      <a href="index.html" class="logo" style="display: flex; align-items: center; gap: 10px; justify-content: center; margin-bottom: 20px;">
-        <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
-        Sukla Digital Academy
-      </a>
-      <h2>Welcome Back</h2>
-      <p>Enter your credentials to access your dashboard</p>
-    </div>
+  <!-- Ambient Background Blobs -->
+  <div class="auth-bg-blob auth-bg-blob-1"></div>
+  <div class="auth-bg-blob auth-bg-blob-2"></div>
 
-    <!-- Login Form -->
-    <form id="login-form">
-      <div class="auth-form-group">
-        <label for="email">Email Address</label>
-        <div class="auth-input-wrapper">
-          <i class="fas fa-envelope"></i>
-          <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
+  <!-- Premium Split-Screen Wrapper -->
+  <div class="auth-wrapper">
+    
+    <!-- Left: Branding & Pitch Panel -->
+    <div class="auth-brand-panel">
+      <div class="brand-panel-header">
+        <a href="index.html" class="logo" style="display: inline-flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+          <img src="assets/logo.png" alt="SDA Logo" style="width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--accent-color); object-fit: cover;">
+          <span style="font-weight: 800; font-family: var(--font-header);">Sukla Digital Academy</span>
+        </a>
+        <h3 style="font-size: 22px; color: var(--text-primary); margin-top: 20px; font-family: var(--font-header);">Master the Art of Coding</h3>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">Access premium, government-certified training designed to launch your technology career.</p>
+      </div>
+
+      <!-- Feature Badges -->
+      <div class="brand-features-list">
+        <div class="brand-feature-item">
+          <div class="brand-feature-icon"><i class="fas fa-video"></i></div>
+          <div class="brand-feature-text">
+            <h4>Live Online Classes</h4>
+            <p>Attend interactive live lectures and clarify your technical doubts in real time.</p>
+          </div>
+        </div>
+        <div class="brand-feature-item">
+          <div class="brand-feature-icon"><i class="fas fa-laptop-code"></i></div>
+          <div class="brand-feature-text">
+            <h4>Practical Coding Focus</h4>
+            <p>Work on real-world projects and build an impressive developer portfolio.</p>
+          </div>
+        </div>
+        <div class="brand-feature-item">
+          <div class="brand-feature-icon"><i class="fas fa-certificate"></i></div>
+          <div class="brand-feature-text">
+            <h4>ISO Certified Credentials</h4>
+            <p>Unlock industry-recognized, shareable certificates that open global doors.</p>
+          </div>
         </div>
       </div>
 
-      <div class="auth-form-group">
-        <label for="password">Password</label>
-        <div class="auth-input-wrapper">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="password" class="auth-input" placeholder="••••••••" required>
+      <div class="brand-panel-footer" style="display: flex; gap: 20px; font-size: 13px; color: var(--text-muted);">
+        <span><i class="fas fa-shield-alt"></i> Secure SSL Portal</span>
+        <span><i class="fas fa-user-shield"></i> Verified Admin Access</span>
+      </div>
+    </div>
+
+    <!-- Right: Authentication Form Panel -->
+    <div class="auth-form-panel">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h2 style="font-size: 26px; font-weight: 800;">Welcome Back</h2>
+          <p>Enter your credentials to access your dashboard</p>
+        </div>
+
+        <!-- Login Form -->
+        <form id="login-form">
+          <div class="auth-form-group">
+            <label for="email">Email Address</label>
+            <div class="auth-input-wrapper">
+              <i class="fas fa-envelope"></i>
+              <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
+            </div>
+          </div>
+
+          <div class="auth-form-group">
+            <label for="password">Password</label>
+            <div class="auth-input-wrapper">
+              <i class="fas fa-lock"></i>
+              <input type="password" id="password" class="auth-input auth-input-eye" placeholder="••••••••" required>
+              <button type="button" class="eye-toggle" id="toggle-login-pw" aria-label="Toggle password visibility" onclick="togglePw('password','toggle-login-pw')">
+                <i class="fas fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary auth-btn">
+            Login Securely <i class="fas fa-sign-in-alt"></i>
+          </button>
+        </form>
+
+        <div class="auth-redirect">
+          Don't have an account? <a href="register.html">Register here</a>
         </div>
       </div>
-
-      <button type="submit" class="btn-primary auth-btn">
-        Login Securely <i class="fas fa-sign-in-alt"></i>
-      </button>
-    </form>
-
-    <div class="auth-redirect">
-      Don't have an account? <a href="register.html">Register here</a>
     </div>
+
   </div>
 
   <script src="script.js"></script>
@@ -105,7 +157,20 @@
           showToast(error.message || 'Login failed. Invalid credentials.', 'error');
         }
       });
-    });
+
+    // Password show/hide toggle
+    window.togglePw = function(inputId, btnId) {
+      const input = document.getElementById(inputId);
+      const icon  = document.querySelector('#' + btnId + ' i');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+      } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+      }
+    };
+  });
   </script>
 </body>
 </html>
