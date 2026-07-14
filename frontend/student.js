@@ -127,14 +127,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize notifications bell
   initNotifications();
 
-  // Initialize floating AI chatbot
-  initAIChatbot();
-
   // Initialize Code Playground
   initPlayground();
 
   // Initialize Discussion Forum
   initForum();
+
+  // Feedback Submit Listener
+  const feedbackForm = document.getElementById('submit-feedback-form');
+  if (feedbackForm) {
+    feedbackForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const message = document.getElementById('feedback-message').value.trim();
+      const btn = feedbackForm.querySelector('button');
+      
+      try {
+        btn.disabled = true;
+        btn.innerHTML = 'Submitting... <i class="fas fa-spinner fa-spin"></i>';
+        const res = await apiCall('/feedbacks', 'POST', { message }, true);
+        showToast(res.message || 'Feedback submitted!', 'success');
+        feedbackForm.reset();
+      } catch (error) {
+        showToast(error.message || 'Failed to submit feedback.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Submit Feedback';
+      }
+    });
+  }
 
   // Initialize Resume Builder
   initResume();
@@ -190,7 +210,7 @@ async function loadDashboardData() {
     renderActiveCourses(data.purchasedCourses, data.enrolledCourses);
 
     // D. Render Live Classes
-    renderLiveClasses(data.purchasedCourses);
+    renderLiveClasses(data.purchasedCourses, data.liveClasses || [], data.isDemoStudent);
 
     // E. Render Notices
     renderNotices(data.notices);
@@ -363,16 +383,16 @@ function renderActiveCourses(purchasedCourses, enrolledCourses) {
 
 
 // Render active live classes
-function renderLiveClasses(purchasedCourses) {
+function renderLiveClasses(purchasedCourses, liveClasses, isDemoStudent) {
   const container = document.getElementById('classes-list-container');
   const overviewLive = document.getElementById('overview-live-class');
   
-  if (purchasedCourses.length === 0) {
+  if (purchasedCourses.length === 0 && !isDemoStudent) {
     const emptyMsg = `
       <div style="text-align: center; color: var(--text-muted); padding: 32px;">
         <i class="fas fa-lock" style="font-size: 36px; color: var(--warning); margin-bottom: 12px; display:block;"></i>
         <p style="font-weight: 600; margin-bottom: 6px; color: var(--text-secondary);">Live Class Access Locked</p>
-        <p style="font-size: 13px;">Purchase a course and wait for admin payment approval to join live sessions.</p>
+        <p style="font-size: 13px;">Purchase a course or register for a demo to join live sessions.</p>
       </div>
     `;
     if (container) container.innerHTML = emptyMsg;
@@ -380,36 +400,35 @@ function renderLiveClasses(purchasedCourses) {
     return;
   }
 
-  const liveHTML = `
-    <div class="class-item" style="border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 20px;">
-      <div class="class-item-header">
-        <h3 class="class-title"><i class="fas fa-dot-circle" style="color: var(--danger); animation: glowPulse 1.5s infinite;"></i> DSA & Logic Building Masterclass</h3>
-        <span class="badge approved">LIVE NOW</span>
-      </div>
-      <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 16px;">Learn recursion and back-tracking optimization live with Ajay Shukla. Interactive code reviews.</p>
-      <a href="https://meet.google.com/mock-sukla-meeting" target="_blank" class="btn-primary" style="align-self: flex-start;">
-        Join Zoom/Google Meet <i class="fas fa-video"></i>
-      </a>
-    </div>
-  `;
+  if (!liveClasses || liveClasses.length === 0) {
+    const emptyMsg = `<div style="text-align: center; color: var(--text-muted); padding: 32px;">No live classes scheduled for your enrolled courses right now.</div>`;
+    if (container) container.innerHTML = emptyMsg;
+    if (overviewLive) overviewLive.innerHTML = `<p style="color: var(--text-muted);">No upcoming live sessions.</p>`;
+    return;
+  }
 
   if (container) {
-    container.innerHTML = liveHTML + `
-      <div class="class-item">
+    container.innerHTML = liveClasses.map(lc => `
+      <div class="class-item" style="border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 20px;">
         <div class="class-item-header">
-          <h3 class="class-title"><i class="far fa-clock"></i> React & Node Full Stack Workshop</h3>
-          <span class="badge pending" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.2);">TOMORROW 06:00 PM</span>
+          <h3 class="class-title"><i class="fas fa-dot-circle" style="color: var(--danger); animation: glowPulse 1.5s infinite;"></i> ${lc.title}</h3>
+          <span class="badge pending" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6; border-color: rgba(59, 130, 246, 0.2);">${lc.dateTime}</span>
         </div>
-        <p style="color: var(--text-secondary); font-size: 14px;">Building RESTful APIs and wiring Redux middleware logic.</p>
+        <a href="${lc.link}" target="_blank" class="btn-primary" style="align-self: flex-start; margin-top: 12px;">
+          Join Zoom/Google Meet <i class="fas fa-video"></i>
+        </a>
       </div>
-    `;
+    `).join('');
   }
 
   if (overviewLive) {
-    overviewLive.innerHTML = `
-      <p style="margin-bottom:10px; font-weight:600;"><i class="fas fa-dot-circle" style="color: var(--danger);"></i> DSA & Logic Building Masterclass</p>
-      <a href="https://meet.google.com/mock-sukla-meeting" target="_blank" class="btn-primary" style="font-size:11px; padding:6px 12px; display:inline-flex;">Join Live Session <i class="fas fa-external-link-alt"></i></a>
-    `;
+    // Show top 2 live classes in overview
+    overviewLive.innerHTML = liveClasses.slice(0, 2).map(lc => `
+      <div style="margin-bottom: 12px;">
+        <p style="margin-bottom:6px; font-weight:600; font-size: 13px;"><i class="fas fa-dot-circle" style="color: var(--danger);"></i> ${lc.title} <span style="font-size: 10px; color: var(--text-muted);">(${lc.dateTime})</span></p>
+        <a href="${lc.link}" target="_blank" class="btn-primary" style="font-size:11px; padding:6px 12px; display:inline-flex;">Join Live Session <i class="fas fa-external-link-alt"></i></a>
+      </div>
+    `).join('');
   }
 }
 
@@ -1754,109 +1773,6 @@ function renderMyGamificationStatus(user) {
   }
 }
 
-function initAIChatbot() {
-  const toggleBtn = document.getElementById('ai-chat-toggle');
-  const closeBtn = document.getElementById('ai-chat-close');
-  const chatBox = document.getElementById('ai-chat-box');
-  const chatForm = document.getElementById('ai-chat-form');
-  const chatInput = document.getElementById('ai-chat-input');
-  const messagesContainer = document.getElementById('ai-chat-messages');
-
-  if (!toggleBtn || !chatBox || !chatForm) return;
-
-  toggleBtn.addEventListener('click', () => {
-    const isHidden = chatBox.style.display === 'none';
-    chatBox.style.display = isHidden ? 'flex' : 'none';
-    if (isHidden) {
-      chatInput.focus();
-      messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-  });
-
-  if (closeBtn) {
-    closeBtn.addEventListener('click', () => {
-      chatBox.style.display = 'none';
-    });
-  }
-
-  chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const messageText = chatInput.value.trim();
-    if (!messageText) return;
-
-    appendChatMessage('user', messageText);
-    chatInput.value = '';
-
-    const typingIndicator = appendChatTypingIndicator();
-
-    try {
-      const response = await apiCall('/ai/chat', 'POST', { message: messageText }, true);
-      typingIndicator.remove();
-      appendChatMessage('ai', response.reply);
-    } catch (err) {
-      console.error('Error in AI Chat response:', err);
-      typingIndicator.remove();
-      appendChatMessage('ai', '⚠️ Error contacting the AI Doubt Solver. Please make sure the backend server is running.');
-    }
-  });
-
-  function appendChatMessage(sender, text) {
-    const msgDiv = document.createElement('div');
-    if (sender === 'user') {
-      msgDiv.style.alignSelf = 'flex-end';
-      msgDiv.style.background = 'var(--accent-gradient)';
-      msgDiv.style.color = 'white';
-      msgDiv.style.padding = '10px 14px';
-      msgDiv.style.borderRadius = '12px 12px 0 12px';
-      msgDiv.style.maxWidth = '85%';
-      msgDiv.style.fontSize = '13px';
-      msgDiv.style.lineHeight = '1.4';
-      msgDiv.style.wordBreak = 'break-word';
-      msgDiv.innerText = text;
-    } else {
-      msgDiv.style.alignSelf = 'flex-start';
-      msgDiv.style.background = 'var(--bg-tertiary)';
-      msgDiv.style.color = 'var(--text-primary)';
-      msgDiv.style.padding = '10px 14px';
-      msgDiv.style.borderRadius = '12px 12px 12px 0';
-      msgDiv.style.maxWidth = '85%';
-      msgDiv.style.fontSize = '13px';
-      msgDiv.style.lineHeight = '1.4';
-      msgDiv.style.border = '1px solid var(--border-color)';
-      msgDiv.style.wordBreak = 'break-word';
-      msgDiv.innerHTML = formatMarkdown(text);
-    }
-    messagesContainer.appendChild(msgDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-  }
-
-  function appendChatTypingIndicator() {
-    const indicatorDiv = document.createElement('div');
-    indicatorDiv.style.alignSelf = 'flex-start';
-    indicatorDiv.style.background = 'var(--bg-tertiary)';
-    indicatorDiv.style.padding = '10px 14px';
-    indicatorDiv.style.borderRadius = '12px 12px 12px 0';
-    indicatorDiv.style.fontSize = '13px';
-    indicatorDiv.style.border = '1px solid var(--border-color)';
-    indicatorDiv.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right: 6px;"></i> SDA AI is typing...';
-    
-    messagesContainer.appendChild(indicatorDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    return indicatorDiv;
-  }
-
-  function formatMarkdown(input) {
-    if (!input) return '';
-    let html = input
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>');
-      
-    html = html.replace(/```([a-z]*)\n([\s\S]*?)\n```/g, '<pre style="background: rgba(0,0,0,0.5); padding: 8px; border-radius: 6px; overflow-x: auto; margin-top: 8px; font-family: monospace; font-size:11px; border:1px solid rgba(255,255,255,0.05);">$2</pre>');
-    html = html.replace(/`(.*?)`/g, '<code style="background: rgba(255,75,43,0.1); color: var(--accent-color); padding: 2px 5px; border-radius: 4px; font-family: monospace; font-size: 11px;">$1</code>');
-    html = html.replace(/\n/g, '<br>');
-    return html;
-  }
-}
 
 function initPlayground() {
   const codeInput = document.getElementById('playground-code');
@@ -2455,3 +2371,150 @@ function loadResumeData() {
   }
 }
 
+// ==========================================
+// DEMO CLASS REGISTRATION LOGIC
+// ==========================================
+function openDemoClassModal() {
+  const modal = document.getElementById('demo-class-modal');
+  if (modal) {
+    const qrImg = document.getElementById('demo-pay-qr-img');
+    if (qrImg) {
+      const upiUrl = `upi://pay?pa=9302677702@ybl&pn=Sukla%20Digital%20Academy&am=200&cu=INR&tn=Demo%20Class`;
+      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(upiUrl)}`;
+    }
+    modal.classList.add('active');
+  }
+}
+
+function closeDemoClassModal() {
+  const modal = document.getElementById('demo-class-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.getElementById('demo-class-form').reset();
+  }
+}
+
+async function handleDemoClassSubmit(e) {
+  e.preventDefault();
+  
+  const courseSelect = document.getElementById('demo-course-select');
+  const screenshotInput = document.getElementById('demo-payment-screenshot');
+  
+  if (!courseSelect.value) {
+    showToast('Please select a course for the demo class.', 'error');
+    return;
+  }
+  
+  if (!screenshotInput || screenshotInput.files.length === 0) {
+    showToast('Please upload the payment screenshot (₹200).', 'error');
+    return;
+  }
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHTML = submitBtn.innerHTML;
+  
+  try {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Submitting... <i class="fas fa-spinner fa-spin"></i>';
+    
+    const file = screenshotInput.files[0];
+    const user = Auth.getUser();
+    
+    const formData = new FormData();
+    formData.append('fullName', user.name);
+    formData.append('mobile', user.mobile || '');
+    formData.append('email', user.email);
+    formData.append('courseName', courseSelect.value);
+    formData.append('amount', 200);
+    formData.append('screenshot', file);
+    
+    const token = Auth.getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    
+    const response = await fetch(`${API_URL}/demo-manual-request`, {
+      method: 'POST',
+      headers: headers,
+      body: formData
+    });
+    
+    const res = await response.json();
+    if (!response.ok) {
+      throw new Error(res.message || 'Submission failed.');
+    }
+    
+    closeDemoClassModal();
+    showToast(res.message || 'Demo class request submitted successfully!', 'success');
+    
+    // Refresh student dashboard data
+    await loadDashboardData();
+    
+  } catch (error) {
+    showToast(error.message || 'Failed to submit demo class request.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
+  }
+}
+
+// Render Streak Tracker Gamification
+function renderStreakTracker(streakData) {
+  const currentCount = document.getElementById('streak-current-count');
+  const statCurrent = document.getElementById('streak-stat-current');
+  const statLongest = document.getElementById('streak-stat-longest');
+  const statToday = document.getElementById('streak-stat-today');
+  const badgesGrid = document.getElementById('streak-badges-grid');
+
+  if (!currentCount || !streakData) return;
+
+  const current = streakData.current || 0;
+  const longest = streakData.longest || 0;
+  
+  // Format last login cleanly
+  let lastLoginStr = '—';
+  if (streakData.lastLogin) {
+    const d = new Date(streakData.lastLogin);
+    lastLoginStr = d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  currentCount.innerText = current;
+  if (statCurrent) statCurrent.innerText = current;
+  if (statLongest) statLongest.innerText = longest;
+  if (statToday) statToday.innerText = lastLoginStr;
+
+  const msg = document.getElementById('streak-hero-msg');
+  if (msg) {
+    if (current > 0) {
+      msg.innerHTML = `You're on a <strong>${current} day</strong> streak! Keep it up!`;
+      msg.style.color = 'var(--warning)';
+    } else {
+      msg.innerText = 'Login every day to keep your streak alive!';
+      msg.style.color = 'var(--text-secondary)';
+    }
+  }
+
+  // Render Badges
+  if (badgesGrid) {
+    const milestones = [
+      { days: 3, name: 'Bronze Flame', icon: 'fa-fire', color: '#cd7f32' },
+      { days: 7, name: 'Silver Spark', icon: 'fa-bolt', color: '#c0c0c0' },
+      { days: 14, name: 'Gold Blaze', icon: 'fa-star', color: '#ffd700' },
+      { days: 30, name: 'Diamond Inferno', icon: 'fa-gem', color: '#00ffff' }
+    ];
+
+    badgesGrid.innerHTML = milestones.map(m => {
+      const unlocked = current >= m.days;
+      return \`
+        <div class="streak-badge-card \${unlocked ? 'unlocked' : 'locked'}">
+          <div class="badge-icon" style="\${unlocked ? \`color: \${m.color};\` : ''}">
+            <i class="fas \${m.icon}"></i>
+          </div>
+          <h4 class="badge-name">\${m.name}</h4>
+          <span class="badge-req">\${m.days} Day Streak</span>
+        </div>
+      \`;
+    }).join('');
+  }
+}

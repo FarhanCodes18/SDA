@@ -43,9 +43,16 @@ document.addEventListener('DOMContentLoaded', () => {
       let isFirstCertLoad = true;
       let isFirstContactLoad = true;
 
+      let isFirstCourseLoad = true;
+
       db.collection('users').onSnapshot(() => {
         if (isFirstUserLoad) { isFirstUserLoad = false; return; }
         console.log("Real-time update: users collection changed. Refreshing dashboard...");
+        loadAdminData();
+      });
+      db.collection('courses').onSnapshot(() => {
+        if (isFirstCourseLoad) { isFirstCourseLoad = false; return; }
+        console.log("Real-time update: courses collection changed. Refreshing dashboard...");
         loadAdminData();
       });
       db.collection('payments').onSnapshot(() => {
@@ -184,6 +191,9 @@ async function loadAdminData() {
 
     // F. Populate Enrollments table
     renderEnrollments(data.enrollments, data.courses);
+    
+    // F2. Populate Demo Requests table
+    renderDemoRequests(data.enrollments);
 
     // G. Populate Payments table
     renderPayments(data.payments);
@@ -199,6 +209,9 @@ async function loadAdminData() {
 
     // K. Populate Announcement logs
     renderAnnouncements(data.announcements);
+    
+    // K2. Populate Live Classes
+    renderLiveClassesAdmin(data.liveClasses || [], data.courses || []);
 
     // L. Populate Video Lectures list
     renderRecordedClasses(data.recordedClasses);
@@ -216,6 +229,9 @@ async function loadAdminData() {
     // O. Populate Assignments Manager
     renderAdminAssignments(data.assignments || [], data.courses || []);
     renderAdminSubmissions(data.submissions || [], data.assignments || []);
+
+    // P. Populate Feedbacks
+    renderFeedbacks(data.feedbacks || []);
 
   } catch (error) {
     console.error('Error fetching admin data:', error);
@@ -298,8 +314,8 @@ function renderStudents(students, archivedStudents) {
           <button onclick="openStudentDetailsModal('${s.id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
             <i class="fas fa-eye"></i> View
           </button>
-          <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: #b45309; border-color: #b45309; box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
-            <i class="fas fa-archive"></i> Archive
+          <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+            <i class="fas fa-trash-alt"></i> Delete
           </button>
         </div>
       </td>
@@ -478,7 +494,7 @@ function renderEnrollments(enrollments, courses) {
   if (!tbody) return;
 
   if (enrollments.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">No course enrollment requests found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; color: var(--text-muted);">No course enrollment requests found.</td></tr>`;
     return;
   }
 
@@ -519,6 +535,11 @@ function renderEnrollments(enrollments, courses) {
           }
         </td>
         <td><span class="badge ${e.status === 'approved' ? 'approved' : 'pending'}">${e.status}</span></td>
+        <td>
+          <button onclick="handleDeleteEnrollment('${e.id}')" title="Delete Enrollment" class="btn-primary" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px;">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </td>
         <td>
           ${e.status === 'approved' ? `
             <div style="min-width:160px;">
@@ -586,6 +607,9 @@ function renderPayments(payments) {
           }
           <button onclick="openManualPaymentModal('${p.id}', '${p.status}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px;">
             Update
+          </button>
+          <button onclick="handleDeletePayment('${p.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+            <i class="fas fa-trash-alt"></i>
           </button>
         </div>
       </td>
@@ -689,7 +713,14 @@ function renderNotices(notices) {
     <div class="glass-card notice-item" style="margin-bottom: 12px; padding: 16px;">
       <div class="notice-item-header">
         <h4 class="notice-title" style="font-size: 16px;"><i class="fas fa-info-circle" style="color: var(--accent-color);"></i> ${n.title}</h4>
-        <span class="notice-date">${n.date}</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="notice-date">${n.date}</span>
+          <button onclick="handleDeleteNotice('${n.id}')" title="Delete Notice"
+            style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--danger); border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; transition: all 0.2s;"
+            onmouseover="this.style.background='rgba(239,68,68,0.25)'" onmouseout="this.style.background='rgba(239,68,68,0.1)'">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
       </div>
       <div class="notice-body" style="font-size: 13px;">${n.description}</div>
     </div>
@@ -849,7 +880,263 @@ async function handleAddNotice(e) {
     document.getElementById('add-notice-form').reset();
     await loadAdminData();
   } catch (error) {
-    showToast(error.message || 'Failed to post notice.', 'error');
+    showToast(error.message || 'Failed to add notice.', 'error');
+  }
+}
+
+async function handleDeleteNotice(id) {
+  if (!confirm('Are you sure you want to delete this notice?')) return;
+  try {
+    const res = await apiCall(`/notices/${id}`, 'DELETE', null, true);
+    showToast(res.message, 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete notice.', 'error');
+  }
+}
+
+async function handleDeleteEnrollment(id) {
+  if (!confirm('Are you sure you want to delete this enrollment/active program?')) return;
+  try {
+    const res = await apiCall(`/enrollments/${id}`, 'DELETE', null, true);
+    showToast(res.message, 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete enrollment.', 'error');
+  }
+}
+
+// ==========================================
+// DEMO REQUESTS LOGIC
+// ==========================================
+function renderDemoRequests(enrollments) {
+  const tbody = document.getElementById('admin-demo-tbody');
+  if (!tbody) return;
+
+  const demoRequests = enrollments.filter(e => e.type === 'demo');
+
+  if (demoRequests.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No demo requests found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = demoRequests.map(d => {
+    const isPending = d.status === 'pending';
+    let actionHtml = '';
+    if (isPending) {
+      actionHtml = `
+        <button onclick="openApproveDemoModal('${d.id}', '${d.studentId}')" class="btn-primary" style="padding: 6px 12px; font-size: 11px; margin-right: 4px;">
+          Approve
+        </button>
+      `;
+    } else {
+      actionHtml = `<span style="font-size: 11px; color: var(--success);"><i class="fas fa-check-circle"></i> Sent Link</span>`;
+    }
+
+    const screenshotBtn = d.screenshot 
+      ? `<button onclick="viewScreenshot('${d.screenshot}')" class="btn-secondary" style="padding: 4px 8px; font-size: 11px;">View Receipt</button>`
+      : `<span style="font-size:11px; color:var(--text-muted);">None</span>`;
+
+    return `
+      <tr>
+        <td style="font-family: monospace; font-size: 11px;">${d.id.slice(-8).toUpperCase()}</td>
+        <td style="font-weight: 600;">${d.studentName}</td>
+        <td>${d.courseId.replace('demo_', '').toUpperCase()}</td>
+        <td style="font-size: 12px;">${d.studentMobile}<br>${d.studentEmail}</td>
+        <td>${screenshotBtn}</td>
+        <td><span class="badge ${isPending ? 'pending' : 'approved'}">${isPending ? 'Pending' : 'Approved'}</span></td>
+        <td>${actionHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openApproveDemoModal(enrollmentId, studentId) {
+  document.getElementById('demo-req-enrollment-id').value = enrollmentId;
+  document.getElementById('demo-req-student-id').value = studentId;
+  document.getElementById('demo-meeting-link').value = '';
+  
+  const modal = document.getElementById('approve-demo-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeApproveDemoModal() {
+  const modal = document.getElementById('approve-demo-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.getElementById('approve-demo-form').reset();
+  }
+}
+
+async function handleApproveDemoSubmit(e) {
+  e.preventDefault();
+  
+  const enrollmentId = document.getElementById('demo-req-enrollment-id').value;
+  const studentId = document.getElementById('demo-req-student-id').value;
+  const meetingLink = document.getElementById('demo-meeting-link').value.trim();
+  
+  if (!meetingLink) {
+    showToast('Meeting link is required.', 'error');
+    return;
+  }
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHTML = submitBtn.innerHTML;
+  
+  try {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Approving... <i class="fas fa-spinner fa-spin"></i>';
+    
+    const token = Auth.getToken();
+    const response = await fetch(`${API_URL}/admin/demo/approve`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ enrollmentId, studentId, meetingLink })
+    });
+    
+    const res = await response.json();
+    if (!response.ok) {
+      throw new Error(res.message || 'Approval failed.');
+    }
+    
+    closeApproveDemoModal();
+    showToast(res.message || 'Demo request approved and link sent.', 'success');
+    
+    await loadAdminData(); // Refresh UI
+    
+  } catch (error) {
+    showToast(error.message || 'Failed to approve demo request.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
+  }
+}
+
+// ==========================================
+// LIVE CLASSES LOGIC
+// ==========================================
+function renderLiveClassesAdmin(classes, courses) {
+  const container = document.getElementById('admin-liveclasses-container');
+  const dropdown = document.getElementById('liveclass-course');
+  
+  if (!container || !dropdown) return;
+  
+  // Populate dropdown
+  if (dropdown.options.length <= 1) { // Only populate if empty (or just default)
+    dropdown.innerHTML = `
+      <option value="">-- Select Target Course --</option>
+      <option value="all">All Active Students</option>
+      <option value="all_demo">All Approved Demo Students</option>
+      ${courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('')}
+    `;
+  }
+  
+  // Render posted live classes
+  if (classes.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); grid-column: 1/-1;">No live classes scheduled yet.</p>`;
+    return;
+  }
+  
+  container.innerHTML = classes.map(lc => {
+    let targetName = 'Unknown';
+    if (lc.courseId === 'all') targetName = 'All Active Students';
+    else if (lc.courseId === 'all_demo') targetName = 'All Approved Demo Students';
+    else {
+      const c = courses.find(course => course.id === lc.courseId);
+      if (c) targetName = c.title;
+    }
+    
+    return `
+      <div class="glass-card course-card" style="position: relative;">
+        <button onclick="deleteLiveClass('${lc.id}')" style="position: absolute; top: 12px; right: 12px; background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px;" title="Delete Live Class">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+        <h4 style="font-size: 15px; margin-bottom: 8px; padding-right: 24px;">${lc.title}</h4>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 6px;">Target: <strong style="color: var(--text-primary);">${targetName}</strong></p>
+        <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;"><i class="far fa-clock"></i> ${lc.dateTime}</p>
+        <a href="${lc.link}" target="_blank" class="btn-primary" style="font-size: 11px; padding: 6px 12px;">Meeting Link <i class="fas fa-external-link-alt"></i></a>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handlePostLiveClass(e) {
+  e.preventDefault();
+  
+  const title = document.getElementById('liveclass-title').value.trim();
+  const courseId = document.getElementById('liveclass-course').value;
+  const dateTime = document.getElementById('liveclass-datetime').value.trim();
+  const link = document.getElementById('liveclass-link').value.trim();
+  
+  if (!title || !courseId || !dateTime || !link) {
+    showToast('Please fill out all live class details.', 'error');
+    return;
+  }
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHTML = submitBtn.innerHTML;
+  
+  try {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Publishing... <i class="fas fa-spinner fa-spin"></i>';
+    
+    const token = Auth.getToken();
+    const response = await fetch(`${API_URL}/admin/liveclass`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ title, courseId, dateTime, link })
+    });
+    
+    const res = await response.json();
+    if (!response.ok) {
+      throw new Error(res.message || 'Failed to post live class.');
+    }
+    
+    document.getElementById('add-liveclass-form').reset();
+    showToast(res.message, 'success');
+    
+    await loadAdminData();
+    
+  } catch (error) {
+    showToast(error.message || 'Error posting live class.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
+  }
+}
+
+async function deleteLiveClass(classId) {
+  if (!confirm('Are you sure you want to delete this live class link?')) return;
+  
+  try {
+    const token = Auth.getToken();
+    const response = await fetch(`${API_URL}/admin/liveclass/${classId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    const res = await response.json();
+    if (!response.ok) {
+      throw new Error(res.message || 'Failed to delete live class.');
+    }
+    
+    showToast(res.message, 'success');
+    await loadAdminData(); // Refresh UI
+    
+  } catch (error) {
+    showToast(error.message || 'Error deleting live class.', 'error');
   }
 }
 
@@ -1038,7 +1325,7 @@ async function approvePaymentDirectly(payId) {
 
 // Delete student registration and clean up records
 async function handleDeleteStudent(studentId) {
-  if (!confirm('Are you sure you want to delete this student registration? This will permanently wipe all their enrollments, certificate requests, and payment logs.')) {
+  if (!confirm('Are you sure you want to permanently delete this student registration? This action cannot be undone.')) {
     return;
   }
 
@@ -1049,6 +1336,21 @@ async function handleDeleteStudent(studentId) {
     await loadAdminData();
   } catch (error) {
     showToast(error.message || 'Failed to delete student.', 'error');
+  }
+}
+
+async function handleDeletePayment(paymentId) {
+  if (!confirm('Are you sure you want to delete this payment log? This action cannot be undone.')) {
+    return;
+  }
+  
+  try {
+    showToast('Deleting payment log...', 'info');
+    const res = await apiCall(`/admin/payment/${paymentId}`, 'DELETE', null, true);
+    showToast(res.message || 'Payment deleted successfully!', 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete payment.', 'error');
   }
 }
 
@@ -1114,6 +1416,33 @@ function openStudentDetailsModal(studentId) {
 
 function closeStudentDetailsModal() {
   document.getElementById('student-details-modal').classList.remove('active');
+}
+
+// ------------------------------------------
+// Clear Database
+// ------------------------------------------
+async function clearDatabase() {
+  if (!confirm('WARNING: Are you sure you want to completely clear the entire database? All students, payments, and enrollments will be deleted permanently. This cannot be undone!')) return;
+  if (!confirm('Please confirm again. Type OK to proceed.')) return;
+  
+  try {
+    const token = Auth.getToken();
+    const response = await fetch(`${API_URL}/admin/clear-database`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) throw new Error('Failed to clear database');
+    const res = await response.json();
+    showToast(res.message, 'success');
+    
+    // Reload dashboard
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
 }
 
 let loadedAttendanceData = null;
@@ -1714,6 +2043,68 @@ async function updateEnrollmentProgress(enrollId, inputId) {
   }
 }
 
+// ==========================================
+// FEEDBACKS (Admin)
+// ==========================================
+function renderFeedbacks(feedbacks) {
+  const tbody = document.getElementById('feedbacks-tbody');
+  if (!tbody) return;
+
+  if (feedbacks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No student feedbacks found.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = feedbacks.map(f => `
+    <tr>
+      <td>
+        <span style="font-weight: 600;">${f.studentName}</span>
+      </td>
+      <td style="max-width: 300px; white-space: normal; line-height: 1.4;">${f.message}</td>
+      <td>${new Date(f.createdAt).toLocaleDateString()}</td>
+      <td>
+        <span class="badge ${f.status === 'approved' ? 'approved' : 'pending'}">
+          ${f.status.charAt(0).toUpperCase() + f.status.slice(1)}
+        </span>
+      </td>
+      <td>
+        <div style="display: flex; gap: 8px;">
+          ${f.status === 'pending' ? `
+            <button onclick="handleApproveFeedback('${f.id}')" title="Approve Feedback" class="btn-primary" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: var(--success); box-shadow: none; padding: 6px 12px; font-size: 11px;">
+              <i class="fas fa-check"></i> Approve
+            </button>
+          ` : ''}
+          <button onclick="handleDeleteFeedback('${f.id}')" title="Delete Feedback" class="btn-primary" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px;">
+            <i class="fas fa-trash"></i> Delete
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function handleApproveFeedback(id) {
+  if (!confirm('Approve this feedback to display on the public homepage?')) return;
+  try {
+    const res = await apiCall(`/admin/feedbacks/${id}`, 'PUT', { status: 'approved' }, true);
+    showToast(res.message, 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to approve feedback.', 'error');
+  }
+}
+
+async function handleDeleteFeedback(id) {
+  if (!confirm('Delete this feedback permanently?')) return;
+  try {
+    const res = await apiCall(`/admin/feedbacks/${id}`, 'DELETE', null, true);
+    showToast(res.message, 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete feedback.', 'error');
+  }
+}
+
 // Attach new functions to global window
 window.switchAdminAssignTab = switchAdminAssignTab;
 window.handleDeleteAssignment = handleDeleteAssignment;
@@ -1722,4 +2113,5 @@ window.closeGradeModal = closeGradeModal;
 window.gradeSubmission = gradeSubmission;
 window.updateEnrollmentProgress = updateEnrollmentProgress;
 window.handleDeleteAnnouncement = handleDeleteAnnouncement;
-
+window.handleApproveFeedback = handleApproveFeedback;
+window.handleDeleteFeedback = handleDeleteFeedback;

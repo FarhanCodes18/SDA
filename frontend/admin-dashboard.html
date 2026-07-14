@@ -15,6 +15,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="responsive.css?v=1">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
 <body>
@@ -31,7 +32,10 @@
         Sukla Digital Academy
       </a>
       <span class="badge approved" style="font-size: 11px; padding: 6px 12px; margin-left: 10px;">ADMIN PORTAL</span>
-      <div class="nav-auth" id="auth-nav">
+      <div class="nav-auth" id="auth-nav" style="display: flex; gap: 10px;">
+        <button onclick="clearDatabase()" class="btn-primary" style="background: #ef4444; box-shadow: none; font-size: 12px;">
+          <i class="fas fa-trash-alt"></i> Clear Data
+        </button>
         <button onclick="Auth.logout()" class="btn-primary" style="background: var(--danger); box-shadow: none;">
           <i class="fas fa-sign-out-alt"></i> Logout
         </button>
@@ -95,6 +99,9 @@
         </li>
         <li class="sidebar-item" data-target="admin-assignments">
           <a href="#"><i class="fas fa-file-alt"></i> Assignments Manager</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-feedbacks">
+          <a href="#"><i class="fas fa-star"></i> Student Feedbacks</a>
         </li>
       </ul>
 
@@ -285,6 +292,7 @@
                 <th>Date Requested</th>
                 <th>Payment Proof</th>
                 <th>Billing Status</th>
+                <th>Manage</th>
                 <th>Course Progress</th>
                 <th>Action</th>
               </tr>
@@ -658,6 +666,31 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 14: FEEDBACKS ==================== -->
+      <section id="admin-feedbacks" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Student Feedbacks</h2>
+          <p style="color: var(--text-secondary);">Manage and approve feedback to be shown on the public landing page.</p>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Feedback Message</th>
+                <th>Submitted On</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="feedbacks-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -878,7 +911,7 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
-  <script src="admin.js"></script>
+  <script src="script.js?v=3"></script>
+  <script src="admin.js?v=2"></script>
 </body>
 </html>

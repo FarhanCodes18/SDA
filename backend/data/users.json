@@ -3,9 +3,9 @@
     "id": "user_admin_01",
     "name": "Ajay Shukla",
     "email": "admin@sukla.com",
-    "password": "$2a$10$kr.IqNMY58REHj8XBKYmo.2aTv7UaA5jXxSuWl2QnAnRLrY6UDOfG",
+    "password": "$2a$10$MWx38Qci6DjGmhFEKCpqgu94y9yPdGPJvB4ols/zI6DxgRPw4sS8K",
     "plainPassword": "Sukla@2008",
     "role": "admin",
-    "createdAt": "2026-06-07T07:23:31.058Z"
+    "createdAt": "2026-07-13T17:14:29.032Z"
   }
 ]

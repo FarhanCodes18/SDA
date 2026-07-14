@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="responsive.css?v=1">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
 <body>
@@ -121,7 +122,7 @@
     <div class="section-container founder-section-grid">
       <div style="position: relative; text-align: center;">
         <div class="glass-card" style="display: inline-block; padding: 12px;">
-          <div style="width: 280px; height: 350px; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+          <div style="width: 320px; height: 400px; background: var(--bg-secondary); border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; animation: floatImage 4s ease-in-out infinite;">
             <img src="founder.png" alt="Ajay Shukla" class="founder-img-hover" style="width: 100%; height: 100%; object-fit: cover;">
           </div>
         </div>
@@ -275,72 +276,68 @@
         <p>Proof of work speaks louder than words! Check out some of the actual web apps, systems, and programs designed and built by our graduates.</p>
       </div>
 
-      <div class="courses-grid" style="grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 30px;">
+      <div class="projects-grid">
         <!-- Project 1: Expense Tracker -->
-        <div class="glass-card project-card" style="display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 0;">
-          <div class="project-img-wrapper" style="width: 100%; height: 180px; position: relative; overflow: hidden;">
-            <img src="assets/project_expense.png" alt="Personal Expense Tracker" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-            <span class="course-card-badge" style="top: 12px; right: 12px; font-size: 11px; z-index: 10; background: rgba(59, 130, 246, 0.2); color: #3b82f6; border-color: rgba(59, 130, 246, 0.3);">React &amp; CSS</span>
+        <div class="project-card">
+          <div class="project-img-wrapper">
+            <img src="assets/project_expense.png" alt="Personal Expense Tracker">
+            <span class="project-badge blue-badge">React &amp; CSS</span>
           </div>
-          <div style="padding: 24px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">Personal Expense Tracker</h3>
-              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">A sleek budget management application to track daily payments, set category thresholds, and visualize monthly spending ratios with responsive rings.</p>
+          <div class="project-content">
+            <div class="project-text">
+              <h3>Personal Expense Tracker</h3>
+              <p>A sleek budget management application to track daily payments, set category thresholds, and visualize monthly spending ratios with responsive rings.</p>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px; gap: 8px;">
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;"><i class="fas fa-user-circle"></i> Priya Rathore</span>
-              <div style="display: flex; gap: 8px;">
-                <a href="https://cerulean-medovik-833f5e.netlify.app" target="_blank" class="btn-primary" style="font-size: 11px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; min-height: auto;"><i class="fas fa-external-link-alt"></i> Live App</a>
-              </div>
+            <div class="project-footer">
+              <span class="project-author"><i class="fas fa-user-circle"></i> Priya Rathore</span>
+              <a href="https://cerulean-medovik-833f5e.netlify.app" target="_blank" class="btn-primary project-btn"><i class="fas fa-external-link-alt"></i> Live App</a>
             </div>
           </div>
         </div>
 
         <!-- Project 2: iOS Calculator Clone -->
-        <div class="glass-card project-card" style="display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 0;">
-          <div class="project-img-wrapper" style="width: 100%; height: 180px; position: relative; overflow: hidden;">
-            <img src="assets/project_calculator.png" alt="iOS Calculator Clone" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-            <span class="course-card-badge" style="top: 12px; right: 12px; font-size: 11px; z-index: 10; background: rgba(245, 158, 11, 0.2); color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">JavaScript</span>
+        <div class="project-card">
+          <div class="project-img-wrapper">
+            <img src="assets/project_calculator.png" alt="iOS Calculator Clone">
+            <span class="project-badge warning-badge">JavaScript</span>
           </div>
-          <div style="padding: 24px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">iOS Calculator Clone</h3>
-              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">A responsive, pixel-perfect clone of the standard iOS Calculator app. Features state persistence, keyboard controls, and beautiful circular buttons grids.</p>
+          <div class="project-content">
+            <div class="project-text">
+              <h3>iOS Calculator Clone</h3>
+              <p>A responsive, pixel-perfect clone of the standard iOS Calculator app. Features state persistence, keyboard controls, and beautiful circular buttons grids.</p>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px; gap: 8px;">
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;"><i class="fas fa-user-circle"></i> Rahul Chouhan</span>
-              <div style="display: flex; gap: 8px;">
-                <a href="https://poetic-brigadeiros-5e583e.netlify.app" target="_blank" class="btn-primary" style="font-size: 11px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; min-height: auto;"><i class="fas fa-external-link-alt"></i> Live App</a>
-              </div>
+            <div class="project-footer">
+              <span class="project-author"><i class="fas fa-user-circle"></i> Rahul Chouhan</span>
+              <a href="https://poetic-brigadeiros-5e583e.netlify.app" target="_blank" class="btn-primary project-btn"><i class="fas fa-external-link-alt"></i> Live App</a>
             </div>
           </div>
         </div>
 
         <!-- Project 3: Locked Project -->
-        <div class="glass-card project-card" style="display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; padding: 0; opacity: 0.88; position: relative;">
-          
+        <div class="project-card locked-project">
           <!-- Locked overlay -->
-          <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(10, 10, 12, 0.6); backdrop-filter: blur(4px); z-index: 15; text-align: center; padding: 20px;">
-            <div class="lock-pulse-circle" style="width: 50px; height: 50px; background: rgba(255, 75, 43, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border: 1px solid var(--accent-color);">
-              <i class="fas fa-lock" style="font-size: 18px; color: var(--accent-color);"></i>
+          <div class="project-lock-overlay">
+            <div class="lock-pulse-circle">
+              <i class="fas fa-lock"></i>
             </div>
-            <h4 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; font-family: var(--font-header);">Project Slot Locked</h4>
-            <p style="font-size: 11px; color: var(--text-secondary); max-width: 220px; line-height: 1.5;">This project showcase slot is locked and will release soon for the next training session.</p>
+            <h4>Project Slot Locked</h4>
+            <p>This project showcase slot is locked and will release soon for the next training session.</p>
           </div>
 
-          <div class="project-img-wrapper" style="width: 100%; height: 180px; position: relative; overflow: hidden;">
-            <img src="assets/project_locked.png" alt="Locked Student Project" style="width: 100%; height: 100%; object-fit: cover; display: block;">
-            <span class="course-card-badge" style="top: 12px; right: 12px; font-size: 11px; z-index: 10; background: rgba(239,68,68,0.2); color: var(--danger); border-color: rgba(239,68,68,0.3);">C++ &amp; DSA</span>
+          <div class="project-img-wrapper">
+            <img src="assets/project_locked.png" alt="Locked Student Project">
+            <span class="project-badge danger-badge">C++ &amp; DSA</span>
           </div>
-          <div style="padding: 24px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-              <h3 style="font-size: 18px; margin-bottom: 8px; color: var(--text-primary);">SmartRoll - Attendance Console</h3>
-              <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 16px;">A database-backed console app for colleges that manages student records using hash-table data structures for super-fast lookups and reports.</p>
+          <div class="project-content">
+            <div class="project-text">
+              <h3>SmartRoll - Attendance Console</h3>
+              <p>A database-backed console app for colleges that manages student records using hash-table data structures for super-fast lookups and reports.</p>
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 1px solid var(--border-color); margin-top: 12px;">
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 600;"><i class="fas fa-user-circle"></i> Vivek Patle</span>
-              <a href="#" class="btn-secondary" style="font-size: 11px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 6px; min-height: auto; pointer-events: none; opacity: 0.5;"><i class="fab fa-github"></i> Source Code</a>
+            <div class="project-footer">
+              <span class="project-author"><i class="fas fa-user-circle"></i> Vivek Patle</span>
+              <a href="#" class="btn-secondary project-btn disabled-btn"><i class="fab fa-github"></i> Source Code</a>
             </div>
+          </div>
         </div>
       </div>
     </div>
@@ -352,38 +349,11 @@
       <div class="section-header">
         <h2>What Our <span>Students Say</span></h2>
         <p>Real stories from our students who secured roles and expanded their career horizons.</p>
+        <a href="#" onclick="event.preventDefault(); document.getElementById('feedback-modal').classList.add('active');" class="btn-primary" style="margin-top: 16px; display: inline-flex;"><i class="fas fa-star" style="margin-right: 8px;"></i> Share Your Feedback</a>
       </div>
-      <div class="courses-grid">
-        <div class="glass-card">
-          <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 20px;">"The C++ and DSA program here completely changed my perspective on logic building. The placement support got me an internship within a month."</p>
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div class="sidebar-avatar">A</div>
-            <div>
-              <h4 style="font-size: 15px;">Amit Sharma</h4>
-              <p style="font-size: 12px; color: var(--accent-color);">Software Engineer @ Wipro</p>
-            </div>
-          </div>
-        </div>
-        <div class="glass-card">
-          <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 20px;">"The MERN Stack course is so comprehensive. Farhan Sir walks through everything step-by-step. I built a SaaS product as my final project."</p>
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div class="sidebar-avatar">R</div>
-            <div>
-              <h4 style="font-size: 15px;">Riya Patel</h4>
-              <p style="font-size: 12px; color: var(--accent-color);">Frontend Developer @ Cognizant</p>
-            </div>
-          </div>
-        </div>
-        <div class="glass-card">
-          <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 20px;">"Their certificates are recognized and the support staff is incredibly fast. Getting my payment verified and certificate unlocked took 2 minutes."</p>
-          <div style="display: flex; gap: 12px; align-items: center;">
-            <div class="sidebar-avatar">S</div>
-            <div>
-              <h4 style="font-size: 15px;">Siddharth Verma</h4>
-              <p style="font-size: 12px; color: var(--accent-color);">System Analyst @ TCS</p>
-            </div>
-          </div>
-        </div>
+      <div id="testimonials-container" style="display: flex; flex-direction: column; gap: 16px; max-height: 480px; overflow-y: auto; padding-right: 10px; padding-left: 5px; padding-bottom: 5px;">
+        <!-- Feedbacks will be dynamically loaded here by script.js -->
+        <p style="text-align: center; color: var(--text-muted); width: 100%;">Loading student feedbacks...</p>
       </div>
     </div>
   </section>
@@ -568,7 +538,7 @@
     </div>
   </footer>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=3"></script>
   <script>
     // Load popular courses preview
     document.addEventListener('DOMContentLoaded', async () => {
@@ -1104,6 +1074,32 @@
     });
   </script>
 
+  <!-- Public Feedback Modal -->
+  <div class="modal-overlay" id="feedback-modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Share Your Experience</h3>
+        <button class="modal-close" onclick="document.getElementById('feedback-modal').classList.remove('active')"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 20px;">
+          Your feedback helps us improve and may be featured on our homepage once approved!
+        </p>
+        <form id="public-feedback-form">
+          <div class="form-group">
+            <label for="feedback-name">Your Full Name</label>
+            <input type="text" id="feedback-name" class="form-control" placeholder="E.g. Ajay Sharma" required>
+          </div>
+          <div class="form-group">
+            <label for="feedback-msg">Your Feedback</label>
+            <textarea id="feedback-msg" class="form-control" rows="4" placeholder="How was your experience with SDA?" required></textarea>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px;">Submit Feedback <i class="fas fa-paper-plane" style="margin-left: 8px;"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- WhatsApp Floating Button -->
   <a href="https://wa.me/919406700991" class="whatsapp-float" target="_blank" rel="noopener noreferrer">
     <i class="fab fa-whatsapp"></i>
@@ -1122,6 +1118,28 @@
       filter: grayscale(0%);
       transform: scale(1.03);
     }
+    @keyframes floatImage {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+      100% { transform: translateY(0px); }
+    }
+    
+    /* Custom Scrollbar for Testimonials */
+    #testimonials-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    #testimonials-container::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+    }
+    #testimonials-container::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 10px;
+    }
+    #testimonials-container::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
   </style>
 </body>
 </html>
+

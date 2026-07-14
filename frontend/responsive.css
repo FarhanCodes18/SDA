@@ -1,0 +1,776 @@
+/* ==========================================================================
+   SDA RESPONSIVE OVERRIDES
+   Mobile-first, Premium Grid & Clamp adjustments
+   This file is loaded AFTER style.css
+   ========================================================================== */
+
+/* 1. FLUID TYPOGRAPHY & SPACING (Variables Override) */
+:root {
+  /* Fluid Spacing (Desktop: 100px/80px, Mobile: 50px/20px) */
+  --section-pad-y: clamp(3.125rem, 5vw + 1rem, 6.25rem); /* 50px to 100px */
+  --section-pad-x: clamp(1.25rem, 4vw, 5rem);           /* 20px to 80px */
+  
+  /* Fluid Typography */
+  --h1-size: clamp(1.875rem, 5vw + 1rem, 3.75rem);      /* 30px to 60px */
+  --h2-size: clamp(1.5rem, 4vw + 1rem, 2.5rem);         /* 24px to 40px */
+  --p-size: clamp(0.9375rem, 1vw + 0.5rem, 1.125rem);   /* 15px to 18px */
+}
+
+/* 2. GLOBAL RESET & PERFORMANCE */
+html, body {
+  overflow-x: hidden !important;
+  width: 100% !important;
+}
+
+.container {
+  width: 100% !important;
+  max-width: 1440px !important;
+  margin: 0 auto !important;
+  padding-left: var(--section-pad-x) !important;
+  padding-right: var(--section-pad-x) !important;
+  box-sizing: border-box !important;
+}
+
+section {
+  padding-top: var(--section-pad-y) !important;
+  padding-bottom: var(--section-pad-y) !important;
+}
+
+/* Fluid Typography Apply */
+h1 { font-size: var(--h1-size) !important; line-height: 1.2 !important; }
+h2, .section-title { font-size: var(--h2-size) !important; line-height: 1.3 !important; }
+p, .course-description, .founder-section-grid p { font-size: var(--p-size) !important; line-height: 1.6 !important; }
+
+/* Responsive Images */
+img {
+  max-width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+}
+
+/* 3. BUTTONS (Touch Friendly & Responsive) */
+.btn-primary, .btn-secondary {
+  min-height: 48px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+@media (max-width: 768px) {
+  .btn-primary, .btn-secondary {
+    width: 100% !important;
+    max-width: 320px !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* 4. NAVBAR RE-ENGINEERING */
+@media (max-width: 992px) {
+  .navbar {
+    height: 64px !important;
+    padding: 0 var(--section-pad-x) !important;
+  }
+  
+  .logo {
+    font-size: clamp(12px, 3.5vw, 15px) !important;
+    white-space: normal !important;
+    line-height: 1.2 !important;
+    max-width: 55vw; /* Limits width so it wraps rather than pushes icons */
+    gap: 8px !important;
+  }
+  
+  .logo img {
+    width: 32px !important;
+    height: 32px !important;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    position: fixed !important;
+    top: 64px !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: calc(100vh - 64px) !important;
+    background: var(--bg-primary) !important;
+    backdrop-filter: blur(20px) !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    padding-top: 2rem !important;
+    gap: 1.5rem !important;
+    transform: translateX(100%) !important;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 999 !important;
+    overflow-y: auto !important;
+  }
+
+  .nav-links.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  body:has(.nav-links.mobile-open) {
+    overflow-y: hidden !important;
+  }
+
+  .nav-auth {
+    display: none !important; /* Move auth to mobile menu if needed, or hide on small */
+  }
+  .nav-links.mobile-open .nav-auth {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 0 2rem !important;
+  }
+}
+
+/* 5. HERO SECTION */
+.hero {
+  min-height: 100vh !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: center !important;
+  padding-top: calc(64px + var(--section-pad-y)) !important; /* Account for navbar */
+}
+
+.hero-container {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 3rem !important;
+  align-items: center !important;
+}
+
+@media (max-width: 992px) {
+  .hero-container {
+    grid-template-columns: 1fr !important;
+    text-align: center !important;
+  }
+  
+  .hero-actions {
+    justify-content: center !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+  }
+  
+  .hero-image-wrapper {
+    margin: 0 auto !important;
+    max-width: 400px !important;
+  }
+}
+
+/* 6. FOUNDER SECTION */
+.founder-section-grid {
+  display: grid !important;
+  grid-template-columns: 1fr 1.2fr !important;
+  gap: 3rem !important;
+  align-items: center !important;
+}
+
+@media (max-width: 992px) {
+  .founder-section-grid {
+    grid-template-columns: 1fr !important;
+    text-align: center !important;
+  }
+  
+  .founder-section-grid > div:first-child {
+    order: 2 !important; /* Text below image */
+  }
+  
+  .founder-section-grid > div:last-child {
+    order: 1 !important; /* Image on top */
+    margin: 0 auto !important;
+    max-width: 320px !important;
+  }
+
+  .founder-cards-grid {
+    justify-content: center !important;
+  }
+}
+
+/* 7. STATISTICS SECTION */
+.stats-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) !important;
+  gap: 2rem !important;
+  width: 100% !important;
+}
+
+@media (max-width: 576px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1rem !important;
+  }
+  
+  .stat-item {
+    padding: 1.5rem 1rem !important;
+  }
+}
+
+/* 8. COURSES SECTION (Grid Refactor) */
+.courses-grid {
+  display: grid !important;
+  /* 4 columns on desktop naturally shrinking down */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+  gap: 2rem !important;
+  width: 100% !important;
+  padding: 10px 0 !important;
+}
+
+.course-card {
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.course-card .course-description {
+  flex-grow: 1 !important; /* Equal height push */
+}
+
+/* 9. FOOTER SECTION */
+.footer-container {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 3rem !important;
+}
+
+@media (max-width: 768px) {
+  .footer-container {
+    text-align: center !important;
+  }
+  
+  .footer-col {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+}
+
+/* 10. FORMS RESPONSIVENESS */
+form .form-group input, 
+form .form-group select, 
+form .form-group textarea {
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 11. WHATSAPP BUTTON (No Overlap) */
+.whatsapp-float {
+  width: clamp(45px, 6vw, 60px) !important;
+  height: clamp(45px, 6vw, 60px) !important;
+  bottom: clamp(20px, 4vw, 40px) !important;
+  right: clamp(20px, 4vw, 40px) !important;
+  z-index: 9999 !important; /* Ensure it stays above footer but doesn't block critical UI */
+}
+
+/* Admin Dashboard Grids */
+.stats-cards-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 1.5rem !important;
+}
+
+@media (max-width: 576px) {
+  .stats-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 12. STUDENT PROJECTS SHOWCASE */
+.projects-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 32px !important;
+  width: 100% !important;
+}
+
+.project-card {
+  display: flex !important;
+  flex-direction: column !important;
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  height: 100% !important;
+  position: relative !important;
+}
+
+.project-card:hover {
+  transform: translateY(-8px) !important;
+  box-shadow: 0 20px 40px rgba(255, 75, 43, 0.15) !important;
+  border-color: rgba(255, 75, 43, 0.3) !important;
+}
+
+.project-img-wrapper {
+  width: 100% !important;
+  height: 240px !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.project-img-wrapper img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  transition: transform 0.6s ease !important;
+}
+
+.project-card:hover .project-img-wrapper img {
+  transform: scale(1.05) !important;
+}
+
+.project-badge {
+  position: absolute !important;
+  top: 16px !important;
+  right: 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 6px 14px !important;
+  border-radius: 20px !important;
+  z-index: 10 !important;
+  border: 1px solid transparent !important;
+}
+
+.project-badge.blue-badge { background: rgba(59, 130, 246, 0.2) !important; color: #3b82f6 !important; border-color: rgba(59, 130, 246, 0.3) !important; }
+.project-badge.warning-badge { background: rgba(245, 158, 11, 0.2) !important; color: var(--warning) !important; border-color: rgba(245, 158, 11, 0.3) !important; }
+.project-badge.danger-badge { background: rgba(239, 68, 68, 0.2) !important; color: var(--danger) !important; border-color: rgba(239, 68, 68, 0.3) !important; }
+
+.project-content {
+  padding: 32px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-grow: 1 !important;
+  justify-content: space-between !important;
+}
+
+.project-text {
+  flex-grow: 1 !important;
+}
+
+.project-text h3 {
+  font-size: clamp(22px, 3vw, 30px) !important; /* Mobile: 22px, Tablet: 26px, Desktop: 30px */
+  margin-bottom: 12px !important;
+  color: var(--text-primary) !important;
+  line-height: 1.3 !important;
+}
+
+.project-text p {
+  font-size: clamp(15px, 2vw, 18px) !important; /* Mobile: 15px, Desktop: 18px */
+  color: var(--text-secondary) !important;
+  line-height: 1.7 !important;
+  margin-bottom: 24px !important;
+}
+
+.project-footer {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding-top: 20px !important;
+  border-top: 1px solid var(--border-color) !important;
+  margin-top: auto !important;
+}
+
+.project-author {
+  font-size: 14px !important;
+  color: var(--text-muted) !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.project-btn {
+  font-size: 13px !important;
+  padding: 10px 20px !important;
+  border-radius: 8px !important;
+  min-height: 40px !important; /* Slightly smaller than global buttons for cards */
+}
+
+/* Locked Project Specific */
+.locked-project {
+  opacity: 0.9 !important;
+}
+
+.project-lock-overlay {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(10, 10, 12, 0.7) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  z-index: 15 !important;
+  text-align: center !important;
+  padding: 32px !important;
+}
+
+.project-lock-overlay .lock-pulse-circle {
+  width: 60px !important;
+  height: 60px !important;
+  background: rgba(255, 75, 43, 0.15) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 16px !important;
+  border: 1px solid var(--accent-color) !important;
+}
+
+.project-lock-overlay h4 {
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  margin-bottom: 8px !important;
+}
+
+.project-lock-overlay p {
+  font-size: 14px !important;
+  color: var(--text-secondary) !important;
+  max-width: 260px !important;
+  line-height: 1.5 !important;
+}
+
+.disabled-btn {
+  pointer-events: none !important;
+  opacity: 0.5 !important;
+}
+
+/* Media Queries for Projects */
+@media (max-width: 1200px) {
+  /* Laptop */
+  .projects-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 992px) {
+  /* Tablet */
+  .projects-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 24px !important;
+  }
+  .project-img-wrapper {
+    height: 220px !important;
+  }
+  .project-content {
+    padding: 24px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobile */
+  .projects-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .project-card {
+    border-radius: 18px !important;
+  }
+  
+  .project-img-wrapper {
+    height: clamp(180px, 50vw, 220px) !important;
+  }
+  
+  .project-content {
+    padding: 20px !important;
+  }
+  
+  .project-badge {
+    font-size: 11px !important;
+    padding: 4px 10px !important;
+    top: 12px !important;
+    right: 12px !important;
+  }
+  
+  .project-footer {
+    flex-direction: column !important;
+    gap: 16px !important;
+    align-items: center !important;
+  }
+  
+  .project-author {
+    margin-bottom: 4px !important;
+  }
+  
+  .project-btn {
+    width: 100% !important;
+    max-width: 220px !important;
+    height: 48px !important;
+    justify-content: center !important;
+  }
+}
+
+/* 13. AI CHATBOT WIDGET */
+.chatbot-container {
+  position: fixed !important;
+  bottom: clamp(20px, 4vw, 40px) !important;
+  right: clamp(20px, 4vw, 40px) !important;
+  z-index: 99999 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+}
+
+/* Adjust Whatsapp float if chatbot is present to avoid overlap */
+body:has(.chatbot-container) .whatsapp-float {
+  right: clamp(80px, 10vw, 110px) !important;
+}
+
+.chatbot-toggler {
+  width: 60px !important;
+  height: 60px !important;
+  background: var(--accent-gradient) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 10px 25px rgba(255, 75, 43, 0.4) !important;
+  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+}
+
+.chatbot-toggler:hover {
+  transform: scale(1.05) !important;
+}
+
+.chatbot-toggler i {
+  color: #fff !important;
+  font-size: 24px !important;
+  transition: transform 0.3s ease, opacity 0.3s ease !important;
+  position: absolute !important;
+}
+
+.chatbot-toggler .fa-times {
+  opacity: 0 !important;
+  transform: scale(0.5) rotate(90deg) !important;
+}
+
+.chatbot-container.open .chatbot-toggler .fa-robot {
+  opacity: 0 !important;
+  transform: scale(0.5) rotate(-90deg) !important;
+}
+
+.chatbot-container.open .chatbot-toggler .fa-times {
+  opacity: 1 !important;
+  transform: scale(1) rotate(0) !important;
+}
+
+.chatbot-window {
+  width: 350px !important;
+  height: 500px !important;
+  max-height: calc(100vh - 120px) !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 20px !important;
+  overflow: hidden !important;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin-bottom: 20px !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(20px) scale(0.9) !important;
+  transform-origin: bottom right !important;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.chatbot-container.open .chatbot-window {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(0) scale(1) !important;
+}
+
+.chatbot-header {
+  padding: 16px 20px !important;
+  background: var(--bg-tertiary) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+.chatbot-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  background: rgba(255, 75, 43, 0.15) !important;
+  color: var(--accent-color) !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  border: 1px solid var(--accent-color) !important;
+}
+
+.chatbot-header-info {
+  flex-grow: 1 !important;
+}
+
+.chatbot-header-info h4 {
+  font-size: 15px !important;
+  margin-bottom: 2px !important;
+  color: var(--text-primary) !important;
+}
+
+.chatbot-header-info p {
+  font-size: 11px !important;
+  color: var(--success) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.chatbot-messages {
+  flex-grow: 1 !important;
+  padding: 20px !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  scroll-behavior: smooth !important;
+}
+
+.chat-msg {
+  display: flex !important;
+  gap: 8px !important;
+  max-width: 85% !important;
+  animation: fadeInMsg 0.3s ease forwards !important;
+}
+
+@keyframes fadeInMsg {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-msg.user {
+  align-self: flex-end !important;
+  flex-direction: row-reverse !important;
+}
+
+.chat-msg.bot {
+  align-self: flex-start !important;
+}
+
+.chat-bubble {
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
+  font-size: 13.5px !important;
+  line-height: 1.5 !important;
+  word-wrap: break-word !important;
+}
+
+.chat-msg.user .chat-bubble {
+  background: var(--accent-color) !important;
+  color: #fff !important;
+  border-bottom-right-radius: 4px !important;
+}
+
+.chat-msg.bot .chat-bubble {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-bottom-left-radius: 4px !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.chat-typing {
+  display: flex !important;
+  gap: 4px !important;
+  padding: 4px 8px !important;
+}
+
+.chat-typing span {
+  width: 6px !important;
+  height: 6px !important;
+  background: var(--text-muted) !important;
+  border-radius: 50% !important;
+  animation: typingBounce 1.4s infinite ease-in-out both !important;
+}
+
+.chat-typing span:nth-child(1) { animation-delay: -0.32s !important; }
+.chat-typing span:nth-child(2) { animation-delay: -0.16s !important; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.chatbot-input-area {
+  padding: 16px !important;
+  border-top: 1px solid var(--border-color) !important;
+  background: var(--bg-secondary) !important;
+  display: flex !important;
+  gap: 10px !important;
+}
+
+.chatbot-input-area input {
+  flex-grow: 1 !important;
+  background: var(--bg-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+  padding: 10px 16px !important;
+  border-radius: 20px !important;
+  color: var(--text-primary) !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: border-color 0.3s !important;
+}
+
+.chatbot-input-area input:focus {
+  border-color: var(--accent-color) !important;
+}
+
+.chatbot-input-area button {
+  width: 40px !important;
+  height: 40px !important;
+  background: var(--accent-color) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 50% !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.2s !important;
+}
+
+.chatbot-input-area button:hover {
+  transform: scale(1.1) !important;
+}
+
+/* Mobile Adjustments for Chatbot */
+@media (max-width: 480px) {
+  .chatbot-window {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    transform: translateY(100%) !important;
+    transform-origin: center bottom !important;
+  }
+  
+  .chatbot-container.open .chatbot-window {
+    transform: translateY(0) !important;
+  }
+  
+  .chatbot-container.open .chatbot-toggler {
+    display: none !important; /* Hide floating button when full screen */
+  }
+  
+  .chatbot-header {
+    border-radius: 0 !important;
+  }
+}

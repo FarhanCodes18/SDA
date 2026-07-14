@@ -17,6 +17,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Core Stylesheet -->
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="responsive.css?v=1">
   <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
 <body>
@@ -122,6 +123,9 @@
         <li class="sidebar-item" data-target="dashboard-leaderboard" id="sidebar-leaderboard-item">
           <a href="#"><i class="fas fa-trophy"></i> Leaderboard</a>
         </li>
+        <li class="sidebar-item" data-target="dashboard-feedback">
+          <a href="#"><i class="fas fa-star"></i> Share Feedback</a>
+        </li>
         <li class="sidebar-item" data-target="dashboard-playground" id="sidebar-playground-item">
           <a href="#"><i class="fas fa-laptop-code"></i> Code Playground</a>
         </li>
@@ -177,6 +181,13 @@
             </div>
             <div class="stat-card-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1);"><i class="fas fa-envelope-open-text"></i></div>
           </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div style="margin-bottom: 24px; display: flex; gap: 12px; flex-wrap: wrap;">
+          <button onclick="document.querySelector('[data-target=\'dashboard-feedback\']').click()" class="btn-primary" style="background: var(--accent-gradient); box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3);">
+            <i class="fas fa-star"></i> Share Your Feedback
+          </button>
         </div>
 
         <!-- Quick Notices Grid -->
@@ -748,6 +759,24 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 15: SHARE FEEDBACK ==================== -->
+      <section id="dashboard-feedback" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Share Your Feedback</h2>
+          <p style="color: var(--text-secondary);">Help us improve by sharing your experience.</p>
+        </div>
+        <div class="glass-card" style="padding: 32px; max-width: 600px; margin: 0 auto;">
+          <h3 style="margin-bottom: 16px; color: var(--text-primary);">Write a Testimonial</h3>
+          <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 24px;">
+            Your feedback helps other students choose the right path and may be featured on our main homepage once approved by the admin.
+          </p>
+          <form id="submit-feedback-form">
+            <textarea id="feedback-message" class="form-control" rows="5" placeholder="Share your experience with Sukla Digital Academy..." required style="margin-bottom: 20px; font-size: 14px; padding: 16px;"></textarea>
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 12px 24px;">Submit Feedback <i class="fas fa-paper-plane" style="margin-left: 8px;"></i></button>
+          </form>
+        </div>
+      </section>
+
     </main>
   </div>
 
@@ -888,7 +917,7 @@
   </div>
 
   <!-- Core script utilities -->
-  <script src="script.js"></script>
+  <script src="script.js?v=3"></script>
   <!-- Student Dashboard Manager Logic -->
   <script src="student.js"></script>
 
@@ -922,44 +951,7 @@
     </div>
   </div>
 
-  <!-- ==================== FLOATING AI CHAT WIDGET ==================== -->
-  <div id="ai-chat-widget" style="position: fixed; bottom: 30px; right: 30px; z-index: 2000; font-family: var(--font-main);">
-    <!-- Chat Toggle Button -->
-    <button id="ai-chat-toggle" style="width: 56px; height: 56px; border-radius: 50%; background: var(--accent-gradient); border: none; color: white; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(255, 75, 43, 0.45); transition: var(--transition);">
-      <i class="fas fa-robot"></i>
-    </button>
 
-    <!-- Chat Box -->
-    <div id="ai-chat-box" class="glass-card" style="display: none; position: absolute; bottom: 70px; right: 0; width: 360px; height: 480px; flex-direction: column; padding: 0; overflow: hidden; border: 1.5px solid var(--border-color); box-shadow: 0 12px 40px rgba(0,0,0,0.6);">
-      <!-- Chat Header -->
-      <div style="background: var(--bg-secondary); padding: 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <div style="width: 32px; height: 32px; border-radius: 50%; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: white; font-size: 14px;">
-            <i class="fas fa-robot"></i>
-          </div>
-          <div>
-            <h4 style="font-size: 14px; margin: 0; color: var(--text-primary); text-align: left;">SDA AI Tutor</h4>
-            <span style="font-size: 10px; color: var(--success); display: block; text-align: left;"><i class="fas fa-circle" style="font-size: 8px;"></i> Online 24/7</span>
-          </div>
-        </div>
-        <button id="ai-chat-close" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 16px; padding: 4px;"><i class="fas fa-times"></i></button>
-      </div>
-
-      <!-- Chat Messages Body -->
-      <div id="ai-chat-messages" style="flex-grow: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; background: rgba(10, 10, 12, 0.4); text-align: left;">
-        <!-- Welcome Message -->
-        <div style="align-self: flex-start; background: var(--bg-tertiary); color: var(--text-primary); padding: 10px 14px; border-radius: 12px 12px 12px 0; max-width: 85%; font-size: 13px; line-height: 1.4; border: 1px solid var(--border-color);">
-          👋 Hello! I am your **SDA AI Doubt Solver**. How can I help you with your coding journey today?
-        </div>
-      </div>
-
-      <!-- Chat Input Footer -->
-      <form id="ai-chat-form" style="padding: 12px; background: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; gap: 8px; align-items: center; margin: 0;">
-        <input type="text" id="ai-chat-input" placeholder="Ask a doubt..." style="flex-grow: 1; background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 10px 14px; border-radius: 8px; font-size: 13px; outline: none; transition: var(--transition);" required>
-        <button type="submit" style="background: var(--accent-gradient); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 10px var(--accent-glow); flex-shrink: 0;"><i class="fas fa-paper-plane" style="font-size: 13px;"></i></button>
-      </form>
-    </div>
-  </div>
 
   <!-- ==================== DISCUSSION FORUM ASK DOUBT MODAL ==================== -->
   <div class="modal-overlay" id="forum-doubt-modal">

@@ -21,7 +21,8 @@ const razorpay = new Razorpay({
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Serve static upload files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -157,7 +158,8 @@ const initDatabase = async () => {
     'certificates.json', 'notices.json', 'announcements.json',
     'recordedClasses.json', 'achievers.json', 'contacts.json', 'liveclass.json',
     'attendance.json', 'quizzes.json', 'quizResults.json',
-    'assignments.json', 'submissions.json', 'forum.json', 'notifications.json'
+    'assignments.json', 'submissions.json', 'notifications.json', 'forum.json',
+    'feedbacks.json'
   ];
 
   // We perform initial reads from local JSON files to avoid uninitialized state
@@ -367,6 +369,19 @@ const seedDatabase = async () => {
 
     // Student seeding and default placement achiever seeding disabled by request.
     writeJSONFile('users.json', users);
+
+    // Force update C Programming course
+    const courses = readJSONFile('courses.json');
+    const cCourse = courses.find(c => c.id === 'course_1' || c.title === 'C Programming');
+    if (cCourse) {
+      if (cCourse.price !== 2999 || cCourse.duration !== '3 Months') {
+        cCourse.price = 2999;
+        cCourse.originalPrice = 5999;
+        cCourse.duration = '3 Months';
+        writeJSONFile('courses.json', courses);
+        console.log('Force-updated C Programming fees and duration in DB.');
+      }
+    }
   } catch (error) {
     console.error('Database seeding failed:', error);
   }
@@ -874,6 +889,25 @@ app.get('/api/enrollments', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
+// Delete an enrollment (Admin only)
+app.delete('/api/enrollments/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const enrollId = req.params.id;
+    let enrollments = readJSONFile('enrollments.json');
+    const index = enrollments.findIndex(e => e.id === enrollId);
+    
+    if (index === -1) {
+      return res.status(404).json({ message: 'Enrollment not found.' });
+    }
+    
+    enrollments.splice(index, 1);
+    writeJSONFile('enrollments.json', enrollments);
+    res.json({ message: 'Enrollment/Active Program deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting enrollment.', error: error.message });
+  }
+});
+
 // Get enrollments for a specific student
 app.get('/api/enrollments/:studentId', authenticateToken, (req, res) => {
   try {
@@ -1257,6 +1291,114 @@ app.post('/api/notices', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
+// Delete a notice (Admin only)
+app.delete('/api/notices/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const noticeId = req.params.id;
+    let notices = readJSONFile('notices.json');
+    const index = notices.findIndex(n => n.id === noticeId);
+    
+    if (index === -1) {
+      return res.status(404).json({ message: 'Notice not found.' });
+    }
+    
+    notices.splice(index, 1);
+    writeJSONFile('notices.json', notices);
+    res.json({ message: 'Notice deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting notice.', error: error.message });
+  }
+});
+// ==========================================
+// FEEDBACK ENDPOINTS
+// ==========================================
+
+// Get approved feedbacks (Public)
+app.get('/api/feedbacks', (req, res) => {
+  try {
+    const feedbacks = readJSONFile('feedbacks.json');
+    const approvedFeedbacks = feedbacks.filter(f => f.status === 'approved');
+    res.json(approvedFeedbacks);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching feedbacks.' });
+  }
+});
+
+// Submit feedback (Public)
+app.post('/api/feedbacks', (req, res) => {
+  try {
+    const { studentName, message } = req.body;
+    if (!message || !studentName) {
+      return res.status(400).json({ message: 'Name and Feedback message are required.' });
+    }
+
+    const feedbacks = readJSONFile('feedbacks.json');
+    const newFeedback = {
+      id: 'fb_' + Date.now(),
+      studentId: 'public_' + Date.now(),
+      studentName,
+      message,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    feedbacks.unshift(newFeedback);
+    writeJSONFile('feedbacks.json', feedbacks);
+    res.status(201).json({ message: 'Feedback submitted successfully! It is under review.', feedback: newFeedback });
+  } catch (error) {
+    res.status(500).json({ message: 'Error submitting feedback.' });
+  }
+});
+
+// Get all feedbacks (Admin only)
+app.get('/api/admin/feedbacks', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const feedbacks = readJSONFile('feedbacks.json');
+    res.json(feedbacks);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching feedbacks.' });
+  }
+});
+
+// Update feedback status (Admin only)
+app.put('/api/admin/feedbacks/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const fbId = req.params.id;
+    const { status } = req.body;
+    let feedbacks = readJSONFile('feedbacks.json');
+    const index = feedbacks.findIndex(f => f.id === fbId);
+
+    if (index === -1) {
+      return res.status(404).json({ message: 'Feedback not found.' });
+    }
+
+    feedbacks[index].status = status;
+    writeJSONFile('feedbacks.json', feedbacks);
+    res.json({ message: 'Feedback status updated!', feedback: feedbacks[index] });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating feedback.' });
+  }
+});
+
+// Delete feedback (Admin only)
+app.delete('/api/admin/feedbacks/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const fbId = req.params.id;
+    let feedbacks = readJSONFile('feedbacks.json');
+    const index = feedbacks.findIndex(f => f.id === fbId);
+
+    if (index === -1) {
+      return res.status(404).json({ message: 'Feedback not found.' });
+    }
+
+    feedbacks.splice(index, 1);
+    writeJSONFile('feedbacks.json', feedbacks);
+    res.json({ message: 'Feedback deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting feedback.' });
+  }
+});
+
 // Announcements
 app.get('/api/announcements', (req, res) => {
   try {
@@ -1400,6 +1542,7 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
     const quizResults = readJSONFile('quizResults.json');
     const assignments = readJSONFile('assignments.json');
     const submissions = readJSONFile('submissions.json');
+    const feedbacks = readJSONFile('feedbacks.json');
 
     const students = users.filter(u => u.role === 'student');
 
@@ -1435,7 +1578,8 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
       quizzes,
       quizResults,
       assignments,
-      submissions
+      submissions,
+      feedbacks
     });
 
   } catch (error) {

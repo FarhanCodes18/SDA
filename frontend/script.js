@@ -137,16 +137,16 @@ async function seedFirestoreIfNeeded(db) {
     }
     // Seed courses
     const coursesSnap = await db.collection('courses').get({ source: 'server' });
-    const needsSeed = coursesSnap.empty || coursesSnap.docs.some(d => d.id === 'course_1' && d.data().price === 2999);
+    const needsSeed = coursesSnap.empty;
     if (needsSeed) {
       const defaultCourses = [
         {
           "id": "course_1",
           "title": "C Programming",
-          "duration": "2 Months",
+          "duration": "3 Months",
           "level": "Beginner",
-          "price": 5999,
-          "originalPrice": 11999,
+          "price": 2999,
+          "originalPrice": 5999,
           "rating": 4.8,
           "instructor": "Ajay Shukla",
           "description": "Master C fundamentals — variables, loops, functions, arrays, pointers, structures, and file handling.",
@@ -297,12 +297,21 @@ function getStudentIdFromHeaders(init) {
   return user ? user.id : 'GUEST';
 }
 
-// Helper to query all documents from a Firestore collection
-async function getCollectionDocs(db, collectionName) {
-  const snap = await db.collection(collectionName).get();
-  const docs = [];
-  snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
-  return docs;
+// Generic fetch all documents from a collection
+async function getCollectionDocs(db, collectionName, options = { source: 'server' }) {
+  try {
+    const snap = await db.collection(collectionName).get(options);
+    const docs = [];
+    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+    return docs;
+  } catch (err) {
+    // Fallback to cache if offline
+    console.warn(`Falling back to cache for ${collectionName}:`, err);
+    const snap = await db.collection(collectionName).get({ source: 'cache' });
+    const docs = [];
+    snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+    return docs;
+  }
 }
 
 // Handle all mock API requests
@@ -515,6 +524,7 @@ async function handleFirebaseRequest(url, init) {
       const recordedClasses = await getCollectionDocs(db, 'recordedClasses');
       const quizzes = await getCollectionDocs(db, 'quizzes');
       const quizResults = await getCollectionDocs(db, 'quizResults');
+      const allLiveClasses = await getCollectionDocs(db, 'liveClasses');
       
       // Filter student-specific documents
       const studentEnrollments = allEnrollments.filter(e => e.studentId === studentId);
@@ -586,16 +596,39 @@ async function handleFirebaseRequest(url, init) {
       
       const studentQuizResults = quizResults.filter(r => r.studentId === studentId);
       
+      // Filter live classes
+      const studentCourseIds = purchasedCourses.map(c => c.id);
+      const isDemoStudent = studentEnrollments.some(e => e.type === 'demo' && e.status === 'approved');
+      const studentLiveClasses = allLiveClasses.filter(lc => {
+        if (lc.courseId === 'all') return true;
+        if (lc.courseId === 'all_demo' && isDemoStudent) return true;
+        if (studentCourseIds.includes(lc.courseId)) return true;
+        return false;
+      });
+      
+      // Inject personal demo link if exists
+      const approvedDemo = studentEnrollments.find(e => e.type === 'demo' && e.status === 'approved' && e.demoLink);
+      if (approvedDemo) {
+        studentLiveClasses.unshift({
+          id: 'personal_demo_' + approvedDemo.id,
+          title: 'Your Approved Demo Class (' + (approvedDemo.courseId.replace('demo_', '').replace(/_/g, ' ').toUpperCase()) + ')',
+          dateTime: 'Available Now',
+          link: approvedDemo.demoLink
+        });
+      }
+
       return makeMockResponse({
         user: userProfile,
         enrolledCourses,
         purchasedCourses,
+        isDemoStudent,
         pendingPayments,
         payments,
         certificates,
         notices,
         announcements,
         recordedClasses,
+        liveClasses: studentLiveClasses,
         attendance: {
           records: studentAttendanceLogs,
           summary: attendanceSummary
@@ -603,6 +636,31 @@ async function handleFirebaseRequest(url, init) {
         quizzes: studentQuizzes,
         quizResults: studentQuizResults
       });
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'liveclass' && method === 'POST') {
+      const { title, courseId, dateTime, link } = payload;
+      const classId = 'lc_' + Date.now();
+      
+      const newClass = {
+        id: classId,
+        title,
+        courseId, // e.g., "all_demo", "all", or specific course id
+        dateTime,
+        link,
+        createdAt: new Date().toISOString()
+      };
+      
+      await db.collection('liveClasses').doc(classId).set(newClass);
+      
+      // Bonus: we could send a notification to enrolled students here, but for now just save it
+      return makeMockResponse({ message: 'Live class link posted successfully!', liveClass: newClass }, 201);
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'liveclass' && pathParts[2] && method === 'DELETE') {
+      const classId = pathParts[2];
+      await db.collection('liveClasses').doc(classId).delete();
+      return makeMockResponse({ message: 'Live class link deleted successfully.' });
     }
 
     // --- 2.2 LEADERBOARD ---
@@ -744,6 +802,49 @@ async function handleFirebaseRequest(url, init) {
       }, 201);
     }
     
+    if (pathParts[0] === 'demo-manual-request' && method === 'POST') {
+      const studentId = getStudentIdFromHeaders(init);
+      const { fullName, mobile, email, courseName, amount, screenshot } = payload;
+      
+      const enrollId = 'demo_' + Date.now();
+      await db.collection('enrollments').doc(enrollId).set({
+        id: enrollId,
+        studentId,
+        courseId: 'demo_' + courseName.replace(/\s+/g, '_').toLowerCase(),
+        studentName: fullName,
+        studentMobile: mobile,
+        studentEmail: email,
+        address: '',
+        status: 'pending',
+        screenshot: screenshot,
+        type: 'demo',
+        createdAt: new Date().toISOString()
+      });
+      
+      const payId = 'pay_demo_' + Date.now();
+      const newPayment = {
+        id: payId,
+        orderId: 'demo_order_' + Date.now(),
+        paymentId: 'MANUAL_' + Date.now(),
+        studentId,
+        studentName: fullName,
+        studentEmail: email,
+        studentMobile: mobile,
+        courseName: '3 Days Demo: ' + courseName,
+        paymentType: 'Demo Class Payment',
+        amount: Number(amount),
+        screenshot,
+        status: 'pending',
+        date: new Date().toISOString()
+      };
+      await db.collection('payments').doc(payId).set(newPayment);
+      
+      return makeMockResponse({
+        message: 'Thank you! Your 3-days demo class registration is pending verification.',
+        payment: newPayment
+      }, 201);
+    }
+
     if (pathParts[0] === 'certificate-manual-request' && method === 'POST') {
       const studentId = getStudentIdFromHeaders(init);
       const { fullName, mobile, email, courseName, amount, certificateType, address, screenshot } = payload;
@@ -792,6 +893,29 @@ async function handleFirebaseRequest(url, init) {
     }
     
     // --- 6. ADMIN DASHBOARD DATA & UPDATES ---
+    if (pathParts[0] === 'admin' && pathParts[1] === 'demo' && pathParts[2] === 'approve' && method === 'PUT') {
+      const { enrollmentId, studentId, meetingLink } = payload;
+      
+      await db.collection('enrollments').doc(enrollmentId).update({
+        status: 'approved',
+        demoLink: meetingLink
+      });
+      
+      // Update associated payment to 'captured'
+      const pays = await getCollectionDocs(db, 'payments');
+      const relatedPayment = pays.find(p => p.studentId === studentId && p.paymentType === 'Demo Class Payment' && p.status === 'pending');
+      if (relatedPayment) {
+        await db.collection('payments').doc(relatedPayment.id).update({
+          status: 'captured'
+        });
+      }
+      
+      // Notify the student
+      await createMockNotification(studentId, `🎉 Your Demo Class is approved! Click here to join: ${meetingLink}`, 'general');
+      
+      return makeMockResponse({ message: 'Demo request approved and link sent to student.' });
+    }
+
     if (pathParts[0] === 'admin' && pathParts[1] === 'data' && method === 'GET') {
       const courses = await getCollectionDocs(db, 'courses');
       const users = await getCollectionDocs(db, 'users');
@@ -806,6 +930,8 @@ async function handleFirebaseRequest(url, init) {
       const quizResults = await getCollectionDocs(db, 'quizResults');
       const assignments = await getCollectionDocs(db, 'assignments');
       const submissions = await getCollectionDocs(db, 'submissions');
+      const liveClasses = await getCollectionDocs(db, 'liveClasses');
+      const feedbacks = await getCollectionDocs(db, 'feedbacks');
       
       // IMPORTANT: Soft-delete system — never lose student data
       // Active students: isActive is true or undefined (legacy records)
@@ -835,7 +961,9 @@ async function handleFirebaseRequest(url, init) {
         quizzes,
         quizResults,
         assignments,
-        submissions
+        submissions,
+        liveClasses,
+        feedbacks
       });
     }
 
@@ -910,19 +1038,20 @@ async function handleFirebaseRequest(url, init) {
           await db.collection('payments').doc(paySnap.docs[0].id).update({ status: 'captured' });
         }
       }
-      return makeMockResponse({ message: 'Certificate request status updated!' });
+      return makeMockResponse({ message: 'Certificate request updated successfully!' });
     }
     
     if (pathParts[0] === 'students' && method === 'DELETE' && pathParts[1]) {
       const studentId = pathParts[1];
-      // SOFT DELETE — we never permanently erase student data from Firebase
-      // We only archive them so data is recoverable
-      await db.collection('users').doc(studentId).update({
-        isActive: false,
-        deletedAt: new Date().toISOString(),
-        deletedByAdmin: true
-      });
-      return makeMockResponse({ message: 'Student archived successfully!' });
+      // HARD DELETE
+      await db.collection('users').doc(studentId).delete();
+      return makeMockResponse({ message: 'Student deleted successfully!' });
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'payment' && pathParts[2] && method === 'DELETE') {
+      const paymentId = pathParts[2];
+      await db.collection('payments').doc(paymentId).delete();
+      return makeMockResponse({ message: 'Payment deleted successfully!' });
     }
     
     // --- 7. NOTICES, ANNOUNCEMENTS, RECORDED CLASSES ---
@@ -1282,11 +1411,49 @@ async function handleFirebaseRequest(url, init) {
       }
     }
 
+    // --- ADMIN CLEAR DATABASE ---
+    if (pathParts[0] === 'admin' && pathParts[1] === 'clear-database' && method === 'DELETE') {
+      const collectionsToClear = [
+        'users', 'contacts', 'payments', 'enrollments', 'certificates', 
+        'liveClasses', 'notices', 'announcements', 'recordedClasses', 
+        'quizzes', 'quizResults', 'achievers', 'attendance', 'assignments', 'submissions', 'notifications', 'forum'
+      ];
+
+      for (const col of collectionsToClear) {
+        const snap = await db.collection(col).get();
+        const batch = db.batch();
+        snap.forEach(doc => {
+          // Do not delete admin user
+          if (col === 'users' && doc.id === 'user_admin_01') return;
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+      }
+      return makeMockResponse({ message: 'Database successfully cleared!' });
+    }
+
     // --- 16. AI CHAT ---
     if (pathParts[0] === 'ai' && pathParts[1] === 'chat' && method === 'POST') {
       const { message } = payload;
-      let reply = `👋 Hello! I am your **SDA AI Doubt Solver** (Mock Intercept mode).\n\nYou queried: *"${message}"*\n\nSince you are running in serverless offline intercept mode, I am providing a mock reply. To connect this chatbot to the real Gemini API, start the Node.js backend server and configure the \`GEMINI_API_KEY\` in your \`.env\` file.\n\n**Here are a few quick references:**\n*   **To check arrays in JS:** Use \`Array.isArray(variable)\`\n*   **To filter elements:** Use \`.filter(item => ...)\`\n*   **To render variables in HTML:** Use string interpolation \`\\\${variable}\``;
-      return makeMockResponse({ reply });
+      const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; // Do not hardcode API keys. Use backend env variables.
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: `You are SDA Assistant, an AI built for Sukla Digital Academy. Keep answers concise, helpful and friendly. If they ask about fees, C Programming is ₹2999, C++ is ₹6499, MERN is ₹14999. Student says: ${message}` }] }]
+          })
+        });
+        const data = await response.json();
+        if (data.candidates && data.candidates.length > 0) {
+          return makeMockResponse({ reply: data.candidates[0].content.parts[0].text });
+        }
+        throw new Error("Invalid API Response");
+      } catch (err) {
+        // Fallback if API fails or rate limited
+        let reply = "Hello! I am the SDA Assistant. The AI network is currently offline, but I can help you with courses, fees, or demo classes manually!";
+        return makeMockResponse({ reply });
+      }
     }
 
     // --- 17. DISCUSSION FORUM ---
@@ -1352,6 +1519,41 @@ async function handleFirebaseRequest(url, init) {
         }
       }
     }
+
+    if (pathParts[0] === 'feedbacks') {
+      if (method === 'GET') {
+        const fbs = await getCollectionDocs(db, 'feedbacks');
+        return makeMockResponse(fbs.filter(f => f.status === 'approved'));
+      }
+      if (method === 'POST') {
+        const { studentName, message } = payload;
+        if (!studentName || !message) return makeMockResponse({ message: 'Required fields missing' }, 400, false);
+        const fb = {
+          id: 'fb_' + Date.now(),
+          studentId: 'public_' + Date.now(),
+          studentName,
+          message,
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        };
+        await db.collection('feedbacks').doc(fb.id).set(fb);
+        return makeMockResponse({ message: 'Feedback submitted successfully', feedback: fb }, 201);
+      }
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'feedbacks' && pathParts[2]) {
+      const fbId = pathParts[2];
+      if (method === 'PUT') {
+        const { status } = payload;
+        await db.collection('feedbacks').doc(fbId).update({ status });
+        return makeMockResponse({ message: 'Feedback status updated' });
+      }
+      if (method === 'DELETE') {
+        await db.collection('feedbacks').doc(fbId).delete();
+        return makeMockResponse({ message: 'Feedback deleted' });
+      }
+    }
+
 
     return makeMockResponse({ message: `Mock API: Path '${pathname}' not found.` }, 404, false);
 
@@ -1523,6 +1725,10 @@ document.addEventListener('DOMContentLoaded', () => {
 function initNavbar() {
   const authNav = document.getElementById('auth-nav');
   if (!authNav) return;
+  
+  if (authNav.querySelector('.notification-bell-wrapper') || authNav.hasAttribute('data-no-override')) {
+    return;
+  }
 
   if (Auth.isLoggedIn()) {
     const user = Auth.getUser();
@@ -1642,6 +1848,79 @@ function initSidebarToggle() {
   }
 }
 
+// ==========================================
+// DYNAMIC TESTIMONIALS (Public Landing Page)
+// ==========================================
+async function loadTestimonials() {
+  const container = document.getElementById('testimonials-container');
+  if (!container) return; // Only runs on index.html where this container exists
+
+  try {
+    const feedbacks = await apiCall('/feedbacks', 'GET', null, false);
+
+    if (feedbacks.length === 0) {
+      container.innerHTML = '<p style="text-align: center; color: var(--text-muted); grid-column: 1 / -1;">No feedbacks yet. Be the first to share your experience!</p>';
+      return;
+    }
+
+    container.innerHTML = feedbacks.map(f => {
+      // Use the first letter of the name as avatar
+      const initial = f.studentName.charAt(0).toUpperCase();
+      return `
+        <div class="glass-card">
+          <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 20px;">"${f.message}"</p>
+          <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="sidebar-avatar">${initial}</div>
+            <div>
+              <h4 style="font-size: 15px;">${f.studentName}</h4>
+              <p style="font-size: 12px; color: var(--accent-color);">Student @ SDA</p>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (error) {
+    console.error('Error loading testimonials:', error);
+    container.innerHTML = '<p style="text-align: center; color: var(--danger); grid-column: 1 / -1;">Failed to load feedbacks.</p>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadTestimonials();
+
+  // Public Feedback Form Submission
+  const publicFeedbackForm = document.getElementById('public-feedback-form');
+  if (publicFeedbackForm) {
+    publicFeedbackForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const studentName = document.getElementById('feedback-name').value.trim();
+      const message = document.getElementById('feedback-msg').value.trim();
+      const btn = publicFeedbackForm.querySelector('button');
+
+      if (!studentName || !message) {
+        showToast('Name and message are required.', 'error');
+        return;
+      }
+
+      try {
+        btn.disabled = true;
+        btn.innerHTML = 'Submitting... <i class="fas fa-spinner fa-spin"></i>';
+        
+        // Passing authenticate=false because this is public
+        const res = await apiCall('/feedbacks', 'POST', { studentName, message }, false);
+        
+        showToast(res.message || 'Feedback submitted successfully!', 'success');
+        publicFeedbackForm.reset();
+        document.getElementById('feedback-modal').classList.remove('active');
+      } catch (error) {
+        showToast(error.message || 'Failed to submit feedback.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Submit Feedback <i class="fas fa-paper-plane" style="margin-left: 8px;"></i>';
+      }
+    });
+  }
+});
 // 5. Course Enrollment Modals and flow
 let activeCourseIdToEnroll = null;
 
@@ -1751,7 +2030,7 @@ async function handleEnrollmentSubmit(e) {
 function createCourseCard(course) {
   return `
     <div class="glass-card course-card" style="position: relative;">
-      <span class="course-card-badge" style="background: rgba(255, 75, 43, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color);"><i class="fas fa-lock" style="margin-right: 4px;"></i> COMING SOON</span>
+      <span class="course-card-badge">${(course.category || '').toUpperCase()}</span>
       <h3 class="course-title" style="margin-top: 12px;">${course.title}</h3>
       <div class="course-meta">
         <span><i class="far fa-clock"></i> ${course.duration}</span>
@@ -1759,16 +2038,13 @@ function createCourseCard(course) {
         <span><i class="fas fa-star"></i> ${course.rating || '4.8'}</span>
       </div>
       <p class="course-description">${course.description}</p>
-      <div style="font-size: 13px; color: var(--accent-color); font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 6px;">
-        <i class="fas fa-calendar-alt"></i> Releasing 20 August 2026
-      </div>
       <div class="course-footer">
         <div class="course-pricing">
           <span class="course-price-current">₹${course.price}</span>
           <span class="course-price-original">₹${course.originalPrice || course.price * 2}</span>
         </div>
-        <button class="btn-primary" disabled style="background: var(--text-muted); color: var(--bg-primary); cursor: not-allowed; box-shadow: none; opacity: 0.6;">
-          Locked <i class="fas fa-lock"></i>
+        <button onclick="openEnrollmentModal('${course.id}')" class="btn-primary">
+          Enroll Now <i class="fas fa-arrow-right"></i>
         </button>
       </div>
     </div>
@@ -2057,4 +2333,3 @@ function initTheme() {
     });
   }
 }
-
