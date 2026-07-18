@@ -249,6 +249,10 @@ async function seedFirestoreIfNeeded(db) {
         await db.collection('courses').doc(c.id).set(c);
       }
     }
+    
+    // Clean up duplicate if it exists
+    await db.collection('courses').doc('course_c_with_cpp').delete();
+    
   } catch (err) {
     console.error("Firebase seeding failed:", err);
   }
@@ -457,12 +461,17 @@ async function handleFirebaseRequest(url, init) {
     // --- 2. COURSES ---
     if (pathParts[0] === 'courses') {
       if (method === 'GET') {
-        const courses = await getCollectionDocs(db, 'courses');
+        let courses = await getCollectionDocs(db, 'courses');
+        courses.sort((a, b) => {
+          const aPop = a.isPopular === true ? 1 : 0;
+          const bPop = b.isPopular === true ? 1 : 0;
+          return bPop - aPop;
+        });
         return makeMockResponse(courses);
       }
       
       if (method === 'POST') {
-        const { title, duration, level, price, originalPrice, description, category } = payload;
+        const { title, duration, level, price, originalPrice, description, category, isPopular } = payload;
         const courseId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
         
         const doc = await db.collection('courses').doc(courseId).get({ source: 'server' });
@@ -480,7 +489,8 @@ async function handleFirebaseRequest(url, init) {
           rating: 4.8,
           instructor: 'Ajay Shukla',
           description,
-          category: category || 'development'
+          category: category || 'development',
+          isPopular: isPopular || false
         };
         await db.collection('courses').doc(courseId).set(newCourse);
         return makeMockResponse({ message: 'Course created successfully!', course: newCourse }, 201);
@@ -496,7 +506,8 @@ async function handleFirebaseRequest(url, init) {
             price: Number(payload.price),
             originalPrice: Number(payload.originalPrice),
             description: payload.description,
-            category: payload.category
+            category: payload.category,
+            isPopular: payload.isPopular
           });
           return makeMockResponse({ message: 'Course updated successfully!' });
         }
@@ -2028,8 +2039,11 @@ async function handleEnrollmentSubmit(e) {
 
 // 6. Public Course Card Factory Render
 function createCourseCard(course) {
+  const isPopular = course.isPopular === true;
+  const popularSticker = isPopular ? `<div style="position: absolute; top: -10px; left: -10px; background: var(--danger); color: white; padding: 4px 12px; font-size: 10px; font-weight: 800; border-radius: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 2; transform: rotate(-10deg);">🔥 POPULAR</div>` : '';
   return `
     <div class="glass-card course-card" style="position: relative;">
+      ${popularSticker}
       <span class="course-card-badge">${(course.category || '').toUpperCase()}</span>
       <h3 class="course-title" style="margin-top: 12px;">${course.title}</h3>
       <div class="course-meta">

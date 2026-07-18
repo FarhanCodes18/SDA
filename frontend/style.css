@@ -3886,6 +3886,16 @@ select.form-control {
   max-width: 100%;
 }
 
+/* Fix text visibility on autofill in auth-inputs */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover, 
+.auth-input:-webkit-autofill:focus, 
+.auth-input:-webkit-autofill:active{
+    -webkit-box-shadow: 0 0 0 30px #121218 inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Prevent iOS auto-zoom on small inputs (font-size ≥ 16px) */
 @media (max-width: 767px) {
   .form-control,
@@ -4796,4 +4806,11 @@ img[loading="lazy"] {
 @keyframes lazyShimmer {
   0%   { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+
+/* Hide theme toggle on mobile */
+@media (max-width: 768px) {
+  #theme-toggle-btn {
+    display: none !important;
+  }
 }

@@ -793,10 +793,11 @@ async function handleAddCourse(e) {
   const originalPrice = document.getElementById('add-course-original').value;
   const category = document.getElementById('add-course-category').value;
   const description = document.getElementById('add-course-description').value.trim();
+  const isPopular = document.getElementById('add-course-popular').checked;
 
   try {
     const res = await apiCall('/courses', 'POST', {
-      title, duration, level, price, originalPrice, category, description
+      title, duration, level, price, originalPrice, category, description, isPopular
     }, true);
 
     showToast(res.message, 'success');
@@ -821,6 +822,7 @@ function openEditCourseModal(courseId) {
   document.getElementById('edit-course-original').value = course.originalPrice || '';
   document.getElementById('edit-course-category').value = course.category;
   document.getElementById('edit-course-description').value = course.description;
+  document.getElementById('edit-course-popular').checked = course.isPopular || false;
 
   document.getElementById('edit-course-modal').classList.add('active');
 }
@@ -840,10 +842,11 @@ async function handleEditCourse(e) {
   const originalPrice = document.getElementById('edit-course-original').value;
   const category = document.getElementById('edit-course-category').value;
   const description = document.getElementById('edit-course-description').value.trim();
+  const isPopular = document.getElementById('edit-course-popular').checked;
 
   try {
     const res = await apiCall(`/courses/${id}`, 'PUT', {
-      title, duration, level, price, originalPrice, category, description
+      title, duration, level, price, originalPrice, category, description, isPopular
     }, true);
 
     showToast(res.message, 'success');

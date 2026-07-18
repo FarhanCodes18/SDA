@@ -268,8 +268,11 @@ function renderAvailableCourses(courses, purchasedCourses, enrolledCourses) {
   grid.innerHTML = courses.map(c => {
     const isPurchased = purchasedIds.includes(c.id);
     const isPending = !isPurchased && enrolledIds.includes(c.id);
+    const isPopular = c.isPopular === true;
+    const popularSticker = isPopular ? `<div style="position: absolute; top: -10px; left: -10px; background: var(--danger); color: white; padding: 4px 12px; font-size: 10px; font-weight: 800; border-radius: 5px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 2; transform: rotate(-10deg);">🔥 POPULAR</div>` : '';
     return `
       <div class="glass-card course-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+        ${popularSticker}
         <div>
           <span class="course-card-badge" style="top: 12px; right: 12px; font-size:10px;">${c.category.toUpperCase()}</span>
           <h4 style="font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: var(--text-primary);">${c.title}</h4>
@@ -387,28 +390,57 @@ function renderLiveClasses(purchasedCourses, liveClasses, isDemoStudent) {
   const container = document.getElementById('classes-list-container');
   const overviewLive = document.getElementById('overview-live-class');
   
-  if (purchasedCourses.length === 0 && !isDemoStudent) {
-    const emptyMsg = `
-      <div style="text-align: center; color: var(--text-muted); padding: 32px;">
-        <i class="fas fa-lock" style="font-size: 36px; color: var(--warning); margin-bottom: 12px; display:block;"></i>
-        <p style="font-weight: 600; margin-bottom: 6px; color: var(--text-secondary);">Live Class Access Locked</p>
-        <p style="font-size: 13px;">Purchase a course or register for a demo to join live sessions.</p>
+  const demoCardHtml = `
+    <div class="glass-card class-item" style="border: 1px solid var(--accent-color); padding: 20px; margin-bottom: 20px; background: rgba(255, 75, 43, 0.05); position: relative; overflow: hidden;">
+      <div style="position: absolute; top: 15px; right: -30px; background: var(--danger); color: white; padding: 5px 30px; transform: rotate(45deg); font-size: 10px; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1;">LIVE</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; position: relative; z-index: 2;">
+        <div>
+          <span class="badge approved" style="background: var(--accent-gradient); color: white; border: none; font-size: 10px; padding: 4px 8px; margin-bottom: 8px; display: inline-block;">DEMO CLASS</span>
+          <h3 style="color: var(--text-primary); font-size: 18px; margin-bottom: 8px;"><i class="fas fa-chalkboard-teacher" style="color: var(--accent-color);"></i> Live Demo Session</h3>
+          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; max-width: 85%;">Join our exclusive live demo session to experience our teaching methodology. Interact with expert instructors and get your doubts cleared instantly before joining the full course.</p>
+        </div>
+        <div style="text-align: right; padding-right: 20px;">
+          <div style="font-size: 24px; font-weight: 800; color: var(--text-primary);">₹99</div>
+          <div style="font-size: 12px; color: var(--text-muted); text-decoration: line-through;">₹499</div>
+        </div>
       </div>
-    `;
-    if (container) container.innerHTML = emptyMsg;
-    if (overviewLive) overviewLive.innerHTML = `<p style="color: var(--text-muted);">Purchase a course to attend live sessions.</p>`;
+      <div style="display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 16px;">
+        <button onclick="openCoursePaymentModal('demo-class', 'Live Demo Class Registration', 99)" class="btn-primary" style="background: var(--accent-gradient); box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3); padding: 8px 16px; font-size: 13px;">
+          Book Demo Now <i class="fas fa-arrow-right"></i>
+        </button>
+        <span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-info-circle"></i> Limited seats available</span>
+      </div>
+    </div>
+  `;
+
+  if (purchasedCourses.length === 0 && !isDemoStudent) {
+    if (container) {
+      container.innerHTML = demoCardHtml + `
+        <div style="text-align: center; color: var(--text-muted); padding: 32px;">
+          <i class="fas fa-lock" style="font-size: 36px; color: var(--warning); margin-bottom: 12px; display:block;"></i>
+          <p style="font-weight: 600; margin-bottom: 6px; color: var(--text-secondary);">Premium Live Classes Locked</p>
+          <p style="font-size: 13px;">Purchase a full course to unlock regular live sessions.</p>
+        </div>
+      `;
+    }
+    if (overviewLive) overviewLive.innerHTML = `<p style="color: var(--text-muted);">Purchase a course to attend premium live sessions.</p>`;
     return;
   }
 
+  let finalHtml = '';
+  if (!isDemoStudent) {
+    finalHtml += demoCardHtml;
+  }
+
   if (!liveClasses || liveClasses.length === 0) {
-    const emptyMsg = `<div style="text-align: center; color: var(--text-muted); padding: 32px;">No live classes scheduled for your enrolled courses right now.</div>`;
-    if (container) container.innerHTML = emptyMsg;
+    finalHtml += `<div style="text-align: center; color: var(--text-muted); padding: 32px;">No live classes scheduled for your enrolled courses right now.</div>`;
+    if (container) container.innerHTML = finalHtml;
     if (overviewLive) overviewLive.innerHTML = `<p style="color: var(--text-muted);">No upcoming live sessions.</p>`;
     return;
   }
 
   if (container) {
-    container.innerHTML = liveClasses.map(lc => `
+    finalHtml += liveClasses.map(lc => `
       <div class="class-item" style="border-bottom: 1px solid var(--border-color); padding-bottom: 20px; margin-bottom: 20px;">
         <div class="class-item-header">
           <h3 class="class-title"><i class="fas fa-dot-circle" style="color: var(--danger); animation: glowPulse 1.5s infinite;"></i> ${lc.title}</h3>
@@ -419,6 +451,7 @@ function renderLiveClasses(purchasedCourses, liveClasses, isDemoStudent) {
         </a>
       </div>
     `).join('');
+    container.innerHTML = finalHtml;
   }
 
   if (overviewLive) {
@@ -2506,15 +2539,15 @@ function renderStreakTracker(streakData) {
 
     badgesGrid.innerHTML = milestones.map(m => {
       const unlocked = current >= m.days;
-      return \`
-        <div class="streak-badge-card \${unlocked ? 'unlocked' : 'locked'}">
-          <div class="badge-icon" style="\${unlocked ? \`color: \${m.color};\` : ''}">
-            <i class="fas \${m.icon}"></i>
+      return `
+        <div class="streak-badge-card ${unlocked ? 'unlocked' : 'locked'}">
+          <div class="badge-icon" style="${unlocked ? `color: ${m.color};` : ''}">
+            <i class="fas ${m.icon}"></i>
           </div>
-          <h4 class="badge-name">\${m.name}</h4>
-          <span class="badge-req">\${m.days} Day Streak</span>
+          <h4 class="badge-name">${m.name}</h4>
+          <span class="badge-req">${m.days} Day Streak</span>
         </div>
-      \`;
+      `;
     }).join('');
   }
 }
