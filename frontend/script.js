@@ -536,6 +536,7 @@ async function handleFirebaseRequest(url, init) {
       const quizzes = await getCollectionDocs(db, 'quizzes');
       const quizResults = await getCollectionDocs(db, 'quizResults');
       const allLiveClasses = await getCollectionDocs(db, 'liveClasses');
+      const allMentorships = await getCollectionDocs(db, 'mentorships');
       
       // Filter student-specific documents
       const studentEnrollments = allEnrollments.filter(e => e.studentId === studentId);
@@ -609,7 +610,7 @@ async function handleFirebaseRequest(url, init) {
       
       // Filter live classes
       const studentCourseIds = purchasedCourses.map(c => c.id);
-      const isDemoStudent = studentEnrollments.some(e => e.type === 'demo' && e.status === 'approved');
+      const isDemoStudent = studentEnrollments.some(e => e.courseId === 'demo_class_3_days' && e.status === 'approved');
       const studentLiveClasses = allLiveClasses.filter(lc => {
         if (lc.courseId === 'all') return true;
         if (lc.courseId === 'all_demo' && isDemoStudent) return true;
@@ -617,15 +618,23 @@ async function handleFirebaseRequest(url, init) {
         return false;
       });
       
-      // Inject personal demo link if exists
-      const approvedDemo = studentEnrollments.find(e => e.type === 'demo' && e.status === 'approved' && e.demoLink);
+      // Inject global or personal demo link if student is approved for demo
+      const approvedDemo = studentEnrollments.find(e => e.courseId === 'demo_class_3_days' && e.status === 'approved');
       if (approvedDemo) {
-        studentLiveClasses.unshift({
-          id: 'personal_demo_' + approvedDemo.id,
-          title: 'Your Approved Demo Class (' + (approvedDemo.courseId.replace('demo_', '').replace(/_/g, ' ').toUpperCase()) + ')',
-          dateTime: 'Available Now',
-          link: approvedDemo.demoLink
-        });
+        let finalLink = approvedDemo.demoLink;
+        if (!finalLink) {
+          const demoLinkDoc = await db.collection('settings').doc('demo_link').get();
+          if (demoLinkDoc.exists) finalLink = demoLinkDoc.data().link;
+        }
+        
+        if (finalLink) {
+          studentLiveClasses.unshift({
+            id: 'global_demo_' + approvedDemo.id,
+            title: 'Your 3-Days Live Demo Class',
+            dateTime: 'Available Now',
+            link: finalLink
+          });
+        }
       }
 
       return makeMockResponse({
@@ -645,7 +654,8 @@ async function handleFirebaseRequest(url, init) {
           summary: attendanceSummary
         },
         quizzes: studentQuizzes,
-        quizResults: studentQuizResults
+        quizResults: studentQuizResults,
+        mentorships: allMentorships.filter(m => m.studentId === studentId)
       });
     }
 
@@ -943,6 +953,7 @@ async function handleFirebaseRequest(url, init) {
       const submissions = await getCollectionDocs(db, 'submissions');
       const liveClasses = await getCollectionDocs(db, 'liveClasses');
       const feedbacks = await getCollectionDocs(db, 'feedbacks');
+      const mentorships = await getCollectionDocs(db, 'mentorships');
       
       // IMPORTANT: Soft-delete system — never lose student data
       // Active students: isActive is true or undefined (legacy records)
@@ -974,11 +985,90 @@ async function handleFirebaseRequest(url, init) {
         assignments,
         submissions,
         liveClasses,
-        feedbacks
+        feedbacks,
+        mentorships
       });
     }
 
     
+    // --- MENTORSHIP ENDPOINTS ---
+    if (pathParts[0] === 'mentorship' && method === 'POST') {
+      const studentId = getStudentIdFromHeaders(init);
+      const user = Auth.getUser();
+      const mId = 'mentor_' + Date.now();
+      
+      let reqData = {};
+      let screenshotUrl = '';
+      if (isFormData) {
+        reqData = {
+          date: payload.get('date'),
+          time: payload.get('time'),
+          topic: payload.get('topic'),
+          description: payload.get('description'),
+          duration: payload.get('duration')
+        };
+        const file = payload.get('screenshot');
+        if (file && file.name) {
+          screenshotUrl = 'images/mock-receipt.jpg';
+        }
+      } else {
+        reqData = payload;
+      }
+
+      const amount = reqData.duration === '15' ? 100 : 200;
+
+      const newRequest = {
+        id: mId,
+        studentId,
+        studentName: user ? user.name : 'Student',
+        date: reqData.date,
+        time: reqData.time,
+        topic: reqData.topic,
+        description: reqData.description,
+        duration: reqData.duration,
+        amount: amount,
+        paymentProof: screenshotUrl,
+        status: 'pending',
+        link: '',
+        createdAt: new Date().toISOString()
+      };
+      await db.collection('mentorships').doc(mId).set(newRequest);
+
+      // Save to global payments table
+      await db.collection('payments').doc('pay_' + mId).set({
+        id: 'pay_' + mId,
+        userId: studentId,
+        userName: user ? user.name : 'Student',
+        email: user ? user.email : 'student@email.com',
+        mobile: user ? user.mobile : 'N/A',
+        courseId: mId,
+        courseName: 'Mentorship Session (' + reqData.duration + ' Mins)',
+        amount: amount,
+        paymentType: 'Mentorship Session',
+        proofUrl: screenshotUrl,
+        status: 'pending',
+        date: new Date().toISOString()
+      });
+
+      return makeMockResponse({ message: 'Mentorship request and payment submitted successfully.', request: newRequest }, 201);
+    }
+    
+    if (pathParts[0] === 'admin' && pathParts[1] === 'mentorship' && pathParts[2] === 'approve' && method === 'PUT') {
+      const { mentorshipId, studentId, link } = payload;
+      await db.collection('mentorships').doc(mentorshipId).update({
+        status: 'approved',
+        link: link
+      });
+      
+      // Update payment status as well
+      await db.collection('payments').doc('pay_' + mentorshipId).update({
+        status: 'captured'
+      });
+      
+      await createMockNotification(studentId, `📅 Your 1-on-1 Mentorship session is approved! Link: ${link}`, 'general');
+      return makeMockResponse({ message: 'Mentorship request approved and payment verified.' });
+    }
+
     if (pathParts[0] === 'payments' && pathParts[2] === 'status' && method === 'PUT') {
       const payId = pathParts[1];
       const { status } = payload;
@@ -1124,6 +1214,43 @@ async function handleFirebaseRequest(url, init) {
         await db.collection('recordedClasses').doc(newClass.id).set(newClass);
         return makeMockResponse({ message: 'Recorded class link added!', recordedClass: newClass }, 201);
       }
+    }
+    
+    // --- 7.5 DEMO LINK SETTINGS & APPROVAL ---
+    if (pathParts[0] === 'demo-link') {
+      if (method === 'GET') {
+        const doc = await db.collection('settings').doc('demo_link').get();
+        return makeMockResponse(doc.exists ? doc.data() : { link: '' });
+      }
+      if (method === 'POST') {
+        await db.collection('settings').doc('demo_link').set({ link: payload.link });
+        return makeMockResponse({ message: 'Demo link updated successfully!' }, 200);
+      }
+    }
+    
+    if (pathParts[0] === 'admin' && pathParts[1] === 'demo' && pathParts[2] === 'approve' && method === 'PUT') {
+      const { enrollmentId, studentId, meetingLink } = payload;
+      
+      const enrollRef = db.collection('enrollments').doc(enrollmentId);
+      const doc = await enrollRef.get();
+      if (!doc.exists) {
+        return makeMockResponse({ message: 'Demo enrollment not found.' }, 404);
+      }
+      
+      const updateData = {
+        status: 'approved',
+        updatedAt: new Date().toISOString()
+      };
+      if (meetingLink) {
+        updateData.demoLink = meetingLink;
+      }
+      
+      await enrollRef.update(updateData);
+      
+      // Send notification to student
+      await createMockNotification(studentId, `Your Demo Class payment has been approved! Join the live class from your dashboard.`, 'success');
+      
+      return makeMockResponse({ message: 'Demo request approved successfully!' }, 200);
     }
     
     // --- 8. ATTENDANCE ---
@@ -1422,6 +1549,44 @@ async function handleFirebaseRequest(url, init) {
       }
     }
 
+    // --- ADMIN DATA SUMMARY ---
+    if (pathParts[0] === 'admin' && pathParts[1] === 'data' && method === 'GET') {
+      const users = await getCollectionDocs(db, 'users');
+      const students = users.filter(u => u.role === 'student');
+      const courses = await getCollectionDocs(db, 'courses');
+      const contacts = await getCollectionDocs(db, 'contacts');
+      const payments = await getCollectionDocs(db, 'payments');
+      const enrollments = await getCollectionDocs(db, 'enrollments');
+      const certificates = await getCollectionDocs(db, 'certificates');
+      const notices = await getCollectionDocs(db, 'notices');
+      const announcements = await getCollectionDocs(db, 'announcements');
+      const recordedClasses = await getCollectionDocs(db, 'recordedClasses');
+      const quizzes = await getCollectionDocs(db, 'quizzes');
+      const quizResults = await getCollectionDocs(db, 'quizResults');
+      const assignments = await getCollectionDocs(db, 'assignments');
+      const submissions = await getCollectionDocs(db, 'submissions');
+      const feedbacks = await getCollectionDocs(db, 'feedbacks');
+      const achievers = await getCollectionDocs(db, 'achievers');
+      const liveClasses = await getCollectionDocs(db, 'liveClasses');
+      
+      const totalRevenue = payments.filter(p => p.status === 'captured').reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+
+      const resPayload = {
+        stats: {
+          totalCourses: courses.length,
+          totalStudents: students.length,
+          totalContacts: contacts.length,
+          totalPayments: payments.length,
+          totalRevenue
+        },
+        students, courses, enrollments, payments, certificates, contacts, 
+        notices, announcements, recordedClasses, achievers, quizzes, 
+        quizResults, assignments, submissions, feedbacks, liveClasses
+      };
+      
+      return makeMockResponse(resPayload);
+    }
+
     // --- ADMIN CLEAR DATABASE ---
     if (pathParts[0] === 'admin' && pathParts[1] === 'clear-database' && method === 'DELETE') {
       const collectionsToClear = [
@@ -1634,6 +1799,11 @@ document.head.appendChild(style);
 
 // 2. Authentication Utilities
 const Auth = {
+  timeoutSeconds: 30 * 60, // 30 minutes
+  warningSeconds: 25 * 60, // 25 minutes
+  inactivityTimer: null,
+  warningShown: false,
+
   saveToken(token) {
     sessionStorage.setItem('sda_token', token);
   },
@@ -1655,16 +1825,44 @@ const Auth = {
       return null;
     }
   },
+  
+  // Basic check for token presence
   isLoggedIn() {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+    
+    // Check JWT Expiry if it's a real JWT token
+    if (token.split('.').length === 3) {
+      try {
+        const payloadBase64 = token.split('.')[1];
+        const decodedPayload = JSON.parse(atob(payloadBase64));
+        const exp = decodedPayload.exp * 1000;
+        if (Date.now() >= exp) {
+          this.removeToken();
+          return false;
+        }
+      } catch (e) {
+        // If JWT token is malformed, return false
+        this.removeToken();
+        return false;
+      }
+    }
+    
+    return true;
   },
-  logout() {
+  
+  logout(silent = false) {
     this.removeToken();
-    showToast('Logged out successfully!', 'info');
-    setTimeout(() => {
-      window.location.href = 'index.html';
-    }, 1000);
+    if (!silent) {
+      showToast('Logged out successfully!', 'info');
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1000);
+    } else {
+      window.location.href = 'login.html?session_expired=true';
+    }
   },
+  
   redirectToDashboard() {
     const user = this.getUser();
     if (!user) return;
@@ -1673,7 +1871,50 @@ const Auth = {
     } else {
       window.location.href = 'student-dashboard.html';
     }
+  },
+
+  // Session Manager Initialization
+  initSession() {
+    if (!this.isLoggedIn()) return; // Only track session if logged in
+
+    // Reset timer on user activity
+    const activityEvents = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+    
+    const resetTimer = () => {
+      this.warningShown = false;
+      this.startInactivityTimer();
+    };
+
+    activityEvents.forEach(event => {
+      document.addEventListener(event, resetTimer, { passive: true });
+    });
+
+    this.startInactivityTimer();
+
+    // Start real-time notifications
+    if (window.NotificationManager) {
+      window.NotificationManager.init();
+    }
+  },
+
+  startInactivityTimer() {
+    if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+    
+    this.inactivityTimer = setInterval(() => {
+      // Logic would be better if we tracked last activity time
+      // But setInterval is simpler for this. Let's use setTimeout from the last reset.
+    }, 1000); // Wait, better approach below:
   }
+};
+
+// Override startInactivityTimer to use a proper timestamp approach
+Auth.startInactivityTimer = function() {
+  if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+  
+  this.inactivityTimer = setTimeout(() => {
+    // Session Expired
+    this.logout(true); 
+  }, this.timeoutSeconds * 1000);
 };
 
 // 3. Shared Global API Calls
@@ -1724,6 +1965,72 @@ async function apiCall(endpoint, method = 'GET', data = null, authenticate = tru
   }
 }
 
+// ==========================================
+// REAL-TIME NOTIFICATION MANAGER
+// ==========================================
+window.NotificationManager = {
+  initialized: false,
+  unsubscribe: null,
+  
+  async init() {
+    if (this.initialized) return;
+    this.initialized = true;
+    
+    const user = Auth.getUser();
+    if (!user) return;
+    
+    try {
+      const db = await getFirestoreDB();
+      // Only get notifications added after this moment to avoid spamming past notifications on reload
+      const now = new Date().toISOString();
+      
+      this.unsubscribe = db.collection('notifications')
+        .where('createdAt', '>=', now)
+        .onSnapshot((snapshot) => {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+              const notif = change.doc.data();
+              // Check if notification is meant for this user
+              if (notif.userId === 'all' || notif.userId === user.id) {
+                // Show pop-up toast
+                showToast(`🔔 ${notif.message}`, 'info');
+                
+                // Update UI Bell Icon if we are on dashboard
+                this.updateBellIcon();
+              }
+            }
+          });
+        });
+    } catch (err) {
+      console.error('Failed to initialize Real-time Notifications:', err);
+    }
+  },
+  
+  updateBellIcon() {
+    const bellIcon = document.querySelector('.notification-bell-wrapper .fa-bell');
+    if (bellIcon) {
+      bellIcon.style.animation = 'glowPulse 1.5s infinite';
+      bellIcon.style.color = 'var(--warning)';
+      // Add red dot if doesn't exist
+      let dot = document.querySelector('.notification-bell-wrapper .badge');
+      if (!dot) {
+        const wrapper = document.querySelector('.notification-bell-wrapper');
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.style.position = 'absolute';
+        badge.style.top = '0';
+        badge.style.right = '0';
+        badge.style.width = '8px';
+        badge.style.height = '8px';
+        badge.style.padding = '0';
+        badge.style.background = 'var(--danger)';
+        badge.style.borderRadius = '50%';
+        wrapper.appendChild(badge);
+      }
+    }
+  }
+};
+
 // 4. Global Navbar Init
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
@@ -1731,6 +2038,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initHamburger();
   initFAQ();
   initSidebarToggle();
+  
+  // Initialize Session Manager
+  Auth.initSession();
 });
 
 function initNavbar() {
@@ -1932,7 +2242,30 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
-// 5. Course Enrollment Modals and flow
+
+// ==========================================
+// ANTI-INSPECT SECURITY SCRIPT
+// ==========================================
+document.addEventListener('contextmenu', event => event.preventDefault());
+
+document.addEventListener('keydown', event => {
+  // Disable F12
+  if (event.key === 'F12' || event.keyCode === 123) {
+    event.preventDefault();
+  }
+  // Disable Ctrl+Shift+I (Inspector)
+  if (event.ctrlKey && event.shiftKey && (event.key === 'I' || event.key === 'i' || event.keyCode === 73)) {
+    event.preventDefault();
+  }
+  // Disable Ctrl+Shift+J (Console)
+  if (event.ctrlKey && event.shiftKey && (event.key === 'J' || event.key === 'j' || event.keyCode === 74)) {
+    event.preventDefault();
+  }
+  // Disable Ctrl+U (View Source)
+  if (event.ctrlKey && (event.key === 'U' || event.key === 'u' || event.keyCode === 85)) {
+    event.preventDefault();
+  }
+});// 5. Course Enrollment Modals and flow
 let activeCourseIdToEnroll = null;
 
 function openEnrollmentModal(courseId) {
@@ -2345,5 +2678,17 @@ function initTheme() {
         renderAllAnalyticsCharts();
       }
     });
+  }
+}
+// --- DEMO CLASS LOGIC ---
+function handleDemoApply() {
+  if (!Auth.isLoggedIn()) {
+    showToast('Please Login or Register to book a Demo Class.', 'error');
+    setTimeout(() => {
+      window.location.href = 'login.html?redirect=' + encodeURIComponent('student-dashboard.html?action=demo');
+    }, 1500);
+  } else {
+    // If logged in, send them to student dashboard to complete the payment
+    window.location.href = 'student-dashboard.html?action=demo';
   }
 }

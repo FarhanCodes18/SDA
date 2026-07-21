@@ -213,6 +213,9 @@ async function loadAdminData() {
     // K2. Populate Live Classes
     renderLiveClassesAdmin(data.liveClasses || [], data.courses || []);
 
+    // K3. Populate Mentorships
+    renderAdminMentorships(data.mentorships || []);
+
     // L. Populate Video Lectures list
     renderRecordedClasses(data.recordedClasses);
 
@@ -2118,3 +2121,108 @@ window.updateEnrollmentProgress = updateEnrollmentProgress;
 window.handleDeleteAnnouncement = handleDeleteAnnouncement;
 window.handleApproveFeedback = handleApproveFeedback;
 window.handleDeleteFeedback = handleDeleteFeedback;
+
+// ==========================================
+// MENTORSHIP REQUESTS LOGIC
+// ==========================================
+function renderAdminMentorships(mentorships) {
+  const tbody = document.getElementById('admin-mentorship-tbody');
+  if (!tbody) return;
+
+  if (mentorships.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No mentorship requests found.</td></tr>`;
+    return;
+  }
+
+  // Sort pending first, then by date descending
+  mentorships.sort((a, b) => {
+    if (a.status === 'pending' && b.status !== 'pending') return -1;
+    if (b.status === 'pending' && a.status !== 'pending') return 1;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  tbody.innerHTML = mentorships.map(m => {
+    const isPending = m.status === 'pending';
+    let actionHtml = '';
+    if (isPending) {
+      actionHtml = `
+        <button onclick="openApproveMentorshipModal('${m.id}', '${m.studentId}')" class="btn-primary" style="padding: 6px 12px; font-size: 11px;">
+          Approve Session
+        </button>
+      `;
+    } else {
+      actionHtml = `<span style="font-size: 11px; color: var(--success);"><i class="fas fa-check-circle"></i> Approved</span>`;
+    }
+
+    return `
+      <tr>
+        <td>
+          <div style="font-weight: 600;">${m.studentName}</div>
+          <div style="font-size: 11px; color: var(--text-muted); font-family: monospace;">ID: ${m.studentId.slice(-8).toUpperCase()}</div>
+        </td>
+        <td>
+          <div style="font-weight: 500; font-size: 13px;">${m.topic}</div>
+          <div style="font-size: 11px; color: var(--text-secondary); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${m.description}">${m.description}</div>
+        </td>
+        <td>
+          <div style="font-weight: 600; color: var(--accent-color);">₹${m.amount || 100}</div>
+          ${m.paymentProof ? `<button onclick="viewScreenshot('${m.paymentProof}')" class="btn-secondary" style="padding: 4px 8px; font-size: 10px; margin-top: 4px;"><i class="fas fa-image"></i> View Receipt</button>` : '<span style="font-size: 10px; color: var(--text-muted);">No Receipt</span>'}
+        </td>
+        <td><div style="font-size: 13px;"><i class="far fa-calendar-alt"></i> ${m.date}</div><div style="font-size: 12px; color: var(--text-muted);">${m.time}</div></td>
+        <td><span class="badge ${isPending ? 'pending' : 'approved'}">${isPending ? 'Pending' : 'Approved'}</span></td>
+        <td>${actionHtml}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openApproveMentorshipModal(reqId, studentId) {
+  document.getElementById('mentor-req-id').value = reqId;
+  document.getElementById('mentor-req-student-id').value = studentId;
+  document.getElementById('mentor-meeting-link').value = '';
+  
+  const modal = document.getElementById('approve-mentorship-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeApproveMentorshipModal() {
+  const modal = document.getElementById('approve-mentorship-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.getElementById('approve-mentorship-form').reset();
+  }
+}
+
+async function handleApproveMentorshipSubmit(e) {
+  e.preventDefault();
+  
+  const mentorshipId = document.getElementById('mentor-req-id').value;
+  const studentId = document.getElementById('mentor-req-student-id').value;
+  const link = document.getElementById('mentor-meeting-link').value.trim();
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHTML = submitBtn.innerHTML;
+  
+  try {
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+    submitBtn.innerHTML = 'Approving... <i class="fas fa-spinner fa-spin"></i>';
+    
+    const res = await apiCall('/admin/mentorship/approve', 'PUT', { mentorshipId, studentId, link }, true);
+    
+    closeApproveMentorshipModal();
+    showToast(res.message || 'Mentorship approved and link sent.', 'success');
+    
+    await loadAdminData(); // Refresh UI
+    
+  } catch (error) {
+    showToast(error.message || 'Failed to approve mentorship request.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.style.opacity = '1';
+    submitBtn.innerHTML = originalBtnHTML;
+  }
+}
+window.openApproveMentorshipModal = openApproveMentorshipModal;
+window.closeApproveMentorshipModal = closeApproveMentorshipModal;
+window.handleApproveMentorshipSubmit = handleApproveMentorshipSubmit;

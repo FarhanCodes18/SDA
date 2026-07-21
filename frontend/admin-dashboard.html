@@ -64,6 +64,9 @@
         <li class="sidebar-item" data-target="admin-students">
           <a href="#"><i class="fas fa-user-graduate"></i> Students</a>
         </li>
+        <li class="sidebar-item" data-target="admin-sessions">
+          <a href="#"><i class="fas fa-shield-alt"></i> Session Manager</a>
+        </li>
         <li class="sidebar-item" data-target="admin-courses">
           <a href="#"><i class="fas fa-laptop-code"></i> Courses</a>
         </li>
@@ -101,7 +104,13 @@
           <a href="#"><i class="fas fa-file-alt"></i> Assignments Manager</a>
         </li>
         <li class="sidebar-item" data-target="admin-feedbacks">
-          <a href="#"><i class="fas fa-star"></i> Student Feedbacks</a>
+          <a href="#"><i class="fas fa-comments"></i> Feedbacks</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-mentorship">
+          <a href="#"><i class="fas fa-user-tie"></i> Mentorships</a>
+        </li>
+        <li class="sidebar-item" data-target="admin-demos">
+          <a href="#"><i class="fas fa-bolt"></i> Demo Classes</a>
         </li>
       </ul>
 
@@ -263,6 +272,31 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2.5: SESSION MANAGER ==================== -->
+      <section id="admin-sessions" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Active Sessions Management</h2>
+          <button class="btn-secondary" onclick="loadAdminSessions()" style="padding: 8px 16px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px;"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student ID</th>
+                <th>Mobile Number</th>
+                <th>Device</th>
+                <th>Browser</th>
+                <th>Last Login</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="sessions-tbody">
+              <!-- Loaded dynamically -->
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -690,6 +724,69 @@
           </table>
         </div>
       </section>
+      <!-- ==================== TAB 15: DEMO CLASSES ==================== -->
+      <section id="admin-demos" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Demo Class Requests & Approvals</h2>
+          <p style="color: var(--text-secondary);">Manage 3-Days Demo payments and share the Live Class link with approved students.</p>
+        </div>
+        
+        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px;">
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Set Active Demo Class Link</h3>
+          <form id="demo-link-form">
+            <div class="form-group">
+              <label for="demo-live-url">Zoom / Google Meet URL</label>
+              <input type="url" id="demo-live-url" class="form-control" placeholder="https://zoom.us/j/..." required>
+            </div>
+            <button type="submit" class="btn-primary">Update Demo Link <i class="fas fa-link"></i></button>
+          </form>
+        </div>
+
+        <h3 style="font-size: 18px; margin-bottom: 16px;">Demo Class Enrollments</h3>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student Details</th>
+                <th>Requested Date</th>
+                <th>Amount</th>
+                <th>Payment Proof</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-demo-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 16: MENTORSHIPS ==================== -->
+      <section id="admin-mentorship" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>1-on-1 Mentorship Requests</h2>
+          <p style="color: var(--text-secondary);">Manage student requests for 1-on-1 career or doubt sessions.</p>
+        </div>
+        
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Student Details</th>
+                <th>Topic / Description</th>
+                <th>Amount & Receipt</th>
+                <th>Requested Date & Time</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-mentorship-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </section>
 
     </main>
   </div>
@@ -918,8 +1015,52 @@
       </div>
     </div>
   </div>
+  <!-- APPROVE DEMO MODAL -->
+  <div class="modal-overlay" id="approve-demo-modal">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Approve Demo Request</h3>
+        <button class="modal-close" onclick="closeApproveDemoModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="approve-demo-form" onsubmit="handleApproveDemoSubmit(event)">
+          <input type="hidden" id="demo-req-enrollment-id">
+          <input type="hidden" id="demo-req-student-id">
+          
+          <div class="form-group">
+            <label>Live Class Meeting Link</label>
+            <input type="url" id="demo-meeting-link" class="form-control" placeholder="https://zoom.us/...">
+            <small style="color: var(--text-secondary); display: block; margin-top: 4px;">Optional. Overrides the global Demo Link for this student.</small>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Approve & Send Link</button>
+        </form>
+      </div>
+    </div>
+  </div>
 
-  <script src="script.js?v=6"></script>
-  <script src="admin.js?v=3"></script>
+  <!-- APPROVE MENTORSHIP MODAL -->
+  <div class="modal-overlay" id="approve-mentorship-modal">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Approve Mentorship Session</h3>
+        <button class="modal-close" onclick="closeApproveMentorshipModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="approve-mentorship-form" onsubmit="handleApproveMentorshipSubmit(event)">
+          <input type="hidden" id="mentor-req-id">
+          <input type="hidden" id="mentor-req-student-id">
+          
+          <div class="form-group">
+            <label>Meeting Link</label>
+            <input type="url" id="mentor-meeting-link" class="form-control" placeholder="https://zoom.us/..." required>
+          </div>
+          <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Approve & Send Link</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js?v=8"></script>
+  <script src="admin.js?v=4"></script>
 </body>
 </html>

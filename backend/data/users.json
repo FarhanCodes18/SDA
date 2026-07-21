@@ -6,6 +6,12 @@
     "password": "$2a$10$MWx38Qci6DjGmhFEKCpqgu94y9yPdGPJvB4ols/zI6DxgRPw4sS8K",
     "plainPassword": "Sukla@2008",
     "role": "admin",
-    "createdAt": "2026-07-13T17:14:29.032Z"
+    "createdAt": "2026-07-13T17:14:29.032Z",
+    "lastLoginDate": "2026-07-19",
+    "streak": 1,
+    "longestStreak": 1,
+    "xp": 50,
+    "level": 1,
+    "badges": []
   }
 ]

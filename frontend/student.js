@@ -64,6 +64,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // 3. Load Portal Data
   loadDashboardData();
 
+  // Auto-open Demo Class modal if redirected from homepage
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('action') === 'demo') {
+    setTimeout(() => {
+      openDemoPaymentModal();
+    }, 500);
+  }
+
   // 4. Form Submit handlers
   const certForm = document.getElementById('certificate-form');
   if (certForm) {
@@ -240,7 +248,10 @@ async function loadDashboardData() {
       renderStreakTracker(data.streak);
     }
 
-    // M. Render Gamification & Leaderboard Status
+    // M. Render Mentorships
+    renderMentorships(data.mentorships || []);
+
+    // N. Render Gamification & Leaderboard Status
     if (data.user) {
       renderMyGamificationStatus(data.user);
     }
@@ -389,33 +400,11 @@ function renderActiveCourses(purchasedCourses, enrolledCourses) {
 function renderLiveClasses(purchasedCourses, liveClasses, isDemoStudent) {
   const container = document.getElementById('classes-list-container');
   const overviewLive = document.getElementById('overview-live-class');
-  
-  const demoCardHtml = `
-    <div class="glass-card class-item" style="border: 1px solid var(--accent-color); padding: 20px; margin-bottom: 20px; background: rgba(255, 75, 43, 0.05); position: relative; overflow: hidden;">
-      <div style="position: absolute; top: 15px; right: -30px; background: var(--danger); color: white; padding: 5px 30px; transform: rotate(45deg); font-size: 10px; font-weight: 800; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 1;">LIVE</div>
-      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; position: relative; z-index: 2;">
-        <div>
-          <span class="badge approved" style="background: var(--accent-gradient); color: white; border: none; font-size: 10px; padding: 4px 8px; margin-bottom: 8px; display: inline-block;">DEMO CLASS</span>
-          <h3 style="color: var(--text-primary); font-size: 18px; margin-bottom: 8px;"><i class="fas fa-chalkboard-teacher" style="color: var(--accent-color);"></i> Live Demo Session</h3>
-          <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; max-width: 85%;">Join our exclusive live demo session to experience our teaching methodology. Interact with expert instructors and get your doubts cleared instantly before joining the full course.</p>
-        </div>
-        <div style="text-align: right; padding-right: 20px;">
-          <div style="font-size: 24px; font-weight: 800; color: var(--text-primary);">₹99</div>
-          <div style="font-size: 12px; color: var(--text-muted); text-decoration: line-through;">₹499</div>
-        </div>
-      </div>
-      <div style="display: flex; gap: 12px; align-items: center; border-top: 1px solid var(--border-color); padding-top: 16px;">
-        <button onclick="openCoursePaymentModal('demo-class', 'Live Demo Class Registration', 99)" class="btn-primary" style="background: var(--accent-gradient); box-shadow: 0 4px 15px rgba(255, 75, 43, 0.3); padding: 8px 16px; font-size: 13px;">
-          Book Demo Now <i class="fas fa-arrow-right"></i>
-        </button>
-        <span style="font-size: 12px; color: var(--text-muted);"><i class="fas fa-info-circle"></i> Limited seats available</span>
-      </div>
-    </div>
-  `;
 
-  if (purchasedCourses.length === 0 && !isDemoStudent) {
+  // Show locked message ONLY if they have no classes sent from backend AND no purchased/demo courses.
+  if (purchasedCourses.length === 0 && !isDemoStudent && (!liveClasses || liveClasses.length === 0)) {
     if (container) {
-      container.innerHTML = demoCardHtml + `
+      container.innerHTML = `
         <div style="text-align: center; color: var(--text-muted); padding: 32px;">
           <i class="fas fa-lock" style="font-size: 36px; color: var(--warning); margin-bottom: 12px; display:block;"></i>
           <p style="font-weight: 600; margin-bottom: 6px; color: var(--text-secondary);">Premium Live Classes Locked</p>
@@ -428,9 +417,6 @@ function renderLiveClasses(purchasedCourses, liveClasses, isDemoStudent) {
   }
 
   let finalHtml = '';
-  if (!isDemoStudent) {
-    finalHtml += demoCardHtml;
-  }
 
   if (!liveClasses || liveClasses.length === 0) {
     finalHtml += `<div style="text-align: center; color: var(--text-muted); padding: 32px;">No live classes scheduled for your enrolled courses right now.</div>`;
@@ -686,6 +672,11 @@ function closeCoursePaymentModal() {
   if (modal) {
     modal.classList.remove('active');
   }
+}
+
+// Demo Class modal trigger
+function openDemoPaymentModal() {
+  openCoursePaymentModal('demo_class_3_days', '3-Days Demo Class', 199);
 }
 
 // Handle course payment form submission and upload screenshot proof
@@ -990,17 +981,56 @@ async function handleProfilePicSubmit(e) {
     return;
   }
 
+  const file = fileInput.files[0];
+  
   const submitBtn = document.getElementById('profile-pic-submit-btn');
   const originalBtnHTML = submitBtn.innerHTML;
-
-  const file = fileInput.files[0];
-  const formData = new FormData();
-  formData.append('profilePic', file);
 
   try {
     submitBtn.disabled = true;
     submitBtn.style.opacity = '0.7';
     submitBtn.innerHTML = 'Uploading... <i class="fas fa-spinner fa-spin"></i>';
+
+    const compressImage = (f) => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(f);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 400;
+                const MAX_HEIGHT = 400;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.onerror = error => reject(error);
+        };
+        reader.onerror = error => reject(error);
+    });
+
+    const base64Pic = await compressImage(file);
+    const formData = new FormData();
+    formData.append('profilePic', base64Pic);
 
     const token = Auth.getToken();
     const response = await fetch(`${API_URL}/student/profile-pic`, {
@@ -2551,3 +2581,138 @@ function renderStreakTracker(streakData) {
     }).join('');
   }
 }
+
+// ==========================================
+// 1-ON-1 MENTORSHIP BOOKING LOGIC
+// ==========================================
+function renderMentorships(mentorships) {
+  const container = document.getElementById('mentorship-list-container');
+  if (!container) return;
+
+  if (mentorships.length === 0) {
+    container.innerHTML = `<p style="color: var(--text-muted); text-align: center; padding: 20px;">You haven't requested any mentorship sessions yet.</p>`;
+    return;
+  }
+
+  container.innerHTML = mentorships.map(m => {
+    const isApproved = m.status === 'approved';
+    const badgeClass = isApproved ? 'approved' : 'pending';
+    const badgeText = isApproved ? 'Approved' : 'Pending';
+    
+    let actionBtn = '';
+    if (isApproved && m.link) {
+      actionBtn = `<a href="${m.link}" target="_blank" class="btn-primary" style="font-size: 11px; padding: 6px 12px; margin-top: 10px;">Join Session <i class="fas fa-video"></i></a>`;
+    }
+
+    return `
+      <div style="border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; background: rgba(255,255,255,0.02);">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+          <h4 style="font-size: 15px; color: var(--text-primary);"><i class="fas fa-comments" style="color: var(--text-secondary); margin-right: 6px;"></i> ${m.topic}</h4>
+          <span class="badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 4px;"><i class="far fa-calendar-alt"></i> ${m.date} at ${m.time}</p>
+        <p style="font-size: 12px; color: var(--text-muted);">${m.description}</p>
+        ${actionBtn}
+      </div>
+    `;
+  }).join('');
+}
+
+let currentMentorshipData = null;
+
+function updateMentorshipPrice() {
+  const duration = document.getElementById('mentor-duration').value;
+  const priceEl = document.getElementById('mentor-pay-amount');
+  const durationEl = document.getElementById('mentor-pay-duration');
+  const qrImg = document.getElementById('mentor-pay-qr');
+  const upiText = document.getElementById('mentor-pay-upi');
+  
+  let price = 100;
+  if (duration === '15') {
+    price = 100;
+    if (priceEl) priceEl.innerText = '₹100';
+    if (durationEl) durationEl.innerText = '15 Minutes';
+  } else {
+    price = 200;
+    if (priceEl) priceEl.innerText = '₹200';
+    if (durationEl) durationEl.innerText = '30 Minutes';
+  }
+
+  const upiId = '9302677702@ybl';
+  if (upiText) {
+    upiText.innerText = upiId;
+    // Update the copy button onclick argument dynamically if we wanted to, 
+    // but the button hardcodes 'merchant@upi'. We'll fix the button click dynamically.
+    const copyBtn = upiText.nextElementSibling;
+    if (copyBtn) {
+      copyBtn.setAttribute('onclick', `copyToClipboard('${upiId}')`);
+    }
+  }
+
+  if (qrImg) {
+    const upiUrl = `upi://pay?pa=${upiId}&pn=Sukla%20Digital%20Academy&am=${price}&cu=INR&tn=Mentorship%20Session`;
+    qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiUrl)}`;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const mentorForm = document.getElementById('book-mentorship-form');
+  if (mentorForm) {
+    mentorForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const screenshotInput = document.getElementById('mentor-pay-screenshot');
+      if (!screenshotInput || screenshotInput.files.length === 0) {
+        showToast('Please upload a payment screenshot receipt.', 'error');
+        return;
+      }
+      
+      const duration = document.getElementById('mentor-duration').value;
+      const date = document.getElementById('mentor-date').value;
+      const time = document.getElementById('mentor-time').value;
+      const topic = document.getElementById('mentor-topic').value.trim();
+      const description = document.getElementById('mentor-desc').value.trim();
+      
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const originalBtnHTML = submitBtn.innerHTML;
+      
+      try {
+        submitBtn.disabled = true;
+        submitBtn.style.opacity = '0.7';
+        submitBtn.innerHTML = 'Submitting... <i class="fas fa-spinner fa-spin"></i>';
+        
+        const formData = new FormData();
+        formData.append('duration', duration);
+        formData.append('date', date);
+        formData.append('time', time);
+        formData.append('topic', topic);
+        formData.append('description', description);
+        formData.append('screenshot', screenshotInput.files[0]);
+        
+        const token = Auth.getToken();
+        const response = await fetch(`${API_URL}/mentorship`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        
+        const res = await response.json();
+        if (!response.ok) throw new Error(res.message);
+        
+        showToast(res.message, 'success');
+        mentorForm.reset();
+        // Reset QR code UI
+        updateMentorshipPrice();
+        await loadDashboardData(); // Refresh list
+        
+      } catch (error) {
+        showToast(error.message || 'Failed to request mentorship.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.innerHTML = originalBtnHTML;
+      }
+    });
+  }
+});
+document.addEventListener('contextmenu', event => event.preventDefault());
