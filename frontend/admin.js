@@ -417,6 +417,7 @@ async function handleClearAllStudents() {
   }
 }
 
+
 // ── Restore a single archived student ────────────────────────────────────────
 async function handleRestoreStudent(studentId) {
   try {
@@ -712,6 +713,11 @@ function renderContacts(contacts) {
       <td style="font-weight: 600; color: var(--accent-color);">${c.course || 'N/A'}</td>
       <td style="max-width: 300px; word-break: break-all;">${c.message}</td>
       <td>${new Date(c.date).toLocaleString('en-IN')}</td>
+      <td>
+        <button onclick="handleDeleteContact('${c.id}')" title="Delete Message" class="btn-primary" style="background: var(--danger); border-color: var(--danger); padding: 4px 8px; font-size: 11px; box-shadow: none;">
+          <i class="fas fa-trash-alt"></i>
+        </button>
+      </td>
     </tr>
   `).join('');
 }
@@ -1165,15 +1171,17 @@ async function deleteLiveClass(classId) {
 async function handleAddAnnouncement(e) {
   e.preventDefault();
 
+  const courseId = document.getElementById('ann-course').value;
+  const channel = document.getElementById('ann-channel').value;
   const message = document.getElementById('ann-message').value.trim();
 
   try {
-    const res = await apiCall('/announcements', 'POST', { message }, true);
+    const res = await apiCall('/admin/bulk-message', 'POST', { courseId, channel, message }, true);
     showToast(res.message, 'success');
     document.getElementById('add-ann-form').reset();
     await loadAdminData();
   } catch (error) {
-    showToast(error.message || 'Failed to post announcement.', 'error');
+    showToast(error.message || 'Failed to send bulk message.', 'error');
   }
 }
 
@@ -1187,6 +1195,19 @@ async function handleDeleteAnnouncement(id) {
     showToast(error.message || 'Failed to delete announcement.', 'error');
   }
 }
+
+// --- CONTACT MESSAGE HANDLER ---
+async function handleDeleteContact(id) {
+  if (!confirm('Are you sure you want to delete this contact message?')) return;
+  try {
+    const res = await apiCall(`/contacts/${id}`, 'DELETE', null, true);
+    showToast(res.message || 'Contact message deleted!', 'success');
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to delete contact message.', 'error');
+  }
+}
+window.handleDeleteContact = handleDeleteContact;
 
 // --- RECORDED LECTURE ADD HANDLER ---
 async function handleAddRecordedClass(e) {
@@ -1360,29 +1381,76 @@ function closeStudentDetailsModal() {
 // ------------------------------------------
 // Clear Database
 // ------------------------------------------
-async function clearDatabase() {
-  if (!confirm('WARNING: Are you sure you want to completely clear the entire database? All students, payments, and enrollments will be deleted permanently. This cannot be undone!')) return;
-  if (!confirm('Please confirm again. Type OK to proceed.')) return;
+function openResetModal() {
+  const modal = document.getElementById('reset-modal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeResetModal() {
+  const modal = document.getElementById('reset-modal');
+  if (modal) {
+    modal.classList.remove('active');
+    document.getElementById('reset-data-form').reset();
+  }
+}
+
+async function handleResetDataSubmit(e) {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const type = formData.get('reset-type');
   
+  let confirmMsg = 'Are you sure you want to proceed?';
+  if (type === 'amount') {
+    confirmMsg = 'WARNING: Are you sure you want to clear all payment amounts? This cannot be undone.';
+  } else if (type === 'student') {
+    confirmMsg = 'WARNING: Are you sure you want to delete ALL student records? This cannot be undone.';
+  } else if (type === 'all') {
+    confirmMsg = 'CRITICAL WARNING: Are you sure you want to completely clear the ENTIRE database (Students, Courses, Payments, Quizzes)? This cannot be undone!';
+  }
+
+  if (!confirm(confirmMsg)) return;
+  
+  if (type === 'all') {
+    if (!confirm('Please confirm again. All system data will be deleted! Type OK to proceed.')) return;
+  }
+  
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const originalBtnHTML = submitBtn.innerHTML;
+
   try {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Clearing... <i class="fas fa-spinner fa-spin"></i>';
+    
     const token = Auth.getToken();
-    const response = await fetch(`${API_URL}/admin/clear-database`, {
+    const response = await fetch(`${API_URL}/admin/clear-database?type=${type}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
     
-    if (!response.ok) throw new Error('Failed to clear database');
+    if (!response.ok) {
+      const resErr = await response.json().catch(() => ({}));
+      throw new Error(resErr.message || 'Failed to clear database');
+    }
     const res = await response.json();
     showToast(res.message, 'success');
+    
+    closeResetModal();
     
     // Reload dashboard
     await loadAdminData();
   } catch (error) {
-    showToast(error.message, 'error');
+    showToast(error.message || 'Error occurred while resetting data', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalBtnHTML;
   }
 }
+
+window.openResetModal = openResetModal;
+window.closeResetModal = closeResetModal;
+window.handleResetDataSubmit = handleResetDataSubmit;
 
 let loadedAttendanceData = null;
 
@@ -1519,6 +1587,24 @@ function switchAdminQuizTab(tabName) {
     logsTab.style.display = 'block';
     manageBtn.classList.remove('active');
     logsBtn.classList.add('active');
+  }
+}
+
+// Populate course options
+function populateCourseDropdowns(courses) {
+  const addSelect = document.getElementById('add-assign-course');
+  if (addSelect) {
+    addSelect.innerHTML = `<option value="all">All Courses</option>` + courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+  }
+  
+  const attSelect = document.getElementById('att-course-select');
+  if (attSelect) {
+    attSelect.innerHTML = `<option value="" disabled selected>Select course batch...</option>` + courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
+  }
+
+  const annSelect = document.getElementById('ann-course');
+  if (annSelect) {
+    annSelect.innerHTML = `<option value="all">All Registered Students</option>` + courses.map(c => `<option value="${c.id}">${c.title}</option>`).join('');
   }
 }
 

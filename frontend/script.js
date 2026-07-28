@@ -1370,8 +1370,8 @@ async function handleFirebaseRequest(url, init) {
     }
     
     // --- 11. CONTACT MESSAGES ---
-    if (pathParts[0] === 'contact') {
-      if (method === 'GET') {
+    if (pathParts[0] === 'contact' || pathParts[0] === 'contacts') {
+      if (method === 'GET' && !pathParts[1]) {
         const contacts = await getCollectionDocs(db, 'contacts');
         contacts.sort((a,b) => b.date.localeCompare(a.date));
         return makeMockResponse(contacts);
@@ -1389,6 +1389,11 @@ async function handleFirebaseRequest(url, init) {
         };
         await db.collection('contacts').doc(contactId).set(newContact);
         return makeMockResponse({ message: 'Message sent successfully! We will get back to you.' }, 201);
+      }
+      if (method === 'DELETE' && pathParts[1]) {
+        const contactId = pathParts[1];
+        await db.collection('contacts').doc(contactId).delete();
+        return makeMockResponse({ message: 'Contact message deleted successfully.' });
       }
     }
     
@@ -1587,13 +1592,44 @@ async function handleFirebaseRequest(url, init) {
       return makeMockResponse(resPayload);
     }
 
+    // --- ADMIN BULK MESSAGE ---
+    if (pathParts[0] === 'admin' && pathParts[1] === 'bulk-message' && method === 'POST') {
+      const { courseId, channel, message } = payload;
+      if (!message) return makeMockResponse({ message: 'Message content is required.' }, 400, false);
+      
+      const newAnn = {
+        id: 'ann_' + Date.now(),
+        message: `[Bulk Message to ${courseId === 'all' ? 'All' : 'Batch ' + courseId}] ${message}`,
+        date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      };
+      await db.collection('announcements').doc(newAnn.id).set(newAnn);
+      
+      await createMockNotification(
+        courseId,
+        `Bulk ${channel.toUpperCase()} Message: ${message}`,
+        'announcement'
+      );
+      
+      return makeMockResponse({ message: `Bulk message sent successfully via ${channel} to ${courseId === 'all' ? 'All Students' : 'selected batch'}.` }, 201);
+    }
+
     // --- ADMIN CLEAR DATABASE ---
     if (pathParts[0] === 'admin' && pathParts[1] === 'clear-database' && method === 'DELETE') {
-      const collectionsToClear = [
-        'users', 'contacts', 'payments', 'enrollments', 'certificates', 
-        'liveClasses', 'notices', 'announcements', 'recordedClasses', 
-        'quizzes', 'quizResults', 'achievers', 'attendance', 'assignments', 'submissions', 'notifications', 'forum'
-      ];
+      const type = queryParams.type || 'all';
+      
+      let collectionsToClear = [];
+      
+      if (type === 'amount') {
+        collectionsToClear = ['payments'];
+      } else if (type === 'student') {
+        collectionsToClear = ['users', 'enrollments', 'attendance'];
+      } else {
+        collectionsToClear = [
+          'users', 'contacts', 'payments', 'enrollments', 'certificates', 
+          'liveClasses', 'notices', 'announcements', 'recordedClasses', 
+          'quizzes', 'quizResults', 'achievers', 'attendance', 'assignments', 'submissions', 'notifications', 'forum'
+        ];
+      }
 
       for (const col of collectionsToClear) {
         const snap = await db.collection(col).get();
@@ -1605,7 +1641,7 @@ async function handleFirebaseRequest(url, init) {
         });
         await batch.commit();
       }
-      return makeMockResponse({ message: 'Database successfully cleared!' });
+      return makeMockResponse({ message: 'Database cleared based on your selection!' });
     }
 
     // --- 16. AI CHAT ---
@@ -2716,3 +2752,23 @@ function handleDemoApply() {
     window.location.href = 'student-dashboard.html?action=demo';
   }
 }
+
+// --- GLOBAL CONTENT PROTECTION ---
+// Prevent text selection copying
+document.addEventListener('copy', (e) => {
+  const tagName = e.target.tagName;
+  // Allow copying only within input fields and textareas
+  if (tagName !== 'INPUT' && tagName !== 'TEXTAREA') {
+    e.preventDefault();
+    showToast('Copying content is disabled.', 'error');
+  }
+});
+
+// Prevent right-click to stop inspect/copying images
+document.addEventListener('contextmenu', (e) => {
+  const tagName = e.target.tagName;
+  // Allow right-click only inside form inputs
+  if (tagName !== 'INPUT' && tagName !== 'TEXTAREA') {
+    e.preventDefault();
+  }
+});

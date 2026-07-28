@@ -33,7 +33,7 @@
       </a>
       <span class="badge approved" style="font-size: 11px; padding: 6px 12px; margin-left: 10px;">ADMIN PORTAL</span>
       <div class="nav-auth" id="auth-nav" style="display: flex; gap: 10px;">
-        <button onclick="clearDatabase()" class="btn-primary" style="background: #ef4444; box-shadow: none; font-size: 12px;">
+        <button onclick="openResetModal()" class="btn-primary" style="background: #ef4444; box-shadow: none; font-size: 12px;">
           <i class="fas fa-trash-alt"></i> Clear Data
         </button>
         <button onclick="Auth.logout()" class="btn-primary" style="background: var(--danger); box-shadow: none;">
@@ -415,6 +415,7 @@
                 <th>Interested Course</th>
                 <th>Message Content</th>
                 <th>Date Received</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody id="contacts-tbody">
@@ -458,13 +459,28 @@
         </div>
 
         <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px;">
-          <h3 style="font-size: 18px; margin-bottom: 16px;">Create Broadcast Announcement</h3>
+          <h3 style="font-size: 18px; margin-bottom: 16px;">Send Bulk Message</h3>
           <form id="add-ann-form">
             <div class="form-group">
-              <label for="ann-message">Announcement Message</label>
-              <textarea id="ann-message" class="form-control" placeholder="Enter simple message broadcast..." required></textarea>
+              <label for="ann-course">Target Batch</label>
+              <select id="ann-course" class="form-control" required>
+                <option value="all">All Registered Students</option>
+                <!-- Populated dynamically -->
+              </select>
             </div>
-            <button type="submit" class="btn-primary">Broadcast Message <i class="fas fa-comment-alt"></i></button>
+            <div class="form-group">
+              <label for="ann-channel">Message Channel</label>
+              <select id="ann-channel" class="form-control" required>
+                <option value="both">Both Email & Mobile</option>
+                <option value="email">Email Only</option>
+                <option value="mobile">Mobile Number (SMS) Only</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="ann-message">Message Content</label>
+              <textarea id="ann-message" class="form-control" placeholder="Enter message to send..." required></textarea>
+            </div>
+            <button type="submit" class="btn-primary">Send Message <i class="fas fa-paper-plane"></i></button>
           </form>
         </div>
 
@@ -1040,6 +1056,42 @@
             <input type="url" id="mentor-meeting-link" class="form-control" placeholder="https://zoom.us/..." required>
           </div>
           <button type="submit" class="btn-primary" style="width: 100%; justify-content: center;">Approve & Send Link</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESET DATA MODAL -->
+  <div class="modal-overlay" id="reset-modal">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Clear System Data</h3>
+        <button class="modal-close" onclick="closeResetModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 13px;">Please select what data you want to clear from the system. This action is irreversible.</p>
+        <form id="reset-data-form" onsubmit="handleResetDataSubmit(event)">
+          <div class="form-group">
+            <label style="margin-bottom: 10px; display: block;">Select Data to Clear:</label>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="reset-type" value="amount" required style="width: 16px; height: 16px; accent-color: var(--danger);">
+                <span style="font-weight: 500;">Clear Amount/Payments Data</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="reset-type" value="student" style="width: 16px; height: 16px; accent-color: var(--danger);">
+                <span style="font-weight: 500;">Clear All Students Records</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="radio" name="reset-type" value="all" style="width: 16px; height: 16px; accent-color: var(--danger);">
+                <span style="font-weight: 500;">Clear All Complete Data</span>
+              </label>
+            </div>
+          </div>
+          <div style="margin-top: 24px; display: flex; gap: 10px;">
+            <button type="button" class="btn-secondary" style="flex: 1; justify-content: center;" onclick="closeResetModal()">Cancel</button>
+            <button type="submit" class="btn-primary" style="flex: 1; justify-content: center; background: var(--danger); border-color: var(--danger); box-shadow: none;">Confirm Reset</button>
+          </div>
         </form>
       </div>
     </div>

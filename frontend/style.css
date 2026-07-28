@@ -72,6 +72,18 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   overflow-y: auto !important;
+  /* Prevent text selection and copying */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+input, textarea, select {
+  -webkit-user-select: auto;
+  -moz-user-select: auto;
+  -ms-user-select: auto;
+  user-select: auto;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -531,6 +543,7 @@ body.light-theme .btn-secondary:hover {
   position: relative;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .course-card-badge {

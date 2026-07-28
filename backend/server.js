@@ -1526,6 +1526,50 @@ app.get('/api/contact', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
+// DELETE /api/contacts/:id - Admin delete contact message
+app.delete('/api/contacts/:id', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const id = req.params.id;
+    let contacts = readJSONFile('contacts.json');
+    const index = contacts.findIndex(c => c.id === id);
+    if (index === -1) {
+      return res.status(404).json({ message: 'Contact message not found.' });
+    }
+    contacts.splice(index, 1);
+    writeJSONFile('contacts.json', contacts);
+    res.json({ message: 'Contact message deleted successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting contact message.', error: error.message });
+  }
+});
+
+// POST /api/admin/bulk-message - Admin send bulk message to batch
+app.post('/api/admin/bulk-message', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const { courseId, channel, message } = req.body;
+    if (!message) return res.status(400).json({ message: 'Message content is required.' });
+    
+    // Simulate sending messages based on channel (in a real system, you'd use Twilio/SendGrid)
+    // For now, we'll log it and create an announcement so it's visible.
+    const announcements = readJSONFile('announcements.json');
+    const newAnnouncement = {
+      id: 'ann_' + Date.now(),
+      message: `[Bulk Message to ${courseId === 'all' ? 'All' : 'Batch ' + courseId}] ${message}`,
+      date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    };
+    announcements.unshift(newAnnouncement);
+    writeJSONFile('announcements.json', announcements);
+
+    // Also push to in-app notifications
+    createNotification(courseId, `Bulk ${channel.toUpperCase()} Message: ${message}`, 'announcement');
+
+    let responseMsg = `Bulk message sent successfully via ${channel} to ${courseId === 'all' ? 'All Students' : 'selected batch'}.`;
+    res.status(201).json({ message: responseMsg });
+  } catch (error) {
+    res.status(500).json({ message: 'Error sending bulk message.', error: error.message });
+  }
+});
+
 // 9. ADMIN SUMMARY DATA ENDPOINT
 app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
   try {
@@ -2585,6 +2629,49 @@ app.post('/api/ai/chat', authenticateToken, async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: 'Error communicating with AI tutor.', error: error.message });
+  }
+});
+
+// DELETE /api/admin/clear-database - Admin clear data
+app.delete('/api/admin/clear-database', authenticateToken, isAdmin, (req, res) => {
+  try {
+    const type = req.query.type; // 'amount', 'student', or 'all'
+    
+    if (type === 'amount') {
+      writeJSONFile('payments.json', []);
+      return res.json({ message: 'All payment amounts cleared successfully.' });
+    }
+    
+    if (type === 'student') {
+      const users = readJSONFile('users.json');
+      const nonStudents = users.filter(u => u.role === 'admin');
+      writeJSONFile('users.json', nonStudents);
+      writeJSONFile('enrollments.json', []);
+      writeJSONFile('attendance.json', []);
+      return res.json({ message: 'All student records cleared successfully.' });
+    }
+    
+    if (type === 'all' || !type) {
+      writeJSONFile('payments.json', []);
+      writeJSONFile('enrollments.json', []);
+      writeJSONFile('courses.json', []);
+      writeJSONFile('certificates.json', []);
+      writeJSONFile('attendance.json', []);
+      writeJSONFile('quizzes.json', []);
+      writeJSONFile('quizResults.json', []);
+      writeJSONFile('assignments.json', []);
+      writeJSONFile('submissions.json', []);
+      
+      const users = readJSONFile('users.json');
+      const nonStudents = users.filter(u => u.role === 'admin');
+      writeJSONFile('users.json', nonStudents);
+      
+      return res.json({ message: 'Complete database cleared successfully.' });
+    }
+
+    res.status(400).json({ message: 'Invalid clear type specified.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error clearing database.', error: error.message });
   }
 });
 
