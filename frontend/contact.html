@@ -175,7 +175,30 @@
         }
 
         try {
-          const response = await apiCall('/contact', 'POST', { name, email, phone, message }, false);
+          const formData = { name, email, phone, message };
+          
+          // Send to Formspree
+          await fetch('https://formspree.io/f/maqggvob', {
+            method: 'POST',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+          });
+          
+          // Send to Internal Admin Panel
+          const response = await apiCall('/contact', 'POST', formData, false);
+          
+          // Fallback to update real server.js database as well
+          try {
+             await fetch('http://localhost:5000/api/contact?bypass=true', {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify(formData)
+             });
+          } catch(e) {}
+
           showToast(response.message, 'success');
           form.reset();
         } catch (error) {

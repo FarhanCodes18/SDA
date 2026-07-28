@@ -2370,6 +2370,30 @@ async function handleEnrollmentSubmit(e) {
   }
 }
 
+// Global helper: Format course description to max 200 words with Read more / Read less toggle
+function formatCourseDescription(desc) {
+  if (!desc) return '';
+  const words = desc.trim().split(/\s+/);
+  if (words.length <= 200) {
+    return desc;
+  }
+  const shortText = words.slice(0, 200).join(' ') + '...';
+  return `<span class="desc-short-text">${shortText} <a href="javascript:void(0);" onclick="toggleCourseDesc(this); event.stopPropagation();" class="read-more-btn" style="color: var(--accent-color); font-weight: 700; text-decoration: underline; margin-left: 6px; display: inline-block; cursor: pointer;">Read more <i class="fas fa-angle-down" style="font-size: 11px;"></i></a></span><span class="desc-full-text" style="display: none;">${desc} <a href="javascript:void(0);" onclick="toggleCourseDesc(this); event.stopPropagation();" class="read-less-btn" style="color: var(--accent-color); font-weight: 700; text-decoration: underline; margin-left: 6px; display: inline-block; cursor: pointer;">Read less <i class="fas fa-angle-up" style="font-size: 11px;"></i></a></span>`;
+}
+
+function toggleCourseDesc(btn) {
+  const shortSpan = btn.closest('.desc-short-text') || btn.parentElement;
+  const fullSpan = btn.closest('.desc-full-text') || btn.parentElement;
+  
+  if (btn.classList.contains('read-more-btn')) {
+    if (shortSpan) shortSpan.style.display = 'none';
+    if (shortSpan && shortSpan.nextElementSibling) shortSpan.nextElementSibling.style.display = 'inline';
+  } else if (btn.classList.contains('read-less-btn')) {
+    if (fullSpan) fullSpan.style.display = 'none';
+    if (fullSpan && fullSpan.previousElementSibling) fullSpan.previousElementSibling.style.display = 'inline';
+  }
+}
+
 // 6. Public Course Card Factory Render
 function createCourseCard(course) {
   const isPopular = course.isPopular === true;
@@ -2384,7 +2408,7 @@ function createCourseCard(course) {
         <span><i class="fas fa-layer-group"></i> ${course.level}</span>
         <span><i class="fas fa-star"></i> ${course.rating || '4.8'}</span>
       </div>
-      <p class="course-description">${course.description}</p>
+      <p class="course-description">${formatCourseDescription(course.description)}</p>
       <div class="course-footer">
         <div class="course-pricing">
           <span class="course-price-current">₹${course.price}</span>

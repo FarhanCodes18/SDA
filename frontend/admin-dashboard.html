@@ -94,9 +94,7 @@
         <li class="sidebar-item" data-target="admin-recorded">
           <a href="#"><i class="fas fa-play-circle"></i> Recorded Links</a>
         </li>
-        <li class="sidebar-item" data-target="admin-placements">
-          <a href="#"><i class="fas fa-user-tie"></i> Placement Achievers</a>
-        </li>
+
         <li class="sidebar-item" data-target="admin-attendance">
           <a href="#"><i class="fas fa-calendar-check"></i> Attendance Manager</a>
         </li>
@@ -510,22 +508,7 @@
         </div>
       </section>
 
-      <!-- ==================== TAB 11: PLACEMENT ACHIEVERS ==================== -->
-      <section id="admin-placements" class="dashboard-panel">
-        <div class="panel-header">
-          <h2>Placement Spotlight Achievers</h2>
-        </div>
-        <div class="glass-card" style="padding: 40px; text-align: center; max-width: 600px; margin: 40px auto 0 auto; border: 1.5px solid rgba(255, 75, 43, 0.2);">
-          <div style="width: 80px; height: 80px; background: rgba(255, 75, 43, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto;">
-            <i class="fas fa-lock" style="font-size: 32px; color: var(--accent-color);"></i>
-          </div>
-          <h3 style="font-size: 22px; margin-bottom: 12px; font-family: var(--font-header);">Placement Spotlight Section Locked</h3>
-          <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 24px;">The Placement Spotlight / Achievers section has been locked. The ability to add or delete achievers is disabled.</p>
-          <span class="badge pending" style="padding: 8px 20px; font-size: 13px; background: rgba(255, 75, 43, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color); border-radius: 50px; font-weight: 600;">
-            <i class="fas fa-exclamation-triangle" style="margin-right: 6px;"></i> Feature Disabled
-          </span>
-        </div>
-      </section>
+
 
       <!-- ==================== TAB 12: BATCH ATTENDANCE ==================== -->
       <section id="admin-attendance" class="dashboard-panel">
@@ -886,6 +869,7 @@
           <div class="form-group">
             <label>Course Description</label>
             <textarea class="form-control" id="add-course-description" placeholder="Provide syllabus summary..." required></textarea>
+            <small id="add-desc-counter" style="color: var(--text-muted); display: block; margin-top: 6px; font-size: 11px;">0 / 200 words (Descriptions over 200 words will automatically display a 'Read more' option)</small>
           </div>
           <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
             <input type="checkbox" id="add-course-popular" style="width: 18px; height: 18px;">
@@ -938,6 +922,7 @@
           <div class="form-group">
             <label>Course Description</label>
             <textarea class="form-control" id="edit-course-description" required></textarea>
+            <small id="edit-desc-counter" style="color: var(--text-muted); display: block; margin-top: 6px; font-size: 11px;">0 / 200 words (Descriptions over 200 words will automatically display a 'Read more' option)</small>
           </div>
           <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
             <input type="checkbox" id="edit-course-popular" style="width: 18px; height: 18px;">

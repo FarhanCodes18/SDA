@@ -98,7 +98,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. Form Submit Listeners
+  // 4. Form Submit Listeners & Word Counters
+  const initWordCounter = (inputId, counterId) => {
+    const input = document.getElementById(inputId);
+    const counter = document.getElementById(counterId);
+    if (!input || !counter) return;
+    const updateCount = () => {
+      const words = input.value.trim() ? input.value.trim().split(/\s+/).length : 0;
+      if (words > 200) {
+        counter.innerHTML = `<span style="color: var(--warning); font-weight: bold;">${words} / 200 words</span> (Exceeds 200 words: 'Read more' option will automatically appear on course cards)`;
+      } else {
+        counter.innerHTML = `${words} / 200 words (If above 200 words, 'Read more' button is added automatically)`;
+      }
+    };
+    input.addEventListener('input', updateCount);
+    updateCount();
+  };
+  initWordCounter('add-course-description', 'add-desc-counter');
+  initWordCounter('edit-course-description', 'edit-desc-counter');
+
   const addCourseForm = document.getElementById('add-course-form');
   if (addCourseForm) addCourseForm.addEventListener('submit', handleAddCourse);
 
@@ -117,9 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const manualPaymentForm = document.getElementById('manual-payment-form');
   if (manualPaymentForm) manualPaymentForm.addEventListener('submit', handleManualPaymentUpdate);
 
-  const addAchieverForm = document.getElementById('add-achiever-form');
-  if (addAchieverForm) addAchieverForm.addEventListener('submit', handleAddAchiever);
-  
+
   // Quiz Form submission
   const quizForm = document.getElementById('quiz-form');
   if (quizForm) {
@@ -219,8 +235,6 @@ async function loadAdminData() {
     // L. Populate Video Lectures list
     renderRecordedClasses(data.recordedClasses);
 
-    // M. Populate Placement Achievers list
-    renderAdminAchievers(data.achievers);
 
     // N. Populate Quizzes List & Logs
     quizzesList = data.quizzes || [];
@@ -438,7 +452,7 @@ function renderCourses(courses) {
         <span><i class="far fa-clock"></i> ${c.duration}</span>
         <span><i class="fas fa-layer-group"></i> ${c.level}</span>
       </div>
-      <p class="course-description">${c.description}</p>
+      <p class="course-description">${formatCourseDescription(c.description)}</p>
       <div class="course-footer" style="gap: 12px; align-items: center;">
         <div class="course-pricing" style="margin-right: auto;">
           <span class="course-price-current">₹${c.price}</span>
@@ -825,6 +839,7 @@ function openEditCourseModal(courseId) {
   document.getElementById('edit-course-original').value = course.originalPrice || '';
   document.getElementById('edit-course-category').value = course.category;
   document.getElementById('edit-course-description').value = course.description;
+  document.getElementById('edit-course-description').dispatchEvent(new Event('input'));
   document.getElementById('edit-course-popular').checked = course.isPopular || false;
 
   document.getElementById('edit-course-modal').classList.add('active');
@@ -1229,89 +1244,7 @@ async function handleManualPaymentUpdate(e) {
   }
 }
 
-// --- PLACEMENT ACHIEVERS SPOTLIGHT HANDLERS ---
 
-function renderAdminAchievers(achievers) {
-  const container = document.getElementById('admin-achievers-container');
-  if (!container) return;
-
-  if (achievers.length === 0) {
-    container.innerHTML = `<div style="grid-column:1/-1; text-align: center; color: var(--text-muted); padding: 40px;">No placement achievers registered.</div>`;
-    return;
-  }
-
-  container.innerHTML = achievers.map(a => {
-    const imgUrl = a.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=ff4b2b&color=fff&size=150&font-size=0.33`;
-    return `
-      <div class="glass-card" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <div style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; margin: 0 auto 12px auto; border: 2px solid var(--border-color);">
-            <img src="${imgUrl}" alt="${a.name}" style="width:100%; height:100%; object-fit:cover;">
-          </div>
-          <h4 style="font-size: 16px; color: var(--text-primary); font-family: var(--font-header);">${a.name}</h4>
-          <p style="font-size: 12px; color: var(--text-secondary); letter-spacing: 1px; text-transform: uppercase;">${a.company}</p>
-        </div>
-        <button onclick="handleDeleteAchiever('${a.id}')" class="btn-primary" style="background: var(--danger); box-shadow: none; font-size: 12px; padding: 8px 12px; justify-content: center; width: 100%;">
-          Delete Achiever <i class="fas fa-trash"></i>
-        </button>
-      </div>
-    `;
-  }).join('');
-}
-
-async function handleAddAchiever(e) {
-  e.preventDefault();
-
-  const name = document.getElementById('achiever-student-name').value.trim();
-  const company = document.getElementById('achiever-company-name').value.trim();
-  const fileInput = document.getElementById('achiever-image');
-  
-  if (!name || !company || fileInput.files.length === 0) {
-    showToast('All fields including student image are required.', 'error');
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('name', name);
-  formData.append('company', company);
-  formData.append('image', fileInput.files[0]);
-
-  try {
-    showToast('Uploading achiever details and image...', 'info');
-
-    const token = Auth.getToken();
-    const response = await fetch(`${API_URL}/achievers`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
-      body: formData
-    });
-
-    const res = await response.json();
-    if (!response.ok) {
-      throw new Error(res.message || 'Failed to upload achiever.');
-    }
-
-    showToast(res.message, 'success');
-    document.getElementById('add-achiever-form').reset();
-    await loadAdminData();
-  } catch (error) {
-    showToast(error.message || 'Failed to add achiever.', 'error');
-  }
-}
-
-async function handleDeleteAchiever(id) {
-  if (!confirm('Are you sure you want to delete this placement achiever?')) return;
-
-  try {
-    const res = await apiCall(`/achievers/${id}`, 'DELETE', null, true);
-    showToast(res.message, 'success');
-    await loadAdminData();
-  } catch (error) {
-    showToast(error.message || 'Failed to delete achiever.', 'error');
-  }
-}
 
 // Quick manual payment approval action
 async function approvePaymentDirectly(payId) {

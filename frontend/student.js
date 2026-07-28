@@ -291,7 +291,7 @@ function renderAvailableCourses(courses, purchasedCourses, enrolledCourses) {
             <span><i class="far fa-clock"></i> ${c.duration}</span>
             <span><i class="fas fa-layer-group"></i> ${c.level}</span>
           </div>
-          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height:1.4;">${c.description}</p>
+          <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 16px; line-height:1.4;">${formatCourseDescription(c.description)}</p>
         </div>
         <div class="course-footer" style="padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
           <div style="display: flex; flex-direction: column;">
@@ -368,7 +368,7 @@ function renderActiveCourses(purchasedCourses, enrolledCourses) {
         <span><i class="far fa-clock"></i> ${c.duration}</span>
         <span><i class="fas fa-layer-group"></i> ${c.level}</span>
       </div>
-      <p class="course-description">${c.description}</p>
+      <p class="course-description">${formatCourseDescription(c.description)}</p>
       <div class="course-footer" style="justify-content: flex-end;">
         ${isApproved
           ? `<span class="badge approved" style="padding: 8px 16px; font-size:12px;"><i class="fas fa-graduation-cap"></i> Enrolled &amp; Active</span>`

@@ -36,7 +36,6 @@
       <ul class="nav-links">
         <li><a href="index.html" class="active">Home</a></li>
         <li><a href="courses.html">Courses</a></li>
-        <li><a href="#placement">Placement</a></li>
         <li><a href="login.html">Student Portal</a></li>
         <li><a href="#contact">Contact Us</a></li>
       </ul>
@@ -387,24 +386,7 @@
     </div>
   </section>
 
-  <!-- Placement Achievers Spotlight Section -->
-  <section id="placement">
-    <div class="section-container" style="text-align: center;">
-      <span class="placement-spotlight-label">• PLACEMENT SPOTLIGHT</span>
-      <h2>Our Recent <span class="word-navy">Placement</span> <span class="word-red">Achievers</span></h2>
-      
-      <div class="glass-card" style="max-width: 600px; margin: 40px auto 0 auto; padding: 40px; text-align: center; border: 1.5px solid rgba(255, 75, 43, 0.2);">
-        <div class="lock-pulse-circle" style="width: 80px; height: 80px; background: rgba(255, 75, 43, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px auto;">
-          <i class="fas fa-lock" style="font-size: 32px; color: var(--accent-color);"></i>
-        </div>
-        <h3 style="font-size: 24px; margin-bottom: 12px; font-family: var(--font-header);">Placement Spotlight Locked</h3>
-        <p style="color: var(--text-secondary); font-size: 15px; margin-bottom: 24px;">We are currently updating our placement spotlight archives for the upcoming session. The achievers catalog will unlock soon!</p>
-        <span class="badge pending" style="padding: 8px 20px; font-size: 13px; background: rgba(255, 75, 43, 0.15); color: var(--accent-color); border: 1px solid var(--accent-color); border-radius: 50px; font-weight: 600;">
-          <i class="fas fa-calendar-alt" style="margin-right: 6px;"></i> Releasing 20 August 2026
-        </span>
-      </div>
-    </div>
-  </section>
+
 
   <!-- Accordion FAQ Section -->
   <section class="section" style="background: var(--bg-secondary);">
@@ -597,162 +579,7 @@
       }
     });
 
-    // Fetch and initialize Placement Spotlight Carousel
-    document.addEventListener('DOMContentLoaded', async () => {
-      const track = document.getElementById('achievers-carousel-track');
-      if (!track) return;
 
-      try {
-        const achievers = await apiCall('/achievers', 'GET', null, false);
-        if (achievers.length === 0) {
-          track.innerHTML = '<p style="color: var(--text-secondary);">No placement achievers recorded.</p>';
-          return;
-        }
-
-        // Render card items (tripled array to support infinite scrolling)
-        const tripledAchievers = [...achievers, ...achievers, ...achievers];
-        track.innerHTML = tripledAchievers.map(a => {
-          // If no image, show default avatar via UI-Avatars API
-          const imgUrl = a.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.name)}&background=ff4b2b&color=fff&size=150&font-size=0.33`;
-          return `
-            <div class="achiever-card">
-              <div class="achiever-sparkle"><i class="fas fa-star"></i></div>
-              <img src="${imgUrl}" alt="${a.name}">
-              <div class="achiever-info">
-                <h4 class="achiever-name">${a.name}</h4>
-                <p class="achiever-company">${a.company}</p>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        // Initialize carousel sliding logic
-        initAchieverCarousel(achievers.length);
-
-      } catch (err) {
-        console.error('Failed to load placement achievers:', err);
-        track.innerHTML = '<p style="color: var(--danger);">Failed to load placement achievers.</p>';
-      }
-    });
-
-    function initAchieverCarousel(n) {
-      const track = document.getElementById('achievers-carousel-track');
-      const cards = Array.from(track.getElementsByClassName('achiever-card'));
-      const prevBtn = document.querySelector('.prev-btn');
-      const nextBtn = document.querySelector('.next-btn');
-
-      if (cards.length === 0) return;
-
-      // Start in the middle of the tripled array (original set starts at index n)
-      let activeIndex = n;
-      let autoSlideTimer = null;
-      let isTransitioning = false;
-
-      function updateTrackPosition() {
-        track.style.transform = `translateX(calc(50% - (var(--card-width) / 2) - (${activeIndex} * (var(--card-width) + var(--card-gap)))))`;
-      }
-
-      function updateCarouselClasses() {
-        cards.forEach((card, index) => {
-          card.classList.remove('center', 'prev', 'next', 'far-prev', 'far-next');
-
-          if (index === activeIndex) {
-            card.classList.add('center');
-          } else if (index === activeIndex - 1) {
-            card.classList.add('prev');
-          } else if (index === activeIndex + 1) {
-            card.classList.add('next');
-          } else if (index === activeIndex - 2) {
-            card.classList.add('far-prev');
-          } else if (index === activeIndex + 2) {
-            card.classList.add('far-next');
-          }
-        });
-      }
-
-      function nextSlide() {
-        if (isTransitioning) return;
-        isTransitioning = true;
-        activeIndex++;
-        track.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-        updateTrackPosition();
-        updateCarouselClasses();
-      }
-
-      function prevSlide() {
-        if (isTransitioning) return;
-        isTransitioning = true;
-        activeIndex--;
-        track.style.transition = 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-        updateTrackPosition();
-        updateCarouselClasses();
-      }
-
-      // Handle transition end for infinite looping
-      track.addEventListener('transitionend', (e) => {
-        if (e.propertyName !== 'transform') return;
-
-        if (activeIndex >= 2 * n) {
-          track.style.transition = 'none';
-          activeIndex = activeIndex - n;
-          updateTrackPosition();
-          updateCarouselClasses();
-          track.offsetHeight; // Force reflow
-        } else if (activeIndex < n) {
-          track.style.transition = 'none';
-          activeIndex = activeIndex + n;
-          updateTrackPosition();
-          updateCarouselClasses();
-          track.offsetHeight; // Force reflow
-        }
-        isTransitioning = false;
-      });
-
-      // Button listeners
-      if (nextBtn) {
-        nextBtn.addEventListener('click', () => {
-          nextSlide();
-          startTimer(); // Reset auto-slide timer
-        });
-      }
-      if (prevBtn) {
-        prevBtn.addEventListener('click', () => {
-          prevSlide();
-          startTimer(); // Reset auto-slide timer
-        });
-      }
-
-      // Auto slide timer
-      function startTimer() {
-        resetTimer();
-        autoSlideTimer = setInterval(nextSlide, 3000); // 3 seconds interval
-      }
-
-      function resetTimer() {
-        if (autoSlideTimer) {
-          clearInterval(autoSlideTimer);
-          autoSlideTimer = null;
-        }
-      }
-
-      // Pause timer on hover
-      const container = document.querySelector('.carousel-container');
-      if (container) {
-        container.addEventListener('mouseenter', () => {
-          resetTimer();
-        });
-        container.addEventListener('mouseleave', () => {
-          startTimer();
-        });
-      }
-
-      // Initialize
-      track.style.transition = 'none';
-      updateTrackPosition();
-      updateCarouselClasses();
-      track.offsetHeight; // Force reflow
-      startTimer();
-    }
 
     // Scroll Sticky Navbar and Active Links Handler
     window.addEventListener('scroll', () => {
@@ -834,13 +661,35 @@
             submitBtn.innerHTML = 'Sending... <i class="fas fa-spinner fa-spin"></i>';
 
             // Use internal apiCall to route to Firebase via script.js interceptor
-            const responseData = await apiCall('/contact', 'POST', {
+            const formData = {
               name,
               phone,
               email,
               course,
               message
-            }, false);
+            };
+
+            // Send to Formspree
+            await fetch('https://formspree.io/f/maqggvob', {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(formData)
+            });
+
+            // Send to Internal Admin Panel
+            const responseData = await apiCall('/contact', 'POST', formData, false);
+            
+            // Fallback to update real server.js database as well
+            try {
+               await fetch('http://localhost:5000/api/contact?bypass=true', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify(formData)
+               });
+            } catch(e) {}
 
             showToast('Message sent successfully! We will get back to you.', 'success');
             contactForm.reset();
