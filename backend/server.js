@@ -200,12 +200,7 @@ const syncCollectionToFirestore = async (collectionName, data) => {
   
   try {
     const collectionRef = db.collection(collectionName);
-    const snapshot = await collectionRef.get();
     
-    // Track existing documents to delete any that are no longer in our local array
-    const existingIds = new Set();
-    snapshot.forEach(doc => existingIds.add(doc.id));
-
     // Batch operations
     const batch = db.batch();
     
@@ -217,12 +212,6 @@ const syncCollectionToFirestore = async (collectionName, data) => {
       delete docData.id; // Avoid duplicate id inside document body
       
       batch.set(docRef, docData);
-      existingIds.delete(docId);
-    }
-
-    // Delete elements that are no longer present
-    for (const oldId of existingIds) {
-      batch.delete(collectionRef.doc(oldId));
     }
 
     await batch.commit();
@@ -232,7 +221,6 @@ const syncCollectionToFirestore = async (collectionName, data) => {
   }
 };
 
-// API-facing helper functions
 const readJSONFile = (filename) => {
   if (dbCache[filename]) {
     return dbCache[filename];
@@ -344,12 +332,14 @@ const seedDatabase = async () => {
   try {
     const users = readJSONFile('users.json');
     const ADMIN_PASSWORD = 'Sukla@2008';
+    let adminChanged = false;
+    let adminUser = null;
     
     // Seed Admin if not exists, or update password if changed
     const adminIndex = users.findIndex(u => u.email === 'admin@sukla.com');
     if (adminIndex === -1) {
       const hashedAdminPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
-      users.push({
+      adminUser = {
         id: 'user_admin_01',
         name: 'Ajay Shukla',
         email: 'admin@sukla.com',
@@ -357,18 +347,36 @@ const seedDatabase = async () => {
         plainPassword: ADMIN_PASSWORD,
         role: 'admin',
         createdAt: new Date().toISOString()
-      });
+      };
+      users.push(adminUser);
+      adminChanged = true;
       console.log('Seeded Admin account (admin@sukla.com) with new password.');
     } else if (users[adminIndex].plainPassword !== ADMIN_PASSWORD) {
       // Force update password to new one
       const hashedAdminPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
       users[adminIndex].password = hashedAdminPassword;
       users[adminIndex].plainPassword = ADMIN_PASSWORD;
+      adminUser = users[adminIndex];
+      adminChanged = true;
       console.log('Updated Admin password to Sukla@2008.');
+    } else {
+      adminUser = users[adminIndex];
     }
 
     // Student seeding and default placement achiever seeding disabled by request.
-    writeJSONFile('users.json', users);
+    writeLocalJSONFile('users.json', users);
+
+    // Sync ONLY the Admin user directly to Firestore on startup if changed
+    if (useFirebase && db && adminUser && adminChanged) {
+      try {
+        const adminDocData = { ...adminUser };
+        delete adminDocData.id;
+        await db.collection('users').doc(adminUser.id).set(adminDocData);
+        console.log('Successfully synced Admin credentials directly to Firestore.');
+      } catch (err) {
+        console.error('Failed to sync Admin credentials to Firestore:', err.message);
+      }
+    }
 
     // Force update C Programming course
     const courses = readJSONFile('courses.json');
@@ -378,8 +386,36 @@ const seedDatabase = async () => {
         cCourse.price = 2999;
         cCourse.originalPrice = 5999;
         cCourse.duration = '3 Months';
-        writeJSONFile('courses.json', courses);
-        console.log('Force-updated C Programming fees and duration in DB.');
+        writeLocalJSONFile('courses.json', courses);
+        console.log('Force-updated C Programming fees and duration locally.');
+
+        // Sync ONLY the specific course directly to Firestore on startup
+        if (useFirebase && db) {
+          try {
+            const courseDocData = { ...cCourse };
+            delete courseDocData.id;
+            await db.collection('courses').doc(cCourse.id).set(courseDocData);
+            console.log('Successfully synced C Programming updates directly to Firestore.');
+          } catch (err) {
+            console.error('Failed to sync C Programming updates directly to Firestore:', err.message);
+          }
+        }
+      }
+    }
+
+    // Seed Google Sheets backup URL to Firestore if not set
+    if (useFirebase && db) {
+      try {
+        const backupDocRef = db.collection('settings').doc('backup_config');
+        const backupDoc = await backupDocRef.get();
+        if (!backupDoc.exists || !backupDoc.data().googleSheetsUrl) {
+          await backupDocRef.set({
+            googleSheetsUrl: "https://script.google.com/macros/s/AKfycbynwkWG-eoWiHsvTc5XluTrIKIRqCz4K5sIn8AVQw8qgbLuLh_hYWr7TPAbmkYpMyUh/exec"
+          });
+          console.log('Successfully seeded Google Sheets backup URL in Firestore.');
+        }
+      } catch (err) {
+        console.error('Failed to seed Google Sheets backup URL to Firestore:', err.message);
       }
     }
   } catch (error) {
@@ -809,7 +845,7 @@ app.put('/api/courses/:id', authenticateToken, isAdmin, (req, res) => {
 });
 
 // Delete a course (Admin only)
-app.delete('/api/courses/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/courses/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const courseId = req.params.id;
     let courses = readJSONFile('courses.json');
@@ -821,6 +857,10 @@ app.delete('/api/courses/:id', authenticateToken, isAdmin, (req, res) => {
 
     courses.splice(courseIndex, 1);
     writeJSONFile('courses.json', courses);
+
+    if (useFirebase && db) {
+      await db.collection('courses').doc(courseId).delete();
+    }
 
     res.json({ message: 'Course deleted successfully!' });
   } catch (error) {
@@ -890,7 +930,7 @@ app.get('/api/enrollments', authenticateToken, isAdmin, (req, res) => {
 });
 
 // Delete an enrollment (Admin only)
-app.delete('/api/enrollments/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/enrollments/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const enrollId = req.params.id;
     let enrollments = readJSONFile('enrollments.json');
@@ -902,6 +942,11 @@ app.delete('/api/enrollments/:id', authenticateToken, isAdmin, (req, res) => {
     
     enrollments.splice(index, 1);
     writeJSONFile('enrollments.json', enrollments);
+
+    if (useFirebase && db) {
+      await db.collection('enrollments').doc(enrollId).delete();
+    }
+
     res.json({ message: 'Enrollment/Active Program deleted successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting enrollment.', error: error.message });
@@ -1292,7 +1337,7 @@ app.post('/api/notices', authenticateToken, isAdmin, (req, res) => {
 });
 
 // Delete a notice (Admin only)
-app.delete('/api/notices/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/notices/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const noticeId = req.params.id;
     let notices = readJSONFile('notices.json');
@@ -1304,6 +1349,11 @@ app.delete('/api/notices/:id', authenticateToken, isAdmin, (req, res) => {
     
     notices.splice(index, 1);
     writeJSONFile('notices.json', notices);
+
+    if (useFirebase && db) {
+      await db.collection('notices').doc(noticeId).delete();
+    }
+
     res.json({ message: 'Notice deleted successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting notice.', error: error.message });
@@ -1381,7 +1431,7 @@ app.put('/api/admin/feedbacks/:id', authenticateToken, isAdmin, (req, res) => {
 });
 
 // Delete feedback (Admin only)
-app.delete('/api/admin/feedbacks/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/admin/feedbacks/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const fbId = req.params.id;
     let feedbacks = readJSONFile('feedbacks.json');
@@ -1393,6 +1443,11 @@ app.delete('/api/admin/feedbacks/:id', authenticateToken, isAdmin, (req, res) =>
 
     feedbacks.splice(index, 1);
     writeJSONFile('feedbacks.json', feedbacks);
+
+    if (useFirebase && db) {
+      await db.collection('feedbacks').doc(fbId).delete();
+    }
+
     res.json({ message: 'Feedback deleted successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting feedback.' });
@@ -1433,7 +1488,7 @@ app.post('/api/announcements', authenticateToken, isAdmin, (req, res) => {
 });
 
 // Delete announcement
-app.delete('/api/announcements/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/announcements/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const id = req.params.id;
     let announcements = readJSONFile('announcements.json');
@@ -1445,6 +1500,10 @@ app.delete('/api/announcements/:id', authenticateToken, isAdmin, (req, res) => {
 
     announcements.splice(index, 1);
     writeJSONFile('announcements.json', announcements);
+
+    if (useFirebase && db) {
+      await db.collection('announcements').doc(id).delete();
+    }
 
     res.json({ message: 'Announcement deleted successfully!' });
   } catch (error) {
@@ -1527,7 +1586,7 @@ app.get('/api/contact', authenticateToken, isAdmin, (req, res) => {
 });
 
 // DELETE /api/contacts/:id - Admin delete contact message
-app.delete('/api/contacts/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/contacts/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const id = req.params.id;
     let contacts = readJSONFile('contacts.json');
@@ -1537,6 +1596,11 @@ app.delete('/api/contacts/:id', authenticateToken, isAdmin, (req, res) => {
     }
     contacts.splice(index, 1);
     writeJSONFile('contacts.json', contacts);
+
+    if (useFirebase && db) {
+      await db.collection('contacts').doc(id).delete();
+    }
+
     res.json({ message: 'Contact message deleted successfully.' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting contact message.', error: error.message });
@@ -1631,6 +1695,44 @@ app.get('/api/admin/data', authenticateToken, isAdmin, (req, res) => {
   }
 });
 
+// GET /api/admin/backup-settings - Fetch Google Sheets Backup Config
+app.get('/api/admin/backup-settings', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    let settings = { googleSheetsUrl: '' };
+    if (useFirebase && db) {
+      const doc = await db.collection('settings').doc('backup_config').get();
+      if (doc.exists) {
+        settings.googleSheetsUrl = doc.data().googleSheetsUrl || '';
+      }
+    } else {
+      const localSettings = readJSONFile('settings.json');
+      settings.googleSheetsUrl = localSettings.googleSheetsUrl || '';
+    }
+    res.json(settings);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching backup settings.', error: error.message });
+  }
+});
+
+// POST /api/admin/backup-settings - Save Google Sheets Backup Config
+app.post('/api/admin/backup-settings', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const { googleSheetsUrl } = req.body;
+    
+    // Save to local cache & file
+    writeJSONFile('settings.json', { googleSheetsUrl });
+    
+    // Sync to Firestore
+    if (useFirebase && db) {
+      await db.collection('settings').doc('backup_config').set({ googleSheetsUrl });
+    }
+    
+    res.json({ message: 'Backup settings updated successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error saving backup settings.', error: error.message });
+  }
+});
+
 // POST /api/admin/sync - Synchronizes live data from client back to local server JSON storage
 app.post('/api/admin/sync', authenticateToken, isAdmin, (req, res) => {
   try {
@@ -1722,13 +1824,23 @@ app.post('/api/assignments', authenticateToken, isAdmin, (req, res) => {
 });
 
 // DELETE /api/assignments/:id - Admin deletes assignment
-app.delete('/api/assignments/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/assignments/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     let assignments = readJSONFile('assignments.json');
     const index = assignments.findIndex(a => a.id === req.params.id);
     if (index === -1) return res.status(404).json({ message: 'Assignment not found.' });
     assignments.splice(index, 1);
     writeJSONFile('assignments.json', assignments);
+
+    if (useFirebase && db) {
+      await db.collection('assignments').doc(req.params.id).delete();
+      // Clean up submissions associated with this assignment in Firestore
+      const subSnap = await db.collection('submissions').where('assignmentId', '==', req.params.id).get();
+      const subBatch = db.batch();
+      subSnap.forEach(doc => subBatch.delete(doc.ref));
+      await subBatch.commit();
+    }
+
     res.json({ message: 'Assignment deleted successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error deleting assignment.', error: error.message });
@@ -1901,7 +2013,7 @@ app.post('/api/achievers', authenticateToken, isAdmin, upload.single('image'), (
 });
 
 // DELETE /api/achievers/:id - Admin Only
-app.delete('/api/achievers/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/achievers/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const id = req.params.id;
     let achievers = readJSONFile('achievers.json');
@@ -1929,14 +2041,61 @@ app.delete('/api/achievers/:id', authenticateToken, isAdmin, (req, res) => {
     achievers.splice(index, 1);
     writeJSONFile('achievers.json', achievers);
 
+    if (useFirebase && db) {
+      await db.collection('achievers').doc(id).delete();
+    }
+
     res.json({ message: 'Achiever removed successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error removing achiever.', error: error.message });
   }
 });
 
+// PUT /api/students/:id - Admin Edit Student (Admin Only)
+app.put('/api/students/:id', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const studentId = req.params.id;
+    const { name, email, password, mobile } = req.body;
+
+    let users = readJSONFile('users.json');
+    const userIndex = users.findIndex(u => u.id === studentId);
+
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'Student not found.' });
+    }
+
+    const user = users[userIndex];
+    if (user.role === 'admin') {
+      return res.status(400).json({ message: 'Cannot edit admin account through this route.' });
+    }
+
+    // Update user properties
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.mobile = mobile !== undefined ? mobile : user.mobile;
+
+    if (password && password !== user.plainPassword && password !== user.password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      user.password = hashedPassword;
+      user.plainPassword = password;
+    }
+
+    writeJSONFile('users.json', users);
+
+    if (useFirebase && db) {
+      const updateData = { ...user };
+      delete updateData.id;
+      await db.collection('users').doc(studentId).set(updateData);
+    }
+
+    res.json({ message: 'Student records updated successfully!', student: user });
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating student record.', error: error.message });
+  }
+});
+
 // DELETE /api/students/:id - Admin Only
-app.delete('/api/students/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/students/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const studentId = req.params.id;
     let users = readJSONFile('users.json');
@@ -1967,6 +2126,29 @@ app.delete('/api/students/:id', authenticateToken, isAdmin, (req, res) => {
     let certificates = readJSONFile('certificates.json');
     certificates = certificates.filter(c => c.studentId !== studentId);
     writeJSONFile('certificates.json', certificates);
+
+    if (useFirebase && db) {
+      // Delete user doc
+      await db.collection('users').doc(studentId).delete();
+
+      // Delete student's enrollments in Firestore
+      const enrollSnap = await db.collection('enrollments').where('studentId', '==', studentId).get();
+      const enrollBatch = db.batch();
+      enrollSnap.forEach(doc => enrollBatch.delete(doc.ref));
+      await enrollBatch.commit();
+
+      // Delete student's payments in Firestore
+      const paySnap = await db.collection('payments').where('studentId', '==', studentId).get();
+      const payBatch = db.batch();
+      paySnap.forEach(doc => payBatch.delete(doc.ref));
+      await payBatch.commit();
+
+      // Delete student's certificates in Firestore
+      const certSnap = await db.collection('certificates').where('studentId', '==', studentId).get();
+      const certBatch = db.batch();
+      certSnap.forEach(doc => certBatch.delete(doc.ref));
+      await certBatch.commit();
+    }
 
     res.json({ message: 'Student and associated records deleted successfully!' });
   } catch (error) {
@@ -2205,7 +2387,7 @@ app.put('/api/quizzes/:id', authenticateToken, isAdmin, (req, res) => {
 });
 
 // 5. Delete a quiz (Admin only)
-app.delete('/api/quizzes/:id', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/quizzes/:id', authenticateToken, isAdmin, async (req, res) => {
   try {
     const quizzes = readJSONFile('quizzes.json');
     const index = quizzes.findIndex(q => q.id === req.params.id);
@@ -2221,6 +2403,15 @@ app.delete('/api/quizzes/:id', authenticateToken, isAdmin, (req, res) => {
     let quizResults = readJSONFile('quizResults.json');
     quizResults = quizResults.filter(r => r.quizId !== req.params.id);
     writeJSONFile('quizResults.json', quizResults);
+
+    if (useFirebase && db) {
+      await db.collection('quizzes').doc(req.params.id).delete();
+
+      const resultsSnap = await db.collection('quizResults').where('quizId', '==', req.params.id).get();
+      const resultsBatch = db.batch();
+      resultsSnap.forEach(doc => resultsBatch.delete(doc.ref));
+      await resultsBatch.commit();
+    }
 
     res.json({ message: 'Quiz deleted successfully!' });
   } catch (error) {
@@ -2632,13 +2823,32 @@ app.post('/api/ai/chat', authenticateToken, async (req, res) => {
   }
 });
 
+const clearCollectionInFirestore = async (collectionName, keepAdmin = false) => {
+  if (!useFirebase || !db) return;
+  try {
+    const snap = await db.collection(collectionName).get();
+    const batch = db.batch();
+    snap.forEach(doc => {
+      if (keepAdmin && collectionName === 'users' && doc.id === 'user_admin_01') return;
+      batch.delete(doc.ref);
+    });
+    await batch.commit();
+    console.log(`[Firestore Clear] Cleared collection "${collectionName}" successfully.`);
+  } catch (err) {
+    console.error(`[Firestore Clear Error] Failed to clear collection "${collectionName}":`, err);
+  }
+};
+
 // DELETE /api/admin/clear-database - Admin clear data
-app.delete('/api/admin/clear-database', authenticateToken, isAdmin, (req, res) => {
+app.delete('/api/admin/clear-database', authenticateToken, isAdmin, async (req, res) => {
   try {
     const type = req.query.type; // 'amount', 'student', or 'all'
     
     if (type === 'amount') {
       writeJSONFile('payments.json', []);
+      if (useFirebase && db) {
+        await clearCollectionInFirestore('payments');
+      }
       return res.json({ message: 'All payment amounts cleared successfully.' });
     }
     
@@ -2648,6 +2858,12 @@ app.delete('/api/admin/clear-database', authenticateToken, isAdmin, (req, res) =
       writeJSONFile('users.json', nonStudents);
       writeJSONFile('enrollments.json', []);
       writeJSONFile('attendance.json', []);
+      
+      if (useFirebase && db) {
+        await clearCollectionInFirestore('users', true);
+        await clearCollectionInFirestore('enrollments');
+        await clearCollectionInFirestore('attendance');
+      }
       return res.json({ message: 'All student records cleared successfully.' });
     }
     
@@ -2665,6 +2881,17 @@ app.delete('/api/admin/clear-database', authenticateToken, isAdmin, (req, res) =
       const users = readJSONFile('users.json');
       const nonStudents = users.filter(u => u.role === 'admin');
       writeJSONFile('users.json', nonStudents);
+      
+      if (useFirebase && db) {
+        const collections = [
+          'payments', 'enrollments', 'courses', 'certificates', 'attendance',
+          'quizzes', 'quizResults', 'assignments', 'submissions'
+        ];
+        for (const col of collections) {
+          await clearCollectionInFirestore(col);
+        }
+        await clearCollectionInFirestore('users', true);
+      }
       
       return res.json({ message: 'Complete database cleared successfully.' });
     }

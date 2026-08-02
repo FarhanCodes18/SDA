@@ -164,6 +164,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Real-Time Account Deletion Listener
+  try {
+    getFirestoreDB().then(db => {
+      db.collection('users').doc(user.id).onSnapshot(doc => {
+        if (!doc.exists) {
+          console.warn("Account deleted by admin. Logging out...");
+          alert("Your account has been deleted by the administration.");
+          Auth.logout();
+        }
+      }, err => {
+        console.warn("Account real-time listener error (likely deleted):", err);
+        if (err.code === 'permission-denied' || err.message?.includes('permission-denied')) {
+          console.warn("Access denied. Logging out...");
+          alert("Your account has been deleted by the administration.");
+          Auth.logout();
+        }
+      });
+    });
+  } catch (err) {
+    console.error("Failed to setup real-time account deletion listener:", err);
+  }
+
   // Initialize Resume Builder
   initResume();
 });

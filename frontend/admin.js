@@ -164,6 +164,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Assignment form listener
   const addAssignForm = document.getElementById('add-assignment-form');
   if (addAssignForm) addAssignForm.addEventListener('submit', handleAddAssignment);
+
+  // Edit Student form listener
+  const editStudentForm = document.getElementById('edit-student-form');
+  if (editStudentForm) editStudentForm.addEventListener('submit', handleEditStudentSubmit);
+
+  // Backup Settings form listener
+  const backupSettingsForm = document.getElementById('backup-settings-form');
+  if (backupSettingsForm) backupSettingsForm.addEventListener('submit', handleBackupSettingsSubmit);
 });
 
 let adminData = {};
@@ -174,6 +182,14 @@ async function loadAdminData() {
   try {
     const data = await apiCall('/admin/data', 'GET', null, true);
     adminData = data;
+
+    // Fetch and display Google Sheets URL
+    apiCall('/admin/backup-settings', 'GET', null, true).then(settings => {
+      const urlInput = document.getElementById('backup-sheet-url');
+      if (urlInput) {
+        urlInput.value = settings.googleSheetsUrl || '';
+      }
+    }).catch(err => console.warn('Failed to load backup settings:', err));
 
     // Sync Firestore data back to local backend JSON storage if running on localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -330,6 +346,9 @@ function renderStudents(students, archivedStudents) {
         <div style="display: flex; gap: 8px;">
           <button onclick="openStudentDetailsModal('${s.id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
             <i class="fas fa-eye"></i> View
+          </button>
+          <button onclick="openEditStudentModal('${s.id}')" class="btn-secondary" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; background: var(--accent-color); border-color: var(--accent-color); color: #fff;">
+            <i class="fas fa-edit"></i> Edit
           </button>
           <button onclick="handleDeleteStudent('${s.id}')" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
             <i class="fas fa-trash-alt"></i> Delete
@@ -1319,6 +1338,8 @@ window.approvePaymentDirectly = approvePaymentDirectly;
 window.handleDeleteStudent = handleDeleteStudent;
 window.openStudentDetailsModal = openStudentDetailsModal;
 window.closeStudentDetailsModal = closeStudentDetailsModal;
+window.openEditStudentModal = openEditStudentModal;
+window.closeEditStudentModal = closeEditStudentModal;
 
 // ==========================================
 // STUDENT PROFILE MODAL & ATTENDANCE LOGIC
@@ -1376,6 +1397,51 @@ function openStudentDetailsModal(studentId) {
 
 function closeStudentDetailsModal() {
   document.getElementById('student-details-modal').classList.remove('active');
+}
+
+function openEditStudentModal(studentId) {
+  const student = adminData.students.find(s => s.id === studentId);
+  if (!student) return;
+
+  document.getElementById('edit-student-id').value = student.id;
+  document.getElementById('edit-student-name').value = student.name;
+  document.getElementById('edit-student-email').value = student.email;
+  document.getElementById('edit-student-password').value = student.plainPassword || student.password || '';
+  document.getElementById('edit-student-mobile').value = student.mobile || '';
+
+  document.getElementById('edit-student-modal').classList.add('active');
+}
+
+function closeEditStudentModal() {
+  document.getElementById('edit-student-modal').classList.remove('active');
+}
+
+async function handleEditStudentSubmit(e) {
+  e.preventDefault();
+
+  const id = document.getElementById('edit-student-id').value;
+  const name = document.getElementById('edit-student-name').value.trim();
+  const email = document.getElementById('edit-student-email').value.trim();
+  const password = document.getElementById('edit-student-password').value.trim();
+  const mobile = document.getElementById('edit-student-mobile').value.trim();
+
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const origHTML = submitBtn.innerHTML;
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Updating... <i class="fas fa-spinner fa-spin"></i>';
+
+    const res = await apiCall(`/students/${id}`, 'PUT', { name, email, password, mobile }, true);
+    showToast(res.message || 'Student updated successfully!', 'success');
+    closeEditStudentModal();
+    await loadAdminData();
+  } catch (error) {
+    showToast(error.message || 'Failed to update student.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = origHTML;
+  }
 }
 
 // ------------------------------------------
@@ -2245,3 +2311,24 @@ async function handleApproveMentorshipSubmit(e) {
 window.openApproveMentorshipModal = openApproveMentorshipModal;
 window.closeApproveMentorshipModal = closeApproveMentorshipModal;
 window.handleApproveMentorshipSubmit = handleApproveMentorshipSubmit;
+
+async function handleBackupSettingsSubmit(e) {
+  e.preventDefault();
+  const url = document.getElementById('backup-sheet-url').value.trim();
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const origHTML = submitBtn.innerHTML;
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Saving... <i class="fas fa-spinner fa-spin"></i>';
+
+    const res = await apiCall('/admin/backup-settings', 'POST', { googleSheetsUrl: url }, true);
+    showToast(res.message || 'Backup settings updated successfully!', 'success');
+  } catch (error) {
+    showToast(error.message || 'Failed to save backup settings.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = origHTML;
+  }
+}
+window.handleBackupSettingsSubmit = handleBackupSettingsSubmit;

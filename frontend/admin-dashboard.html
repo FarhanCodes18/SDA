@@ -67,6 +67,9 @@
         <li class="sidebar-item" data-target="admin-sessions">
           <a href="#"><i class="fas fa-shield-alt"></i> Session Manager</a>
         </li>
+        <li class="sidebar-item" data-target="admin-backup">
+          <a href="#"><i class="fas fa-cloud-upload-alt"></i> Backup Settings</a>
+        </li>
         <li class="sidebar-item" data-target="admin-courses">
           <a href="#"><i class="fas fa-laptop-code"></i> Courses</a>
         </li>
@@ -295,6 +298,30 @@
               <!-- Loaded dynamically -->
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2.6: BACKUP SETTINGS ==================== -->
+      <section id="admin-backup" class="dashboard-panel">
+        <div class="panel-header">
+          <h2>Cloud Backup & Integration Settings</h2>
+        </div>
+        
+        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px; padding: 24px;">
+          <h3 style="font-size: 18px; margin-bottom: 12px;"><i class="fas fa-file-excel" style="color: #10b981; margin-right: 8px;"></i>Google Sheets Live Backup</h3>
+          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">
+            Configure automatic background syncing of student registrations, enrollments, and payment receipts to your personal Google Sheet. No setup costs, 100% free.
+          </p>
+          <form id="backup-settings-form">
+            <div class="form-group">
+              <label for="backup-sheet-url" style="font-weight: 600;">Google Apps Script Web App URL</label>
+              <input type="url" id="backup-sheet-url" class="form-control" placeholder="https://script.google.com/macros/s/.../exec" style="margin-top: 6px;">
+              <small style="color: var(--text-muted); display: block; margin-top: 6px; font-size: 11px;">
+                Enter the deployed Google Apps Script URL. Leave empty to disable background sync.
+              </small>
+            </div>
+            <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Configuration <i class="fas fa-save" style="margin-left: 4px;"></i></button>
+          </form>
         </div>
       </section>
 
@@ -943,6 +970,36 @@
           <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
             <input type="checkbox" id="edit-course-popular" style="width: 18px; height: 18px;">
             <label for="edit-course-popular" style="margin-bottom: 0;">Is Popular Course? (Adds 🔥 POPULAR sticker)</label>
+          </div>
+          <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Save Updates <i class="fas fa-check-double"></i></button>
+        </form>
+      </div>
+    </div>
+  <!-- EDIT STUDENT MODAL -->
+  <div class="modal-overlay" id="edit-student-modal">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Student Information</h3>
+        <button class="modal-close" onclick="closeEditStudentModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="edit-student-form">
+          <input type="hidden" id="edit-student-id">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" class="form-control" id="edit-student-name" required>
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" class="form-control" id="edit-student-email" required>
+          </div>
+          <div class="form-group">
+            <label>Password (Plain)</label>
+            <input type="text" class="form-control" id="edit-student-password" required>
+          </div>
+          <div class="form-group">
+            <label>Mobile Number</label>
+            <input type="text" class="form-control" id="edit-student-mobile">
           </div>
           <button type="submit" class="btn-primary" style="width:100%; justify-content:center;">Save Updates <i class="fas fa-check-double"></i></button>
         </form>

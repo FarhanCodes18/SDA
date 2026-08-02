@@ -420,6 +420,9 @@ async function handleFirebaseRequest(url, init) {
       };
       await db.collection('users').doc(userId).set(newUser);
       
+      // Background backup to Google Sheets
+      sendBackupToGoogleSheets('register', newUser);
+      
       return makeMockResponse({
         message: 'User registered successfully!',
         token: `mock_token_${userId}`,
@@ -764,6 +767,9 @@ async function handleFirebaseRequest(url, init) {
         createdAt: new Date().toISOString()
       };
       await db.collection('enrollments').doc(enrollId).set(newEnrollment);
+      
+      // Background backup to Google Sheets
+      sendBackupToGoogleSheets('enroll', newEnrollment);
       return makeMockResponse({ message: 'Enrollment request created! Complete payment in Dashboard.', enrollment: newEnrollment }, 201);
     }
     
@@ -817,6 +823,9 @@ async function handleFirebaseRequest(url, init) {
       };
       await db.collection('payments').doc(payId).set(newPayment);
       
+      // Background backup to Google Sheets
+      sendBackupToGoogleSheets('payment', newPayment);
+      
       return makeMockResponse({
         message: 'Thank you for your submission! Your course enrollment is pending verification by admin.',
         payment: newPayment
@@ -860,6 +869,9 @@ async function handleFirebaseRequest(url, init) {
       };
       await db.collection('payments').doc(payId).set(newPayment);
       
+      // Background backup to Google Sheets
+      sendBackupToGoogleSheets('payment', newPayment);
+      
       return makeMockResponse({
         message: 'Thank you! Your 3-days demo class registration is pending verification.',
         payment: newPayment
@@ -891,7 +903,7 @@ async function handleFirebaseRequest(url, init) {
       };
       await db.collection('certificates').doc(certId).set(newCertificate);
       
-      await db.collection('payments').doc(payId).set({
+      const paymentData = {
         id: payId,
         orderId: 'manual_order_' + Date.now(),
         paymentId: manualPaymentId,
@@ -905,7 +917,11 @@ async function handleFirebaseRequest(url, init) {
         screenshot,
         status: 'pending',
         date: new Date().toISOString()
-      });
+      };
+      await db.collection('payments').doc(payId).set(paymentData);
+      
+      // Background backup to Google Sheets
+      sendBackupToGoogleSheets('payment', paymentData);
       
       return makeMockResponse({
         message: 'Thank you for your submission! Your certificate will be received in the next 24 hours.',
@@ -1149,6 +1165,33 @@ async function handleFirebaseRequest(url, init) {
       return makeMockResponse({ message: 'Student deleted successfully!' });
     }
 
+    if (pathParts[0] === 'students' && method === 'PUT' && pathParts[1]) {
+      const studentId = pathParts[1];
+      const { name, email, password, mobile } = payload;
+      
+      const userRef = db.collection('users').doc(studentId);
+      const userDoc = await userRef.get();
+      if (!userDoc.exists) {
+        return makeMockResponse({ message: 'Student not found.' }, 404, false);
+      }
+      
+      const updatedData = {
+        name: name || userDoc.data().name,
+        email: email || userDoc.data().email,
+        mobile: mobile !== undefined ? mobile : (userDoc.data().mobile || '')
+      };
+
+      if (password) {
+        const hashedPassword = await sha256(password);
+        updatedData.password = hashedPassword;
+        updatedData.plainPassword = password;
+      }
+
+      await userRef.update(updatedData);
+      const finalUser = (await userRef.get()).data();
+      return makeMockResponse({ message: 'Student updated successfully!', student: finalUser });
+    }
+
     if (pathParts[0] === 'admin' && pathParts[1] === 'payment' && pathParts[2] && method === 'DELETE') {
       const paymentId = pathParts[2];
       await db.collection('payments').doc(paymentId).delete();
@@ -1225,6 +1268,18 @@ async function handleFirebaseRequest(url, init) {
       if (method === 'POST') {
         await db.collection('settings').doc('demo_link').set({ link: payload.link });
         return makeMockResponse({ message: 'Demo link updated successfully!' }, 200);
+      }
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'backup-settings') {
+      if (method === 'GET') {
+        const doc = await db.collection('settings').doc('backup_config').get();
+        return makeMockResponse(doc.exists ? doc.data() : { googleSheetsUrl: '' });
+      }
+      if (method === 'POST') {
+        const { googleSheetsUrl } = payload;
+        await db.collection('settings').doc('backup_config').set({ googleSheetsUrl });
+        return makeMockResponse({ message: 'Backup settings updated successfully!' }, 200);
       }
     }
     
@@ -2772,3 +2827,48 @@ document.addEventListener('contextmenu', (e) => {
     e.preventDefault();
   }
 });
+
+// Google Sheets Backup Dispatcher
+async function sendBackupToGoogleSheets(type, data) {
+  try {
+    const DEFAULT_BACKUP_URL = "https://script.google.com/macros/s/AKfycbynwkWG-eoWiHsvTc5XluTrIKIRqCz4K5sIn8AVQw8qgbLuLh_hYWr7TPAbmkYpMyUh/exec";
+    const payload = { type, ...data };
+    
+    // 1. Dispatch to default URL INSTANTLY to beat any fast page redirects
+    fetch(DEFAULT_BACKUP_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    }).then(() => {
+      console.log(`[Google Sheets Backup] Dispatched backup for ${type} successfully.`);
+    }).catch(err => {
+      console.warn(`[Google Sheets Backup Warn] Failed to dispatch to default URL:`, err);
+    });
+
+    // 2. Fetch custom URL from database in background (if configured and different)
+    try {
+      const db = await getFirestoreDB();
+      const configDoc = await db.collection('settings').doc('backup_config').get();
+      if (configDoc.exists && configDoc.data().googleSheetsUrl) {
+        const customUrl = configDoc.data().googleSheetsUrl;
+        if (customUrl && customUrl !== DEFAULT_BACKUP_URL) {
+          fetch(customUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          }).catch(err => console.warn(`[Google Sheets Backup Warn] Custom URL backup failed:`, err));
+        }
+      }
+    } catch (dbErr) {
+      // Fail silently for DB query in background
+    }
+  } catch (err) {
+    console.warn(`[Google Sheets Backup Error]`, err);
+  }
+}
