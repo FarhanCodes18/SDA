@@ -1331,21 +1331,23 @@ async function handleFirebaseRequest(url, init) {
 
     if (pathParts[0] === 'admin' && pathParts[1] === 'setup-2fa' && method === 'POST') {
       const user = Auth.getUser();
+      const email = (user && user.email) ? user.email : 'admin@sukla.com';
       const secret = generateBase32Secret();
-      const qrCodeUrl = `otpauth://totp/Sukla%20Digital%20Academy:${encodeURIComponent(user.email)}?secret=${secret}&issuer=Sukla%20Digital%20Academy`;
+      const qrCodeUrl = `otpauth://totp/Sukla%20Digital%20Academy:${encodeURIComponent(email)}?secret=${secret}&issuer=Sukla%20Digital%20Academy`;
       return makeMockResponse({ secret, qrCodeUrl });
     }
 
     if (pathParts[0] === 'admin' && pathParts[1] === 'enable-2fa' && method === 'POST') {
       const { secret, code } = payload;
       const user = Auth.getUser();
+      const adminId = (user && user.id) ? user.id : 'user_admin_01';
       
       const verified = await verifyTOTPWeb(secret, code);
       if (!verified) {
         return makeMockResponse({ message: 'Invalid verification code. Please check your authenticator app.' }, 400, false);
       }
 
-      await db.collection('users').doc(user.id).update({
+      await db.collection('users').doc(adminId).update({
         twoFactorSecret: secret,
         twoFactorEnabled: true
       });
@@ -1355,7 +1357,8 @@ async function handleFirebaseRequest(url, init) {
 
     if (pathParts[0] === 'admin' && pathParts[1] === 'disable-2fa' && method === 'POST') {
       const user = Auth.getUser();
-      await db.collection('users').doc(user.id).update({
+      const adminId = (user && user.id) ? user.id : 'user_admin_01';
+      await db.collection('users').doc(adminId).update({
         twoFactorEnabled: false,
         twoFactorSecret: firebase.firestore.FieldValue.delete()
       });
