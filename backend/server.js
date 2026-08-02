@@ -34,6 +34,79 @@ if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
+// --- TWO-FACTOR AUTHENTICATION (TOTP) ENGINE ---
+// Base32 Decoding helper (Google Authenticator secrets are base32)
+function base32Decode(base32) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  let hex = "";
+  
+  const cleaned = base32.replace(/=+$/, "").toUpperCase();
+  for (let i = 0; i < cleaned.length; i++) {
+    const val = alphabet.indexOf(cleaned.charAt(i));
+    if (val === -1) throw new Error("Invalid base32 character");
+    bits += val.toString(2).padStart(5, '0');
+  }
+  
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    const chunk = bits.substr(i, 8);
+    hex += parseInt(chunk, 2).toString(16).padStart(2, '0');
+  }
+  
+  return Buffer.from(hex, 'hex');
+}
+
+// Generate TOTP code based on key (Buffer) and counter (integer)
+function generateTOTP(key, counter) {
+  const buffer = Buffer.alloc(8);
+  buffer.writeBigInt64BE(BigInt(counter));
+  
+  const hmac = crypto.createHmac('sha1', key);
+  hmac.update(buffer);
+  const hmacResult = hmac.digest();
+  
+  const offset = hmacResult[hmacResult.length - 1] & 0xf;
+  const code = ((hmacResult[offset] & 0x7f) << 24) |
+               ((hmacResult[offset + 1] & 0xff) << 16) |
+               ((hmacResult[offset + 2] & 0xff) << 8) |
+               (hmacResult[offset + 3] & 0xff);
+               
+  return (code % 1000000).toString().padStart(6, '0');
+}
+
+// Verify TOTP 6-digit code
+function verifyTOTP(secret, code, window = 1) {
+  try {
+    const key = base32Decode(secret);
+    const epoch = Math.round(new Date().getTime() / 1000.0);
+    const timeStep = 30;
+    const counter = Math.floor(epoch / timeStep);
+    
+    for (let i = -window; i <= window; i++) {
+      const calculated = generateTOTP(key, counter + i);
+      if (calculated === code.trim()) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    console.error('TOTP verification error:', e);
+    return false;
+  }
+}
+
+// Generate a random Base32 string for the 2FA secret (16 chars)
+function generateBase32Secret() {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let secret = "";
+  const randomBytes = crypto.randomBytes(10); // 80 bits of security
+  for (let i = 0; i < randomBytes.length; i++) {
+    secret += alphabet.charAt(randomBytes[i] % 32);
+  }
+  return secret;
+}
+
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, UPLOAD_DIR);
@@ -544,6 +617,19 @@ app.post('/api/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password) || (user.plainPassword && user.plainPassword === password) || (user.password === password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+
+    // Check if 2FA is enabled for this account (requires Authenticator code)
+    if (user.role === 'admin' && user.twoFactorEnabled) {
+      const tempToken = jwt.sign(
+        { id: user.id, role: 'admin', type: 'temp_2fa' },
+        JWT_SECRET,
+        { expiresIn: '5m' }
+      );
+      return res.json({
+        requires2FA: true,
+        tempToken
+      });
     }
 
     // ==========================================
@@ -1765,6 +1851,206 @@ app.post('/api/admin/backup-settings', authenticateToken, isAdmin, async (req, r
     res.json({ message: 'Backup settings updated successfully!' });
   } catch (error) {
     res.status(500).json({ message: 'Error saving backup settings.', error: error.message });
+  }
+});
+
+// POST /api/verify-2fa - Public 2FA Verification Endpoint
+app.post('/api/verify-2fa', async (req, res) => {
+  try {
+    const { code, tempToken } = req.body;
+    if (!code || !tempToken) {
+      return res.status(400).json({ message: 'Code and temporary token are required.' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, JWT_SECRET);
+    } catch (e) {
+      return res.status(401).json({ message: 'Verification session expired. Please log in again.' });
+    }
+
+    if (decoded.type !== 'temp_2fa') {
+      return res.status(401).json({ message: 'Invalid verification token.' });
+    }
+
+    const users = readJSONFile('users.json');
+    const userIndex = users.findIndex(u => u.id === decoded.id);
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'Admin account not found.' });
+    }
+
+    const user = users[userIndex];
+    if (!user.twoFactorSecret) {
+      return res.status(400).json({ message: 'Two-factor authentication is not configured for this account.' });
+    }
+
+    const verified = verifyTOTP(user.twoFactorSecret, code);
+    if (!verified) {
+      return res.status(400).json({ message: 'Invalid authenticator code. Please try again.' });
+    }
+
+    // --- SUCCESS: COMPLETE LOGIN ---
+    const today = new Date().toISOString().split('T')[0];
+    const lastLogin = user.lastLoginDate || null;
+    let streak = user.streak || 0;
+    let longestStreak = user.longestStreak || 0;
+
+    if (lastLogin === today) {
+      // Already logged in today
+    } else if (lastLogin) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      if (lastLogin === yesterdayStr) {
+        streak += 1;
+      } else {
+        streak = 1;
+      }
+    } else {
+      streak = 1;
+    }
+
+    if (streak > longestStreak) longestStreak = streak;
+
+    const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+    users[userIndex].lastLoginDate = today;
+    users[userIndex].streak = streak;
+    users[userIndex].longestStreak = longestStreak;
+    users[userIndex].activeSessionToken = sessionId;
+    writeJSONFile('users.json', users);
+
+    // Sync session token to Firestore
+    if (useFirebase && db) {
+      await db.collection('users').doc(user.id).update({
+        activeSessionToken: sessionId,
+        lastLoginDate: today,
+        streak,
+        longestStreak
+      });
+    }
+
+    if (lastLogin !== today) {
+      awardXP(user.id, 50);
+    }
+
+    // Refresh user object after potentially awarding XP
+    const updatedUsers = readJSONFile('users.json');
+    const freshUser = updatedUsers.find(u => u.id === user.id);
+
+    const token = jwt.sign(
+      { id: freshUser.id, name: freshUser.name, email: freshUser.email, role: freshUser.role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      message: 'Login successful!',
+      token,
+      sessionId,
+      user: {
+        id: freshUser.id,
+        name: freshUser.name,
+        email: freshUser.email,
+        role: freshUser.role,
+        streak: freshUser.streak,
+        longestStreak: freshUser.longestStreak,
+        lastLoginDate: today,
+        xp: freshUser.xp || 0,
+        level: freshUser.level || 1,
+        badges: freshUser.badges || []
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error verifying 2FA.', error: error.message });
+  }
+});
+
+// POST /api/admin/setup-2fa - Initiate Two-Factor Authentication Setup
+app.post('/api/admin/setup-2fa', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const users = readJSONFile('users.json');
+    const user = users.find(u => u.id === adminId);
+    
+    if (!user) {
+      return res.status(404).json({ message: 'Admin account not found.' });
+    }
+
+    const secret = generateBase32Secret();
+    const qrCodeUrl = `otpauth://totp/Sukla%20Digital%20Academy:${encodeURIComponent(user.email)}?secret=${secret}&issuer=Sukla%20Digital%20Academy`;
+    
+    res.json({ secret, qrCodeUrl });
+  } catch (error) {
+    res.status(500).json({ message: 'Error setting up 2FA.', error: error.message });
+  }
+});
+
+// POST /api/admin/enable-2fa - Verify and Enable Two-Factor Authentication
+app.post('/api/admin/enable-2fa', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const { secret, code } = req.body;
+    
+    if (!secret || !code) {
+      return res.status(400).json({ message: 'Secret and verification code are required.' });
+    }
+
+    const verified = verifyTOTP(secret, code);
+    if (!verified) {
+      return res.status(400).json({ message: 'Invalid verification code. Please check your authenticator app.' });
+    }
+
+    const users = readJSONFile('users.json');
+    const userIndex = users.findIndex(u => u.id === adminId);
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'Admin account not found.' });
+    }
+
+    users[userIndex].twoFactorSecret = secret;
+    users[userIndex].twoFactorEnabled = true;
+    writeJSONFile('users.json', users);
+
+    // Sync to Firestore
+    if (useFirebase && db) {
+      await db.collection('users').doc(adminId).update({
+        twoFactorSecret: secret,
+        twoFactorEnabled: true
+      });
+    }
+
+    res.json({ message: 'Two-factor authentication enabled successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error enabling 2FA.', error: error.message });
+  }
+});
+
+// POST /api/admin/disable-2fa - Disable Two-Factor Authentication
+app.post('/api/admin/disable-2fa', authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    
+    const users = readJSONFile('users.json');
+    const userIndex = users.findIndex(u => u.id === adminId);
+    if (userIndex === -1) {
+      return res.status(404).json({ message: 'Admin account not found.' });
+    }
+
+    users[userIndex].twoFactorEnabled = false;
+    delete users[userIndex].twoFactorSecret;
+    writeJSONFile('users.json', users);
+
+    // Sync to Firestore
+    if (useFirebase && db) {
+      await db.collection('users').doc(adminId).update({
+        twoFactorEnabled: false,
+        twoFactorSecret: admin.firestore.FieldValue.delete()
+      });
+    }
+
+    res.json({ message: 'Two-factor authentication disabled successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error disabling 2FA.', error: error.message });
   }
 });
 

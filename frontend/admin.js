@@ -191,6 +191,9 @@ async function loadAdminData() {
       }
     }).catch(err => console.warn('Failed to load backup settings:', err));
 
+    // Fetch and display 2FA settings status
+    load2FAConfig();
+
     // Sync Firestore data back to local backend JSON storage if running on localhost
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
       apiCall('/admin/sync?bypass=true', 'POST', {
@@ -2332,3 +2335,115 @@ async function handleBackupSettingsSubmit(e) {
   }
 }
 window.handleBackupSettingsSubmit = handleBackupSettingsSubmit;
+
+// --- TWO-FACTOR AUTHENTICATION (2FA) CONTROLLERS ---
+let temp2FASecret = null;
+
+async function load2FAConfig() {
+  const statusContainer = document.getElementById('2fa-status-container');
+  const actionsContainer = document.getElementById('2fa-actions-container');
+  if (!statusContainer || !actionsContainer) return;
+
+  try {
+    const user = Auth.getUser();
+    const db = await getFirestoreDB();
+    const doc = await db.collection('users').doc(user.id).get();
+    const userData = doc.exists ? doc.data() : user;
+
+    if (userData.twoFactorEnabled) {
+      statusContainer.innerHTML = `<span class="badge approved" style="background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 50px; font-weight: 700; font-size: 13px;"><i class="fas fa-shield-alt"></i> ENABLED & SECURED</span>`;
+      actionsContainer.innerHTML = `<button onclick="handleDisable2FA()" class="btn-primary" style="background: var(--danger); border-color: var(--danger); box-shadow: none; font-size: 13px; padding: 10px 20px;"><i class="fas fa-unlock"></i> Disable Two-Factor Authentication</button>`;
+    } else {
+      statusContainer.innerHTML = `<span class="badge pending" style="background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 50px; font-weight: 700; font-size: 13px;"><i class="fas fa-exclamation-triangle"></i> DISABLED (UNSECURED)</span>`;
+      actionsContainer.innerHTML = `<button onclick="handleSetup2FA()" class="btn-primary" style="font-size: 13px; padding: 10px 20px;"><i class="fas fa-key"></i> Set Up 2-Factor Authentication</button>`;
+    }
+  } catch (error) {
+    console.warn('Failed to load 2FA configuration:', error);
+    statusContainer.innerHTML = `<span class="badge pending">Error loading 2FA status</span>`;
+  }
+}
+
+async function handleSetup2FA() {
+  try {
+    showToast('Generating 2FA Secret...', 'info');
+    const response = await apiCall('/admin/setup-2fa', 'POST', {}, true);
+    
+    temp2FASecret = response.secret;
+    document.getElementById('2fa-secret-key').innerText = response.secret;
+    
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(response.qrCodeUrl)}`;
+    document.getElementById('2fa-qrcode-img').src = qrUrl;
+    
+    document.getElementById('2fa-verification-code').value = '';
+    document.getElementById('setup-2fa-modal').classList.add('active');
+  } catch (error) {
+    showToast(error.message || 'Failed to setup 2FA.', 'error');
+  }
+}
+
+function closeSetup2FAModal() {
+  document.getElementById('setup-2fa-modal').classList.remove('active');
+  temp2FASecret = null;
+}
+
+async function handleEnable2FASubmit(e) {
+  e.preventDefault();
+  const code = document.getElementById('2fa-verification-code').value.trim();
+  const submitBtn = e.target.querySelector('button[type="submit"]');
+  const origHTML = submitBtn.innerHTML;
+
+  if (!code || code.length !== 6) {
+    showToast('Please enter a valid 6-digit verification code.', 'error');
+    return;
+  }
+
+  try {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = 'Verifying... <i class="fas fa-spinner fa-spin"></i>';
+
+    const res = await apiCall('/admin/enable-2fa', 'POST', { secret: temp2FASecret, code }, true);
+    showToast(res.message || 'Two-factor authentication enabled successfully!', 'success');
+    closeSetup2FAModal();
+    
+    // Update local user cache
+    const user = Auth.getUser();
+    user.twoFactorEnabled = true;
+    Auth.saveUser(user);
+
+    await load2FAConfig();
+  } catch (error) {
+    showToast(error.message || 'Verification failed. Please try again.', 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = origHTML;
+  }
+}
+
+async function handleDisable2FA() {
+  if (!confirm('WARNING: Disabling Two-Factor Authentication will make your Admin Panel account less secure. Are you sure you want to proceed?')) {
+    return;
+  }
+
+  try {
+    showToast('Disabling 2FA...', 'info');
+    const res = await apiCall('/admin/disable-2fa', 'POST', {}, true);
+    showToast(res.message || 'Two-factor authentication disabled successfully.', 'info');
+    
+    // Update local user cache
+    const user = Auth.getUser();
+    user.twoFactorEnabled = false;
+    Auth.saveUser(user);
+
+    await load2FAConfig();
+  } catch (error) {
+    showToast(error.message || 'Failed to disable 2FA.', 'error');
+  }
+}
+
+// Binds to window scope
+window.handleSetup2FA = handleSetup2FA;
+window.closeSetup2FAModal = closeSetup2FAModal;
+window.handleEnable2FASubmit = handleEnable2FASubmit;
+window.handleDisable2FA = handleDisable2FA;
+window.load2FAConfig = load2FAConfig;
+

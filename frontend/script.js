@@ -1298,6 +1298,69 @@ async function handleFirebaseRequest(url, init) {
         return makeMockResponse({ message: 'Backup settings updated successfully!' }, 200);
       }
     }
+
+    // --- 2FA MOCK ENDPOINTS ---
+    if (pathParts[0] === 'verify-2fa' && method === 'POST') {
+      const { code, tempToken } = payload;
+      
+      // Decode tempToken to get user ID
+      let adminId = 'user_admin_01'; // Default admin
+      if (tempToken && tempToken.startsWith('mock_temp_token_')) {
+        adminId = tempToken.replace('mock_temp_token_', '');
+      }
+
+      const adminDoc = await db.collection('users').doc(adminId).get();
+      if (!adminDoc.exists) return makeMockResponse({ message: 'Admin account not found.' }, 404, false);
+      const adminData = adminDoc.data();
+
+      const verified = await verifyTOTPWeb(adminData.twoFactorSecret, code);
+      if (!verified) {
+        return makeMockResponse({ message: 'Invalid authenticator code. Please try again.' }, 400, false);
+      }
+
+      const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+      await db.collection('users').doc(adminId).update({ activeSessionToken: sessionId });
+
+      return makeMockResponse({
+        message: 'Login successful!',
+        token: `mock_token_${adminId}`,
+        sessionId,
+        user: { id: adminId, name: adminData.name, email: adminData.email, role: 'admin' }
+      });
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'setup-2fa' && method === 'POST') {
+      const user = Auth.getUser();
+      const secret = generateBase32Secret();
+      const qrCodeUrl = `otpauth://totp/Sukla%20Digital%20Academy:${encodeURIComponent(user.email)}?secret=${secret}&issuer=Sukla%20Digital%20Academy`;
+      return makeMockResponse({ secret, qrCodeUrl });
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'enable-2fa' && method === 'POST') {
+      const { secret, code } = payload;
+      const user = Auth.getUser();
+      
+      const verified = await verifyTOTPWeb(secret, code);
+      if (!verified) {
+        return makeMockResponse({ message: 'Invalid verification code. Please check your authenticator app.' }, 400, false);
+      }
+
+      await db.collection('users').doc(user.id).update({
+        twoFactorSecret: secret,
+        twoFactorEnabled: true
+      });
+
+      return makeMockResponse({ message: 'Two-factor authentication enabled successfully!' });
+    }
+
+    if (pathParts[0] === 'admin' && pathParts[1] === 'disable-2fa' && method === 'POST') {
+      const user = Auth.getUser();
+      await db.collection('users').doc(user.id).update({
+        twoFactorEnabled: false,
+        twoFactorSecret: firebase.firestore.FieldValue.delete()
+      });
+      return makeMockResponse({ message: 'Two-factor authentication disabled successfully.' });
+    }
     
     if (pathParts[0] === 'admin' && pathParts[1] === 'demo' && pathParts[2] === 'approve' && method === 'PUT') {
       const { enrollmentId, studentId, meetingLink } = payload;
@@ -2891,4 +2954,83 @@ async function sendBackupToGoogleSheets(type, data) {
   } catch (err) {
     console.warn(`[Google Sheets Backup Error]`, err);
   }
+}
+
+// Base32 Decoding helper for client-side
+function base32Decode(base32) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = "";
+  let bytes = [];
+  
+  const cleaned = base32.replace(/=+$/, "").toUpperCase();
+  for (let i = 0; i < cleaned.length; i++) {
+    const val = alphabet.indexOf(cleaned.charAt(i));
+    if (val === -1) throw new Error("Invalid base32 character");
+    bits += val.toString(2).padStart(5, '0');
+  }
+  
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    const chunk = bits.substr(i, 8);
+    bytes.push(parseInt(chunk, 2));
+  }
+  
+  return new Uint8Array(bytes);
+}
+
+// Generate TOTP code using Web Crypto API
+async function generateTOTPWeb(secretBase32, counter) {
+  const keyBytes = base32Decode(secretBase32);
+  const buffer = new ArrayBuffer(8);
+  const view = new DataView(buffer);
+  
+  // Set counter as 64-bit integer
+  view.setUint32(4, counter);
+  
+  const cryptoKey = await window.crypto.subtle.importKey(
+    "raw",
+    keyBytes,
+    { name: "HMAC", hash: { name: "SHA-1" } },
+    false,
+    ["sign"]
+  );
+  
+  const signature = await window.crypto.subtle.sign("HMAC", cryptoKey, buffer);
+  const hmacResult = new Uint8Array(signature);
+  
+  const offset = hmacResult[hmacResult.length - 1] & 0xf;
+  const code = ((hmacResult[offset] & 0x7f) << 24) |
+               ((hmacResult[offset + 1] & 0xff) << 16) |
+               ((hmacResult[offset + 2] & 0xff) << 8) |
+               (hmacResult[offset + 3] & 0xff);
+               
+  return (code % 1000000).toString().padStart(6, '0');
+}
+
+// Verify TOTP 6-digit code on the client side
+async function verifyTOTPWeb(secret, code, windowSize = 1) {
+  try {
+    const epoch = Math.round(new Date().getTime() / 1000.0);
+    const counter = Math.floor(epoch / 30);
+    
+    for (let i = -windowSize; i <= windowSize; i++) {
+      const calculated = await generateTOTPWeb(secret, counter + i);
+      if (calculated === code.trim()) {
+        return true;
+      }
+    }
+    return false;
+  } catch (e) {
+    console.error('Client TOTP verification error:', e);
+    return false;
+  }
+}
+
+// Generate random Base32 secret on client
+function generateBase32Secret() {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let secret = "";
+  for (let i = 0; i < 16; i++) {
+    secret += alphabet.charAt(Math.floor(Math.random() * 32));
+  }
+  return secret;
 }

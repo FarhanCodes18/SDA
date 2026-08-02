@@ -320,8 +320,22 @@
                 Enter the deployed Google Apps Script URL. Leave empty to disable background sync.
               </small>
             </div>
-            <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Configuration <i class="fas fa-save" style="margin-left: 4px;"></i></button>
+             <button type="submit" class="btn-primary" style="margin-top: 10px;">Save Configuration <i class="fas fa-save" style="margin-left: 4px;"></i></button>
           </form>
+        </div>
+
+        <!-- Two-Factor Authentication Settings Card -->
+        <div class="glass-card form-group" style="max-width: 600px; margin-bottom: 40px; padding: 24px;">
+          <h3 style="font-size: 18px; margin-bottom: 12px;"><i class="fas fa-shield-alt" style="color: var(--accent-color); margin-right: 8px;"></i>Admin Account 2-Factor Security</h3>
+          <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; line-height: 1.5;">
+            Secure your Admin Panel login. Once enabled, entering your email and password will require a 6-digit Google Authenticator code.
+          </p>
+          <div id="2fa-status-container" style="margin-bottom: 16px;">
+            <span class="badge pending">Checking 2FA Status...</span>
+          </div>
+          <div id="2fa-actions-container">
+            <!-- Buttons dynamically populated -->
+          </div>
         </div>
       </section>
 
@@ -1148,6 +1162,39 @@
           <div style="margin-top: 24px; display: flex; gap: 10px;">
             <button type="button" class="btn-secondary" style="flex: 1; justify-content: center;" onclick="closeResetModal()">Cancel</button>
             <button type="submit" class="btn-primary" style="flex: 1; justify-content: center; background: var(--danger); border-color: var(--danger); box-shadow: none;">Confirm Reset</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  <!-- 2FA SETUP MODAL -->
+  <div class="modal-overlay" id="setup-2fa-modal">
+    <div class="modal-content" style="max-width: 450px; text-align: center;">
+      <div class="modal-header">
+        <h3 class="modal-title">Setup 2-Factor Authentication</h3>
+        <button class="modal-close" onclick="closeSetup2FAModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" style="padding-top: 10px;">
+        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 20px; line-height: 1.4;">
+          Scan the QR code below using your Google Authenticator or Microsoft Authenticator app.
+        </p>
+        
+        <div style="background: white; padding: 12px; display: inline-block; border-radius: 8px; margin-bottom: 16px;">
+          <img id="2fa-qrcode-img" src="" alt="Scan QR Code" style="width: 200px; height: 200px; display: block; margin: 0 auto;">
+        </div>
+
+        <div style="margin-bottom: 20px; text-align: left;">
+          <label style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 4px;">Manual Entry Key</label>
+          <code id="2fa-secret-key" style="font-family: monospace; font-size: 14px; font-weight: 700; background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 4px; display: block; word-break: break-all; border: 1px solid var(--border-color);">LOADING_SECRET...</code>
+        </div>
+
+        <form id="enable-2fa-form" onsubmit="handleEnable2FASubmit(event)">
+          <div class="form-group" style="text-align: left;">
+            <label for="2fa-verification-code">Authenticator Code</label>
+            <input type="text" id="2fa-verification-code" class="form-control" placeholder="6-digit code" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" required style="margin-top: 6px;">
+          </div>
+          <div style="margin-top: 24px; display: flex; gap: 10px;">
+            <button type="button" class="btn-secondary" style="flex: 1; justify-content: center;" onclick="closeSetup2FAModal()">Cancel</button>
+            <button type="submit" class="btn-primary" style="flex: 1; justify-content: center;">Verify & Enable</button>
           </div>
         </form>
       </div>
