@@ -2371,8 +2371,13 @@ async function handleSetup2FA() {
     temp2FASecret = response.secret;
     document.getElementById('2fa-secret-key').innerText = response.secret;
     
-    const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(response.qrCodeUrl)}&size=200`;
-    document.getElementById('2fa-qrcode-img').src = qrUrl;
+    const container = document.getElementById('2fa-qrcode-container');
+    container.innerHTML = ''; // clear any old qr
+    new QRCode(container, {
+      text: response.qrCodeUrl,
+      width: 200,
+      height: 200
+    });
     
     document.getElementById('2fa-verification-code').value = '';
     document.getElementById('setup-2fa-modal').classList.add('active');
