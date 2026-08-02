@@ -164,13 +164,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Real-Time Account Deletion Listener
+  // Real-Time Account Deletion & Session Lock Listener
   try {
     getFirestoreDB().then(db => {
       db.collection('users').doc(user.id).onSnapshot(doc => {
         if (!doc.exists) {
           console.warn("Account deleted by admin. Logging out...");
           alert("Your account has been deleted by the administration.");
+          Auth.logout();
+          return;
+        }
+
+        const data = doc.data();
+        const localSessionId = localStorage.getItem('sda_session_id');
+        
+        // Single Session Lock Check
+        if (data.activeSessionToken && localSessionId && data.activeSessionToken !== localSessionId) {
+          console.warn("New session detected on another device. Logging out...");
+          alert("You have been logged out because this account was logged in from another device.");
           Auth.logout();
         }
       }, err => {

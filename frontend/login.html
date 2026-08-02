@@ -139,7 +139,7 @@
         try {
           const response = await apiCall('/login', 'POST', { email, password }, false);
           
-          Auth.saveToken(response.token);
+          Auth.saveToken(response.token, response.sessionId);
           Auth.saveUser(response.user);
 
           showToast('Login successful! Redirecting...', 'success');

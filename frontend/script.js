@@ -408,6 +408,7 @@ async function handleFirebaseRequest(url, init) {
       }
       
       const userId = 'user_' + Date.now();
+      const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
       const newUser = {
         id: userId,
         name: name.trim(),
@@ -416,6 +417,7 @@ async function handleFirebaseRequest(url, init) {
         password: await sha256(password),
         plainPassword: password,
         role: 'student',
+        activeSessionToken: sessionId,
         createdAt: new Date().toISOString()
       };
       await db.collection('users').doc(userId).set(newUser);
@@ -426,6 +428,7 @@ async function handleFirebaseRequest(url, init) {
       return makeMockResponse({
         message: 'User registered successfully!',
         token: `mock_token_${userId}`,
+        sessionId,
         user: { id: userId, name: newUser.name, email: newUser.email, role: 'student' }
       }, 201);
     }
@@ -454,9 +457,13 @@ async function handleFirebaseRequest(url, init) {
         }
       }
       
+      const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+      await db.collection('users').doc(userData.id).update({ activeSessionToken: sessionId });
+      
       return makeMockResponse({
         message: 'Login successful!',
         token: `mock_token_${userData.id}`,
+        sessionId,
         user: { id: userData.id, name: userData.name, email: userData.email, role: userData.role }
       });
     }
@@ -1904,8 +1911,11 @@ const Auth = {
   inactivityTimer: null,
   warningShown: false,
 
-  saveToken(token) {
+  saveToken(token, sessionId = null) {
     sessionStorage.setItem('sda_token', token);
+    if (sessionId) {
+      localStorage.setItem('sda_session_id', sessionId);
+    }
   },
   getToken() {
     return sessionStorage.getItem('sda_token');
@@ -1913,6 +1923,7 @@ const Auth = {
   removeToken() {
     sessionStorage.removeItem('sda_token');
     sessionStorage.removeItem('sda_user');
+    localStorage.removeItem('sda_session_id');
   },
   saveUser(user) {
     sessionStorage.setItem('sda_user', JSON.stringify(user));

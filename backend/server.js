@@ -462,6 +462,7 @@ app.post('/api/register', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const assignedRole = email.toLowerCase() === 'admin@sukla.com' ? 'admin' : 'student';
 
+    const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
     const newUser = {
       id: 'user_' + Date.now(),
       name,
@@ -470,6 +471,7 @@ app.post('/api/register', async (req, res) => {
       password: hashedPassword,
       plainPassword: password,
       role: assignedRole,
+      activeSessionToken: sessionId,
       createdAt: new Date().toISOString()
     };
 
@@ -508,6 +510,7 @@ app.post('/api/register', async (req, res) => {
     res.status(201).json({
       message: 'User registered successfully!',
       token,
+      sessionId,
       user: {
         id: newUser.id,
         name: newUser.name,
@@ -572,10 +575,17 @@ app.post('/api/login', async (req, res) => {
 
     if (streak > longestStreak) longestStreak = streak;
 
+    const sessionId = 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
     users[userIndex].lastLoginDate = today;
     users[userIndex].streak = streak;
     users[userIndex].longestStreak = longestStreak;
+    users[userIndex].activeSessionToken = sessionId;
     writeJSONFile('users.json', users);
+
+    // Sync to Firestore if active
+    if (useFirebase && db) {
+      await db.collection('users').doc(user.id).update({ activeSessionToken: sessionId });
+    }
 
     if (lastLogin !== today) {
       awardXP(user.id, 50);
@@ -594,6 +604,7 @@ app.post('/api/login', async (req, res) => {
     res.json({
       message: 'Login successful!',
       token,
+      sessionId,
       user: {
         id: freshUser.id,
         name: freshUser.name,
