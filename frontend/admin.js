@@ -2371,7 +2371,7 @@ async function handleSetup2FA() {
     temp2FASecret = response.secret;
     document.getElementById('2fa-secret-key').innerText = response.secret;
     
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(response.qrCodeUrl)}`;
+    const qrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(response.qrCodeUrl)}&size=200`;
     document.getElementById('2fa-qrcode-img').src = qrUrl;
     
     document.getElementById('2fa-verification-code').value = '';
