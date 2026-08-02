@@ -629,6 +629,13 @@ function renderCertificateView(certificates, purchasedCourses) {
               : 'Thanks for payment. Your certificate will be sent on WhatsApp and Email.'
             }
           </p>
+          ${isReady ? `
+            <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
+              <a href="verify.html?id=${validCerts[0].id}" target="_blank" class="btn-primary" style="padding: 8px 16px; font-size: 13px; text-decoration: none; min-height: unset; box-shadow: none;">
+                <i class="fas fa-certificate"></i> View & Share Certificate
+              </a>
+            </div>
+          ` : ''}
           <div style="text-align: left; font-size: 13px; color: var(--text-secondary); margin-top: 20px;">
             <p><strong>Candidate Name:</strong> ${validCerts[0].name}</p>
             <p><strong>Course Program:</strong> ${validCerts[0].courseName}</p>

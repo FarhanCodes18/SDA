@@ -1133,6 +1133,15 @@ async function handleFirebaseRequest(url, init) {
       return makeMockResponse({ message: 'Payment status updated manually!' });
     }
     
+    if (pathParts[0] === 'certificates' && pathParts[1] === 'verify' && pathParts[2]) {
+      const certId = pathParts[2];
+      const doc = await db.collection('certificates').doc(certId).get();
+      if (!doc.exists) {
+        return makeMockResponse({ message: 'Certificate not found.' }, 404, false);
+      }
+      return makeMockResponse(doc.data());
+    }
+
     if (pathParts[0] === 'certificates' && pathParts[2] === 'status' && method === 'PUT') {
       const certId = pathParts[1];
       const { status } = payload;

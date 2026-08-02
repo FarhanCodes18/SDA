@@ -1256,6 +1256,30 @@ app.post('/api/certificate-request', authenticateToken, async (req, res) => {
   }
 });
 
+// GET /api/certificates/verify/:id - Public Verification Endpoint
+app.get('/api/certificates/verify/:id', async (req, res) => {
+  try {
+    const certId = req.params.id;
+    
+    if (useFirebase && db) {
+      const doc = await db.collection('certificates').doc(certId).get();
+      if (!doc.exists) {
+        return res.status(404).json({ message: 'Certificate not found.' });
+      }
+      return res.json(doc.data());
+    } else {
+      const certs = readJSONFile('certificates.json');
+      const cert = certs.find(c => c.id === certId);
+      if (!cert) {
+        return res.status(404).json({ message: 'Certificate not found.' });
+      }
+      return res.json(cert);
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Error verifying certificate.', error: error.message });
+  }
+});
+
 // Get all certificates (Admin only)
 app.get('/api/certificates', authenticateToken, isAdmin, (req, res) => {
   try {

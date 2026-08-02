@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificate Verification - Sukla Digital Academy</title>
+  <!-- Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Great+Vibes&display=swap">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Styling variables matching SDA Design System */
+    :root {
+      --bg-primary: #0a0a0c;
+      --bg-secondary: #121218;
+      --accent-gradient: linear-gradient(135deg, #ff416c, #ff4b2b);
+      --accent-color: #ff4b2b;
+      --accent-glow: rgba(255, 75, 43, 0.45);
+      --text-primary: #ffffff;
+      --text-secondary: #a0a0ab;
+      --text-muted: #626270;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --glass-bg: rgba(20, 20, 28, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.06);
+      --success: #10b981;
+      --shadow-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-header: 'Outfit', sans-serif;
+    }
+
+    body.light-theme {
+      --bg-primary: #f5f6fa;
+      --bg-secondary: #ffffff;
+      --text-primary: #111116;
+      --text-secondary: #525262;
+      --text-muted: #888896;
+      --border-color: rgba(0, 0, 0, 0.08);
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(0, 0, 0, 0.06);
+      --shadow-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--glass-border);
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      z-index: 10;
+    }
+
+    .header-container {
+      width: 90%;
+      max-width: 1200px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-family: var(--font-header);
+      font-size: 20px;
+      font-weight: 800;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo img {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--accent-color);
+      object-fit: cover;
+    }
+
+    .main-container {
+      flex: 1;
+      width: 90%;
+      max-width: 1000px;
+      margin: 40px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+
+    .verify-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: var(--shadow-glow);
+      width: 100%;
+      max-width: 850px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      padding: 8px 18px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .verify-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .verify-subtitle {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .metadata-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    body.light-theme .metadata-grid {
+      background: rgba(0, 0, 0, 0.02);
+    }
+
+    .metadata-item label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .metadata-item span {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .actions-row {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px var(--accent-glow);
+      font-family: var(--font-main);
+      text-decoration: none;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1.5px solid var(--border-color);
+      padding: 11px 22px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-main);
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--text-secondary);
+    }
+
+    body.light-theme .btn-secondary:hover {
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    /* ==========================================
+       PREMIUM CERTIFICATE FRAME PREVIEW
+       ========================================== */
+    .certificate-frame {
+      width: 100%;
+      max-width: 850px;
+      aspect-ratio: 1.414; /* A4 Landscape Proportion */
+      background: #fafaf8;
+      border: 15px solid #2c3e50;
+      padding: 40px;
+      position: relative;
+      color: #1a1a1a;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-sizing: border-box;
+      border-image: linear-gradient(135deg, #d4af37, #aa7c11) 20;
+    }
+
+    .cert-inner-border {
+      border: 2px dashed #aa7c11;
+      height: 100%;
+      width: 100%;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+
+    .cert-header {
+      font-family: var(--font-header);
+      font-size: 26px;
+      font-weight: 800;
+      color: #2c3e50;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .cert-academy-logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid #aa7c11;
+      object-fit: cover;
+      margin-bottom: 5px;
+    }
+
+    .cert-subtitle {
+      font-size: 13px;
+      color: #7f8c8d;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      margin-top: 5px;
+    }
+
+    .cert-presentation {
+      font-size: 14px;
+      font-style: italic;
+      color: #555;
+      margin-top: 15px;
+    }
+
+    .cert-student-name {
+      font-family: var(--font-header);
+      font-size: 34px;
+      font-weight: 800;
+      color: #c0392b;
+      margin: 15px 0;
+      border-bottom: 2px solid #eee;
+      padding-bottom: 5px;
+      min-width: 300px;
+    }
+
+    .cert-text {
+      font-size: 13px;
+      line-height: 1.6;
+      color: #444;
+      max-width: 600px;
+    }
+
+    .cert-course-title {
+      font-weight: 700;
+      color: #2c3e50;
+    }
+
+    .cert-footer {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 25px;
+    }
+
+    .cert-qr-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cert-qr-img {
+      width: 75px;
+      height: 75px;
+      border: 1px solid #ddd;
+      padding: 2px;
+      background: white;
+    }
+
+    .cert-qr-label {
+      font-size: 8px;
+      color: #7f8c8d;
+      letter-spacing: 1px;
+    }
+
+    .cert-signature-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .cert-signature-img {
+      font-family: 'Great Vibes', cursive;
+      font-size: 26px;
+      color: #2c3e50;
+      margin-bottom: 0px;
+    }
+
+    .cert-signature-line {
+      width: 150px;
+      height: 1px;
+      background: #7f8c8d;
+      margin-bottom: 5px;
+    }
+
+    .cert-signature-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: #7f8c8d;
+      text-transform: uppercase;
+    }
+
+    .cert-id-stamp {
+      font-size: 9px;
+      color: #7f8c8d;
+      font-family: monospace;
+    }
+
+    /* Error and loading state styling */
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin: 80px 0;
+    }
+
+    .spinner {
+      border: 4px solid var(--border-color);
+      border-top: 4px solid var(--accent-color);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-card {
+      text-align: center;
+      padding: 40px;
+      max-width: 500px;
+      margin: 80px auto;
+    }
+
+    .error-icon {
+      font-size: 48px;
+      color: var(--danger);
+      margin-bottom: 20px;
+    }
+
+    /* ==========================================
+       PRINT MEDIA STYLES - CRITICAL FOR PDF
+       ========================================== */
+    @media print {
+      /* Hide everything except the certificate frame */
+      body, html {
+        background: #ffffff;
+        color: #000000;
+        width: 297mm;
+        height: 210mm;
+      }
+      
+      header, .verify-card, .actions-row, .verify-title, .verify-subtitle, .status-badge, .metadata-grid {
+        display: none !important;
+      }
+      
+      .main-container {
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+      }
+
+      .certificate-frame {
+        width: 297mm !important;
+        height: 210mm !important;
+        max-width: 100% !important;
+        border: 15px solid #2c3e50 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        page-break-inside: avoid;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header Navbar -->
+  <header>
+    <div class="header-container">
+      <a href="index.html" class="logo">
+        <img src="assets/logo.png" alt="SDA Logo">
+        Sukla Digital Academy
+      </a>
+      <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Credential Registry</span>
+    </div>
+  </header>
+
+  <!-- Content Container -->
+  <div class="main-container" id="content-area">
+    <!-- Spinner loader while loading -->
+    <div class="loader-container" id="loading-spinner">
+      <div class="spinner"></div>
+      <p style="color: var(--text-secondary);">Verifying credential authenticity...</p>
+    </div>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    // Firebase Config matches SDA project
+    const firebaseConfig = {
+      apiKey: "AIzaSyBN28meMW5FXm9Y21LfeorX87djgRVgv6c",
+      authDomain: "sukla-digital-academy.firebaseapp.com",
+      projectId: "sukla-digital-academy",
+      storageBucket: "sukla-digital-academy.firebasestorage.app",
+      messagingSenderId: "995408196238",
+      appId: "1:995408196238:web:7de5b13ea979e03759cfdf"
+    };
+
+    // Global configurations
+    const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:'
+      ? 'http://localhost:5000/api'
+      : 'https://sda-gb0m.onrender.com/api';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Apply theme
+      const currentTheme = localStorage.getItem('sda_theme') || 'dark';
+      if (currentTheme === 'light') {
+        document.body.classList.add('light-theme');
+      }
+
+      const params = new URLSearchParams(window.location.search);
+      const certId = params.get('id');
+
+      const contentArea = document.getElementById('content-area');
+      const spinner = document.getElementById('loading-spinner');
+
+      if (!certId) {
+        showError("Invalid Credential Link", "No Certificate ID was provided in the URL query string.");
+        return;
+      }
+
+      try {
+        let certData = null;
+
+        // Try direct Firestore loading first
+        try {
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+          }
+          const db = firebase.firestore();
+          const doc = await db.collection('certificates').doc(certId).get();
+          if (doc.exists) {
+            certData = doc.data();
+          }
+        } catch (dbErr) {
+          console.warn("Direct Firestore retrieval failed, falling back to API:", dbErr);
+        }
+
+        // If direct DB failed, fallback to backend API
+        if (!certData) {
+          const apiRes = await fetch(`${API_URL}/certificates/verify/${certId}`);
+          if (apiRes.ok) {
+            certData = await apiRes.json();
+          }
+        }
+
+        // Validate data and status
+        if (!certData || (certData.status !== 'completed' && certData.status !== 'approved')) {
+          showError("Credential Not Found", `Certificate ID "${certId}" is either invalid, unapproved, or has not been issued yet.`);
+          return;
+        }
+
+        // Hide spinner and render elements
+        spinner.style.display = 'none';
+        renderVerificationPage(certId, certData);
+
+      } catch (err) {
+        console.error("Verification error:", err);
+        showError("Verification Engine Error", "Failed to connect to verification servers. Please try again later.");
+      }
+    });
+
+    function showError(title, message) {
+      const contentArea = document.getElementById('content-area');
+      contentArea.innerHTML = `
+        <div class="glass-card error-card">
+          <div class="error-icon"><i class="fas fa-exclamation-triangle"></i></div>
+          <h2 class="verify-title">${title}</h2>
+          <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">${message}</p>
+          <a href="index.html" class="btn-secondary"><i class="fas fa-home"></i> Back to Homepage</a>
+        </div>
+      `;
+    }
+
+    function renderVerificationPage(id, data) {
+      const contentArea = document.getElementById('content-area');
+      const dateStr = new Date(data.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' });
+      const qrDataUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}`;
+      
+      // Build LinkedIn Add to Profile URL
+      const shareName = encodeURIComponent(`Verified Course Certificate in ${data.courseName}`);
+      const shareUrl = encodeURIComponent(window.location.href);
+      const linkedInUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${shareName}&organizationName=Sukla%20Digital%20Academy&certId=${id}&certUrl=${shareUrl}`;
+
+      contentArea.innerHTML = `
+        <!-- Verification Summary Card -->
+        <div class="verify-card">
+          <div class="status-badge">
+            <i class="fas fa-shield-alt"></i> VERIFIED CREDENTIAL
+          </div>
+          <h2 class="verify-title">SDA Certification Verification</h2>
+          <p class="verify-subtitle">This page confirms that the digital certificate associated with the ID below is authentic and issued by Sukla Digital Academy.</p>
+          
+          <div class="metadata-grid">
+            <div class="metadata-item">
+              <label>Student Name</label>
+              <span>${data.name}</span>
+            </div>
+            <div class="metadata-item">
+              <label>Course Title</label>
+              <span>${data.courseName}</span>
+            </div>
+            <div class="metadata-item">
+              <label>Certificate ID</label>
+              <span style="font-family: monospace; font-size: 13px;">${id}</span>
+            </div>
+            <div class="metadata-item">
+              <label>Issue Date</label>
+              <span>${dateStr}</span>
+            </div>
+          </div>
+
+          <div class="actions-row">
+            <button onclick="window.print()" class="btn-primary">
+              <i class="fas fa-download"></i> Download PDF / Print
+            </button>
+            <a href="${linkedInUrl}" target="_blank" class="btn-secondary" style="background: #0a66c2; border-color: #0a66c2; color: #ffffff;">
+              <i class="fab fa-linkedin"></i> Add to LinkedIn
+            </a>
+          </div>
+        </div>
+
+        <!-- Premium Landscape Certificate Frame -->
+        <div class="certificate-frame">
+          <div class="cert-inner-border">
+            <div style="display:flex; flex-direction:column; align-items:center;">
+              <img src="assets/logo.png" class="cert-academy-logo" alt="SDA Logo">
+              <div class="cert-header">Sukla Digital Academy</div>
+              <div class="cert-subtitle">E-Learning & Innovation Hub</div>
+            </div>
+            
+            <div>
+              <div class="cert-presentation">This is to certify that</div>
+              <div class="cert-student-name">${data.name}</div>
+              <div class="cert-text">
+                has successfully completed all assignments, examinations, and project work for the professional certification course in <span class="cert-course-title">${data.courseName}</span> with distinction.
+              </div>
+            </div>
+            
+            <div class="cert-footer">
+              <div class="cert-qr-container">
+                <img src="${qrDataUrl}" class="cert-qr-img" alt="Verification QR">
+                <div class="cert-qr-label">SCAN TO VERIFY</div>
+              </div>
+              
+              <div class="cert-id-stamp">
+                <div>DATE ISSUED: ${dateStr}</div>
+                <div>CERTIFICATE ID: ${id}</div>
+              </div>
+              
+              <div class="cert-signature-container">
+                <div class="cert-signature-img">Ajay Shukla</div>
+                <div class="cert-signature-line"></div>
+                <div class="cert-signature-title">Founder & Instructor</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  </script>
+</body>
+</html>
