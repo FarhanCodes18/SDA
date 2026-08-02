@@ -620,6 +620,8 @@ app.post('/api/login', async (req, res) => {
     }
 
     // Check if 2FA is enabled for this account (requires Authenticator code)
+    // DISABLED: 2FA feature has been turned off by the user.
+    /*
     if (user.role === 'admin' && user.twoFactorEnabled) {
       const tempToken = jwt.sign(
         { id: user.id, role: 'admin', type: 'temp_2fa' },
@@ -631,6 +633,7 @@ app.post('/api/login', async (req, res) => {
         tempToken
       });
     }
+    */
 
     // ==========================================
     // STREAK TRACKER: Update login streak
